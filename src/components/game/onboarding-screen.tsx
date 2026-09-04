@@ -26,7 +26,7 @@ const PAGES = [
   {
     title: "Learn by playing",
     subtitle: "No pressure. No punishment.",
-    body: "Practice waits. Strike trains timing. Duel: pick a higher note that blends — safe keys glow, and a ghost helps if you clash. Miss a few days? A five-note warm-up restores the blade.",
+    body: "Every level opens with a short lesson you can hear as well as read. Practice waits. Strike trains timing. Duel: pick a higher note that blends — safe keys glow, and a ghost helps if you clash. Miss a few days? A five-note warm-up restores the blade.",
   },
   {
     title: "Ready to begin?",
@@ -104,8 +104,7 @@ export function OnboardingScreen() {
               className="h-1.5 rounded-full transition-[width,background-color] duration-[var(--motion-fast)]"
               style={{
                 width: i === page ? 22 : 8,
-                background:
-                  i === page ? "var(--color-parchment)" : "var(--color-ink-3)",
+                background: i === page ? "var(--color-parchment)" : "var(--color-ink-3)",
               }}
             />
           ))}

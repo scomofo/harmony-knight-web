@@ -238,8 +238,7 @@ function draw(
 
   if (flash && t - flash.t < 0.18) {
     const x = pad + flash.lane * laneW;
-    ctx.fillStyle =
-      flash.kind === "miss" ? "rgba(180,70,50,0.22)" : "rgba(111,158,175,0.28)";
+    ctx.fillStyle = flash.kind === "miss" ? "rgba(180,70,50,0.22)" : "rgba(111,158,175,0.28)";
     ctx.fillRect(x, hitY - 28, laneW, 56);
   }
 

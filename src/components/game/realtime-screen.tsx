@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { playSuccess } from "@/lib/game/audio";
+import { playLevelUp, playSuccess } from "@/lib/game/audio";
 import { buildTrainingChart, type ChartNote, type HitWindow } from "@/lib/game/realtime";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export function RealtimeScreen() {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
   const [hud, setHud] = useState({ score: 0, combo: 0, last: "" });
+  const [leveled, setLeveled] = useState<number | null>(null);
   const statsRef = useRef<HighwayStats>({
     score: 0,
     combo: 0,
@@ -35,7 +36,11 @@ export function RealtimeScreen() {
   const onHit = useCallback(
     (_note: ChartNote, rating: HitWindow) => {
       onHud();
-      recordRealtime(rating !== "miss");
+      const judged = recordRealtime(rating !== "miss");
+      if (judged.leveledUp) {
+        playLevelUp();
+        setLeveled(judged.newGrade);
+      }
     },
     [onHud, recordRealtime],
   );
@@ -50,6 +55,7 @@ export function RealtimeScreen() {
   const start = () => {
     setChart(buildTrainingChart(16, 0.68));
     setDone(false);
+    setLeveled(null);
     setRunning(true);
     setHud({ score: 0, combo: 0, last: "" });
     statsRef.current = { score: 0, combo: 0, hits: 0, misses: 0, last: null };
@@ -59,7 +65,8 @@ export function RealtimeScreen() {
     <GameShell title="Strike Training">
       <div className="flex flex-col gap-4">
         <p className="text-sm text-[var(--color-muted)] text-pretty">
-          Four named lanes — C4, E4, G4, C5. The first four notes teach the lanes; then they mix. Tap as they cross the steel line. Keys D F J K or 1–4.
+          Four named lanes — C4, E4, G4, C5. The first four notes teach the lanes; then they mix.
+          Tap as they cross the steel line. Keys D F J K or 1–4.
         </p>
         <div className="flex items-center justify-between font-mono text-sm tabular-nums">
           <span>{hud.score}</span>
@@ -90,6 +97,8 @@ export function RealtimeScreen() {
           total={statsRef.current.hits + statsRef.current.misses}
           points={Math.round(statsRef.current.score / 10)}
           streak={streak}
+          leveledUp={leveled != null}
+          newGrade={leveled ?? undefined}
           onAgain={start}
         />
       ) : null}

@@ -7,9 +7,7 @@ export function ConfidenceSlider() {
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-4">
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">
-          Confidence
-        </p>
+        <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">Confidence</p>
         <p className="text-xs text-[var(--color-muted)]">
           {confidence < 0.35 ? "Figurenotes" : confidence < 0.75 ? "Transition" : "Maestro"}
         </p>

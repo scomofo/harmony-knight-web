@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { playChord, playMidi, playSuccess } from "@/lib/game/audio";
+import { playChord, playLevelUp, playMidi, playSuccess } from "@/lib/game/audio";
 import {
   generateCantusFirmus,
   harmonyMeterDelta,
@@ -30,9 +30,7 @@ export function DuelScreen() {
   const startMeter = beginner ? 0.4 : 0.2;
   const winAt = beginner ? 0.5 : 0.7;
 
-  const [cantus, setCantus] = useState(() =>
-    generateCantusFirmus(store.gradeLevel, { firstDuel }),
-  );
+  const [cantus, setCantus] = useState(() => generateCantusFirmus(store.gradeLevel, { firstDuel }));
   const [user, setUser] = useState<DuelNote[]>([]);
   const [history, setHistory] = useState<TurnResult[]>([]);
   const [meter, setMeter] = useState(startMeter);
@@ -46,6 +44,7 @@ export function DuelScreen() {
   const [sessionPoints, setSessionPoints] = useState(0);
   const [validCount, setValidCount] = useState(0);
   const [highlight, setHighlight] = useState<number | null>(null);
+  const [leveled, setLeveled] = useState<number | null>(null);
 
   const turn = user.length;
   const current = cantus[turn] ?? null;
@@ -91,6 +90,7 @@ export function DuelScreen() {
     setSessionPoints(0);
     setValidCount(0);
     setHighlight(null);
+    setLeveled(null);
     setMessage(
       beginner
         ? "New phrase. Stay above them. Glowing keys blend."
@@ -130,7 +130,9 @@ export function DuelScreen() {
     const acceptedGhost = Boolean(ghost && midi === ghost.suggestedNote.midi);
     const delta = harmonyMeterDelta(result, acceptedGhost);
     const nextMeter = Math.max(0, Math.min(1, meter + delta));
-    const pts = Math.round((result.quality === "imperfectConsonance" ? 16 : 12) * (acceptedGhost ? 1.15 : 1));
+    const pts = Math.round(
+      (result.quality === "imperfectConsonance" ? 16 : 12) * (acceptedGhost ? 1.15 : 1),
+    );
     const nextUser = [...user, candidate];
     const nextHistory: TurnResult[] = [
       ...history,
@@ -147,7 +149,11 @@ export function DuelScreen() {
     setGhost(null);
     setValidCount((n) => n + 1);
     setSessionPoints((p) => p + pts);
-    store.recordDuel(true, pts);
+    const judged = store.recordDuel(true, pts);
+    if (judged.leveledUp) {
+      playLevelUp();
+      setLeveled(judged.newGrade);
+    }
     setMessage(
       `${plainMoveMessage(midi - current.midi, result.quality)}${
         acceptedGhost ? " Ghost accepted." : ""
@@ -239,9 +245,7 @@ export function DuelScreen() {
             <button
               key={i}
               type="button"
-              onClick={() =>
-                playChord(p.user != null ? [p.cantus, p.user] : [p.cantus], 0.7)
-              }
+              onClick={() => playChord(p.user != null ? [p.cantus, p.user] : [p.cantus], 0.7)}
               className="rounded-full border border-[var(--color-border)] px-2 py-1 font-mono text-xs tabular-nums text-[var(--color-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-parchment)]"
             >
               {noteName(p.cantus)}
@@ -277,6 +281,8 @@ export function DuelScreen() {
           total={cantus.length}
           points={sessionPoints}
           streak={store.currentStreak}
+          leveledUp={leveled != null}
+          newGrade={leveled ?? undefined}
           onAgain={start}
         />
       ) : null}

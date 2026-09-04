@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CadenceRouteImport } from './routes/cadence'
 import { Route as CircleRouteImport } from './routes/circle'
 import { Route as CurriculumRouteImport } from './routes/curriculum'
 import { Route as DuelRouteImport } from './routes/duel'
@@ -20,12 +21,19 @@ import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as RealtimeRouteImport } from './routes/realtime'
 import { Route as RhythmRouteImport } from './routes/rhythm'
 import { Route as ScaleRouteImport } from './routes/scale'
+import { Route as SensoryRouteImport } from './routes/sensory'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TriadRouteImport } from './routes/triad'
+import { Route as LessonLevelRouteImport } from './routes/lesson.$level'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadenceRoute = CadenceRouteImport.update({
+  id: '/cadence',
+  path: '/cadence',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CircleRoute = CircleRouteImport.update({
@@ -78,6 +86,11 @@ const ScaleRoute = ScaleRouteImport.update({
   path: '/scale',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SensoryRoute = SensoryRouteImport.update({
+  id: '/sensory',
+  path: '/sensory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -88,9 +101,15 @@ const TriadRoute = TriadRouteImport.update({
   path: '/triad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LessonLevelRoute = LessonLevelRouteImport.update({
+  id: '/lesson/$level',
+  path: '/lesson/$level',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cadence': typeof CadenceRoute
   '/circle': typeof CircleRoute
   '/curriculum': typeof CurriculumRoute
   '/duel': typeof DuelRoute
@@ -101,11 +120,14 @@ export interface FileRoutesByFullPath {
   '/realtime': typeof RealtimeRoute
   '/rhythm': typeof RhythmRoute
   '/scale': typeof ScaleRoute
+  '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cadence': typeof CadenceRoute
   '/circle': typeof CircleRoute
   '/curriculum': typeof CurriculumRoute
   '/duel': typeof DuelRoute
@@ -116,12 +138,15 @@ export interface FileRoutesByTo {
   '/realtime': typeof RealtimeRoute
   '/rhythm': typeof RhythmRoute
   '/scale': typeof ScaleRoute
+  '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cadence': typeof CadenceRoute
   '/circle': typeof CircleRoute
   '/curriculum': typeof CurriculumRoute
   '/duel': typeof DuelRoute
@@ -132,13 +157,16 @@ export interface FileRoutesById {
   '/realtime': typeof RealtimeRoute
   '/rhythm': typeof RhythmRoute
   '/scale': typeof ScaleRoute
+  '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cadence'
     | '/circle'
     | '/curriculum'
     | '/duel'
@@ -149,11 +177,14 @@ export interface FileRouteTypes {
     | '/realtime'
     | '/rhythm'
     | '/scale'
+    | '/sensory'
     | '/settings'
     | '/triad'
+    | '/lesson/$level'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cadence'
     | '/circle'
     | '/curriculum'
     | '/duel'
@@ -164,11 +195,14 @@ export interface FileRouteTypes {
     | '/realtime'
     | '/rhythm'
     | '/scale'
+    | '/sensory'
     | '/settings'
     | '/triad'
+    | '/lesson/$level'
   id:
     | '__root__'
     | '/'
+    | '/cadence'
     | '/circle'
     | '/curriculum'
     | '/duel'
@@ -179,12 +213,15 @@ export interface FileRouteTypes {
     | '/realtime'
     | '/rhythm'
     | '/scale'
+    | '/sensory'
     | '/settings'
     | '/triad'
+    | '/lesson/$level'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CadenceRoute: typeof CadenceRoute
   CircleRoute: typeof CircleRoute
   CurriculumRoute: typeof CurriculumRoute
   DuelRoute: typeof DuelRoute
@@ -195,8 +232,10 @@ export interface RootRouteChildren {
   RealtimeRoute: typeof RealtimeRoute
   RhythmRoute: typeof RhythmRoute
   ScaleRoute: typeof ScaleRoute
+  SensoryRoute: typeof SensoryRoute
   SettingsRoute: typeof SettingsRoute
   TriadRoute: typeof TriadRoute
+  LessonLevelRoute: typeof LessonLevelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -206,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadence': {
+      id: '/cadence'
+      path: '/cadence'
+      fullPath: '/cadence'
+      preLoaderRoute: typeof CadenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/circle': {
@@ -278,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScaleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sensory': {
+      id: '/sensory'
+      path: '/sensory'
+      fullPath: '/sensory'
+      preLoaderRoute: typeof SensoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -292,11 +345,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lesson/$level': {
+      id: '/lesson/$level'
+      path: '/lesson/$level'
+      fullPath: '/lesson/$level'
+      preLoaderRoute: typeof LessonLevelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CadenceRoute: CadenceRoute,
   CircleRoute: CircleRoute,
   CurriculumRoute: CurriculumRoute,
   DuelRoute: DuelRoute,
@@ -307,8 +368,10 @@ const rootRouteChildren: RootRouteChildren = {
   RealtimeRoute: RealtimeRoute,
   RhythmRoute: RhythmRoute,
   ScaleRoute: ScaleRoute,
+  SensoryRoute: SensoryRoute,
   SettingsRoute: SettingsRoute,
   TriadRoute: TriadRoute,
+  LessonLevelRoute: LessonLevelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

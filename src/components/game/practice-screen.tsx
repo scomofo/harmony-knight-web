@@ -12,11 +12,7 @@ import { SessionSummary } from "./session-summary";
 import { GameShell } from "./shell";
 import { Staff } from "./staff";
 
-export function PracticeScreen({
-  mode,
-}: {
-  mode?: "broken_blade" | "focus" | string;
-}) {
+export function PracticeScreen({ mode }: { mode?: "broken_blade" | "focus" | string }) {
   const recovery = mode === "broken_blade";
   const focus = mode === "focus";
   const store = useGameStore();
@@ -166,13 +162,11 @@ export function PracticeScreen({
             What note is this?
           </p>
           {target != null ? (
-            <Staff
-              midi={target}
-              confidence={store.confidence}
-              revealName={feedback !== null}
-            />
+            <Staff midi={target} confidence={store.confidence} revealName={feedback !== null} />
           ) : (
-            <p className="py-10 text-center text-sm text-[var(--color-muted)]">Preparing the staff…</p>
+            <p className="py-10 text-center text-sm text-[var(--color-muted)]">
+              Preparing the staff…
+            </p>
           )}
           {feedback === "wrong" && target != null ? (
             <p className="text-center text-sm text-[var(--color-ember)]">
@@ -182,11 +176,7 @@ export function PracticeScreen({
             <p className="text-center text-sm text-[var(--color-harmony)]">True.</p>
           ) : null}
           <div className="mt-3 flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => target != null && playMidi(target)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => target != null && playMidi(target)}>
               <Volume2 className="size-4" />
               Hear
             </Button>

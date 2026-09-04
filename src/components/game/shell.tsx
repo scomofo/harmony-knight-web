@@ -58,9 +58,7 @@ export function GameShell({
           </div>
         </div>
       </header>
-      <main className={cn("mx-auto px-4 py-6", wide ? "max-w-5xl" : "max-w-3xl")}>
-        {children}
-      </main>
+      <main className={cn("mx-auto px-4 py-6", wide ? "max-w-5xl" : "max-w-3xl")}>{children}</main>
       {footer ? (
         <div className="sticky bottom-0 border-t border-[var(--color-border)] bg-[color-mix(in_oklab,var(--color-ink)_92%,transparent)] px-4 py-3 backdrop-blur-sm">
           <div className="mx-auto max-w-3xl">{footer}</div>

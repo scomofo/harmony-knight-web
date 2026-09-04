@@ -55,9 +55,7 @@ export function scheduleItem(item: SRItem, response: SRResponse, now = new Date(
   }
 
   const next =
-    response === "again"
-      ? now
-      : new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+    response === "again" ? now : new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
 
   return {
     ...item,

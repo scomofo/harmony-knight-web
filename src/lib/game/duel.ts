@@ -1,16 +1,9 @@
-import {
-  classifyInterval,
-  intervalName,
-  type IntervalQuality,
-} from "./music";
+import { classifyInterval, intervalName, type IntervalQuality } from "./music.ts";
 
 export type DuelNote = { midi: number; isGhost?: boolean };
 
 export type CounterpointViolation =
-  | "parallelFifths"
-  | "parallelOctaves"
-  | "hiddenFifthsOrOctaves"
-  | "voiceCrossing";
+  "parallelFifths" | "parallelOctaves" | "hiddenFifthsOrOctaves" | "voiceCrossing";
 
 export type DuelMoveResult = {
   quality: IntervalQuality;
@@ -37,10 +30,7 @@ function randInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-export function generateCantusFirmus(
-  gradeLevel = 0,
-  opts?: { firstDuel?: boolean },
-): DuelNote[] {
+export function generateCantusFirmus(gradeLevel = 0, opts?: { firstDuel?: boolean }): DuelNote[] {
   // First meeting: the same C–E–G they already know from practice.
   if (opts?.firstDuel || gradeLevel === 0) {
     if (opts?.firstDuel) {
@@ -178,10 +168,7 @@ export function suggestGhostResolution(args: {
   return null;
 }
 
-export function harmonyMeterDelta(
-  result: DuelMoveResult,
-  dissonanceResolved = false,
-): number {
+export function harmonyMeterDelta(result: DuelMoveResult, dissonanceResolved = false): number {
   if (dissonanceResolved) return 0.18;
   if (result.quality === "perfectConsonance") return 0.1;
   if (result.quality === "imperfectConsonance") return 0.14;
