@@ -40,6 +40,7 @@ export function Staff({
   const shape = figureNoteShape(midi);
   const color = figureNoteColor(midi);
   const faded = confidence >= 0.85;
+  const sharp = noteName(midi).includes("#");
   const activeClef = clefFor(midi, clef);
   // Treble: E4 (bottom line) is 2 steps above C4, top line F5 is 10.
   // Bass: G2 is the bottom line, 12 steps lower — so shift the note up by 12.
@@ -129,6 +130,17 @@ export function Staff({
               strokeWidth={1.2}
             />
           ))}
+          {sharp ? (
+            <text
+              x={noteX - 32}
+              y={noteY + 7}
+              fill="var(--color-parchment)"
+              fontSize="24"
+              fontFamily="Georgia, serif"
+            >
+              ♯
+            </text>
+          ) : null}
           {ghost ? (
             <ellipse
               cx={noteX}

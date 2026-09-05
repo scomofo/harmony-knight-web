@@ -32,20 +32,26 @@ export class PracticeQuestionEngine {
   questionHadError = false;
   private srQueue: SRItem[] = [];
   private srQueueIndex = 0;
+  private questionIndex = -1;
   private noteHistory = new Map<number, boolean[]>();
 
   get isQueueExhausted() {
     return this.srQueueIndex >= this.srQueue.length;
   }
 
-  rebuildQueue(itemsForPool: SRItem[]) {
-    this.srQueue = buildSessionQueue(itemsForPool);
+  rebuildQueue(itemsForPool: SRItem[], allSelected = false) {
+    this.srQueue = allSelected ? shuffle(itemsForPool) : buildSessionQueue(itemsForPool);
     this.srQueueIndex = 0;
+    this.questionIndex = -1;
+    this.targetNote = null;
   }
 
   generateQuestion(): boolean {
+    if (this.notePool.length === 0 || this.isQueueExhausted) return false;
+    // Retrying the same note keeps its error history and answer positions.
+    if (this.questionIndex === this.srQueueIndex) return true;
+    this.questionIndex = this.srQueueIndex;
     this.questionHadError = false;
-    if (this.notePool.length === 0 || this.srQueue.length === 0) return false;
 
     const srItem = this.srQueue[this.srQueueIndex]!;
     const targetMidi = Number.parseInt(srItem.id.replace("note_", ""), 10);
@@ -63,13 +69,23 @@ export class PracticeQuestionEngine {
 
   recordAnswer(selected: PracticeNote): {
     isCorrect: boolean;
+    firstAttempt: boolean;
     updatedSRItem: SRItem | null;
     weakNotesMidi: number[];
   } {
     const target = this.targetNote;
+    if (!target || this.questionIndex !== this.srQueueIndex || this.isQueueExhausted) {
+      return {
+        isCorrect: false,
+        firstAttempt: false,
+        updatedSRItem: null,
+        weakNotesMidi: this.computeWeakNotes(),
+      };
+    }
     const isCorrect = target != null && selected.midi === target.midi;
+    const firstAttempt = !this.questionHadError;
 
-    if (target) {
+    if (target && firstAttempt) {
       const hist = this.noteHistory.get(target.midi) ?? [];
       hist.push(isCorrect);
       this.noteHistory.set(target.midi, hist);
@@ -79,12 +95,14 @@ export class PracticeQuestionEngine {
     if (this.srQueue.length && this.srQueueIndex < this.srQueue.length) {
       const current = this.srQueue[this.srQueueIndex]!;
       const response: SRResponse = isCorrect ? (this.questionHadError ? "hard" : "good") : "again";
-      updatedSRItem = scheduleItem(current, response);
+      updatedSRItem = !firstAttempt && !isCorrect ? current : scheduleItem(current, response);
+      // A correction must build on the failed attempt, not the original schedule.
+      this.srQueue[this.srQueueIndex] = updatedSRItem;
       if (isCorrect) this.srQueueIndex += 1;
     }
     if (!isCorrect) this.questionHadError = true;
 
-    return { isCorrect, updatedSRItem, weakNotesMidi: this.computeWeakNotes() };
+    return { isCorrect, firstAttempt, updatedSRItem, weakNotesMidi: this.computeWeakNotes() };
   }
 
   private computeWeakNotes(): number[] {

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ConfidenceSlider } from "./confidence-slider";
 import { KnightCrest } from "./crest";
 import { cn } from "@/lib/utils";
-import { noteName } from "@/lib/game/music";
+import { NoteReviewCard } from "./note-review-card";
 
 function whyFor(mode: QuestMode, grade: number, broken: boolean) {
   if (broken) return "Five warm notes restore the streak. No clock.";
@@ -73,28 +73,16 @@ export function HomeScreen() {
       cta: "Read the lesson →",
     };
   } else {
-    const open = progress.quests.find((q) => q.progressCount < q.targetCount);
-    if (open && open.mode !== "study") {
-      rec = {
-        eyebrow: "Daily quest",
-        title: open.title,
-        subtitle: `${open.progressCount}/${open.targetCount} · +${open.rewardHarmonyPoints} HP · about 2 min`,
-        why: whyFor(open.mode, progress.gradeLevel, false),
-        to: questRoute(open.mode, progress.gradeLevel),
-        cta: "Start quest →",
-      };
-    } else {
-      rec = {
-        eyebrow: trial.maxed ? "Masterwork" : `Grade ${trial.grade} trial`,
-        title: lesson.drill.label,
-        subtitle: trial.maxed
-          ? "Every level open. Keep the blade sharp."
-          : `${trial.answered}/${trial.needed} recent answers · need ${Math.round(trial.neededAccuracy * 100)}% right`,
-        why: lesson.drill.why,
-        to: lesson.drill.to,
-        cta: "Train →",
-      };
-    }
+    rec = {
+      eyebrow: trial.maxed ? "Masterwork" : `Grade ${trial.grade} trial`,
+      title: lesson.drill.label,
+      subtitle: trial.maxed
+        ? "Every level open. Keep the blade sharp."
+        : `${trial.answered}/${trial.needed} recent answers · need ${Math.round(trial.neededAccuracy * 100)}% right`,
+      why: lesson.drill.why,
+      to: lesson.drill.to,
+      cta: "Train →",
+    };
   }
 
   const studies = studiesFor(progress.gradeLevel);
@@ -203,6 +191,8 @@ export function HomeScreen() {
           </Link>
         </section>
 
+        <NoteReviewCard />
+
         <ul className="space-y-2">
           {progress.quests.map((q) => {
             const done = q.progressCount >= q.targetCount;
@@ -301,22 +291,13 @@ export function HomeScreen() {
               title="Curriculum"
               copy="Eleven levels. Eleven lessons."
             />
-            <HallCard to="/heatmap" title="Heatmap" copy="Where your ear still slips." />
+            <HallCard
+              to="/heatmap"
+              title="Note progress"
+              copy="Review priorities and pitch accuracy."
+            />
           </div>
         </section>
-
-        {progress.weakNotesMidi.length > 0 ? (
-          <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-2)] px-4 py-3 text-sm text-[var(--color-muted)]">
-            Weak notes: {progress.weakNotesMidi.map(noteName).join(", ")} ·{" "}
-            <Link
-              to="/practice"
-              search={{ mode: "focus" }}
-              className="text-[var(--color-parchment)] underline-offset-2 hover:underline"
-            >
-              Drill them
-            </Link>
-          </p>
-        ) : null}
 
         <ConfidenceSlider />
       </div>
