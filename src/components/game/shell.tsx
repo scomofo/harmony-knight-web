@@ -21,12 +21,15 @@ export function GameShell({
   const streak = useGameStore((s) => s.currentStreak);
   const points = useGameStore((s) => s.harmonyPoints);
   const highContrast = useGameStore((s) => s.settings.highContrast);
+  const reducedMotion = useGameStore((s) => s.settings.reducedMotion);
+  const focusMode = useGameStore((s) => s.settings.focusMode);
 
   return (
     <div
       className={cn(
         "min-h-dvh bg-[var(--color-ink)] text-[var(--color-parchment)]",
         highContrast && "high-contrast",
+        reducedMotion && "reduce-motion",
       )}
     >
       <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[color-mix(in_oklab,var(--color-ink)_88%,transparent)] px-4 py-3 backdrop-blur-sm">
@@ -42,14 +45,24 @@ export function GameShell({
             </h1>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-1 font-mono tabular-nums text-[var(--color-ember)]">
-              <Flame className="size-4" />
-              {streak}
-            </span>
-            <span className="inline-flex items-center gap-1 font-mono tabular-nums text-[var(--color-harmony)]">
-              <Sparkles className="size-4" />
-              {points}
-            </span>
+            {!focusMode ? (
+              <span
+                aria-label={`${streak} correct-answer combo`}
+                className="hidden items-center gap-1 font-mono tabular-nums text-[var(--color-ember)] sm:inline-flex"
+              >
+                <Flame className="size-4" />
+                {streak}
+              </span>
+            ) : null}
+            {!focusMode ? (
+              <span
+                aria-label={`${points} harmony points`}
+                className="hidden items-center gap-1 font-mono tabular-nums text-[var(--color-harmony)] sm:inline-flex"
+              >
+                <Sparkles className="size-4" />
+                {points}
+              </span>
+            ) : null}
             <Button variant="ghost" size="icon" asChild aria-label="Settings">
               <Link to="/settings">
                 <Settings className="size-5" />

@@ -26,7 +26,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === "visible") unlockAudio();
+      if (document.visibilityState === "visible") {
+        useGameStore.getState().hydrateDay();
+        unlockAudio();
+      }
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);

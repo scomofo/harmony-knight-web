@@ -8,6 +8,8 @@ export type LessonExample = {
   mode: "sequence" | "chord" | "progression" | "timbre";
   /** For mode "timbre": which colour. */
   timbre?: "Warm" | "Hollow" | "Bright" | "Reed";
+  /** Relative loudness for each note in a sequence. */
+  volumes?: number[];
 };
 
 export type LessonSection = {
@@ -45,13 +47,18 @@ export const LESSONS: Lesson[] = [
     sections: [
       {
         heading: "Pitch: high and low",
-        body: "Pitch is how fast the air vibrates. Faster is higher and sounds thinner; slower is lower and sounds heavier. Small children hear this instantly — you already can.",
+        body: "Pitch describes how high or low a sound is. Faster vibration produces a higher pitch; slower vibration produces a lower pitch. Try comparing two sounds before learning their names. Listening more than once is part of practice.",
         example: { label: "Low, then high", notes: [48, 72], mode: "sequence" },
       },
       {
         heading: "Dynamics: loud and soft",
         body: "Dynamics are volume. Musicians borrow Italian: forte (f) is loud, piano (p) is soft. The pitch does not change — only the energy does.",
-        example: { label: "The same note, soft then loud", notes: [64, 64], mode: "sequence" },
+        example: {
+          label: "The same note, soft then loud",
+          notes: [64, 64],
+          mode: "sequence",
+          volumes: [0.25, 0.85],
+        },
       },
       {
         heading: "Timbre: the colour of sound",
@@ -92,7 +99,7 @@ export const LESSONS: Lesson[] = [
     sections: [
       {
         heading: "Colour is the note name",
-        body: "C is red, D is orange, E is yellow, F is green, G is blue, A is amber, B is grey. The colour never changes across octaves — a high C is still red. Shape shows which octave you are in.",
+        body: "The musical alphabet is A B C D E F G, then A again. In this app, colours and shapes help you recognise notes while you learn the letters. Notes an octave apart share a letter name: a high C is still C. These supports are optional; you can adjust them in the hall.",
         example: {
           label: "C D E F G — red to blue",
           notes: [60, 62, 64, 65, 67],
@@ -104,7 +111,7 @@ export const LESSONS: Lesson[] = [
         body: "Notes sit on lines or in spaces. Moving up one position — line to space or space to line — is the next letter of the alphabet. After G comes A again.",
         example: {
           label: "Climbing the staff",
-          notes: [64, 65, 67, 69, 71, 72, 74, 77],
+          notes: [64, 65, 67, 69, 71, 72, 74, 76],
           mode: "sequence",
         },
       },
@@ -156,7 +163,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "Time signatures",
-        body: "The top number says how many beats fill a bar; the bottom says which note gets one beat. 4/4 is four quarter-note beats — a march or a pop song. 3/4 is three — a waltz. 2/4 is two — a quick march.",
+        body: "In simple meters such as 4/4, 3/4 and 2/4, the top number counts beats per bar and the bottom names the beat unit. 4/4 has four quarter-note beats; 3/4 has three. Compound meter works differently: 6/8 contains six eighth notes, usually felt as TWO dotted-quarter beats, each divided into three.",
       },
       {
         heading: "The dot",
@@ -201,7 +208,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "Sharps and flats in order",
-        body: "Sharps always appear in the order F C G D A E B. Flats reverse it: B E A D G C F. For sharp keys, the last sharp is one step below the tonic. For flat keys, the second-to-last flat names the key.",
+        body: "A key signature applies its sharps or flats to those letter names in every octave. Sharps appear in the order F C G D A E B; flats reverse it: B E A D G C F. In major sharp keys, go a semitone above the last sharp to find the tonic (home note). In major flat keys, the second-to-last flat names the key. The exception is F major: its single flat is Bb. A signature alone cannot distinguish a major key from its relative minor.",
         example: {
           label: "G major — one sharp, F#",
           notes: [67, 69, 71, 72, 74, 76, 78, 79],
@@ -328,7 +335,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "Perfect and plagal",
-        body: "V to I is the perfect cadence — a full stop. IV to I is the plagal cadence — the church Amen, softer because there is no leading tone.",
+        body: "At a phrase ending, V to I is an authentic cadence (often called perfect in UK terminology). A perfect authentic cadence specifically requires both chords in root position and the tonic in the top voice of I; other V–I endings are imperfect authentic. IV to I is plagal. These describe musical context, not just any two adjacent chords.",
         example: { label: "Perfect: V to I", notes: [V, I], mode: "progression" },
       },
       {
@@ -383,7 +390,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "No parallel fifths or octaves",
-        body: "Two perfect fifths in a row, or two octaves in a row, make the voices sound like one. The rule against them is what keeps two lines two lines.",
+        body: "Parallel fifths or octaves occur when both voices move in the same direction from one perfect fifth to another, or one octave to another. Traditional part-writing avoids them to preserve independent lines. Repeating the same pair of notes without moving is not parallel motion. Other musical styles use parallel motion deliberately.",
         example: {
           label: "Parallel fifths — avoid",
           notes: [
@@ -431,7 +438,7 @@ export const LESSONS: Lesson[] = [
     sections: [
       {
         heading: "Closely related keys",
-        body: "The keys one step either way on the circle of fifths, plus the relative minor of each, share six of seven notes with home. From C major that is G major, F major, A minor, E minor and D minor.",
+        body: "Closely related keys have the same key signature or differ by one sharp or flat. From C major they are G major, F major, A minor, E minor and D minor. A minor shares all seven notes with C major; the other four share six. The tonic, or home note, changes even when the note collection stays the same.",
         example: {
           label: "C major, then G major",
           notes: [
@@ -445,7 +452,7 @@ export const LESSONS: Lesson[] = [
         heading: "The pivot chord",
         body: "Find a chord that exists in both keys. A minor is vi in C major and ii in G major. Land on it as vi, leave it as ii, then cadence in G — the ear follows without a jolt.",
         example: {
-          label: "C: I — vi — (G: ii) — V — I",
+          label: "C — Am (pivot) — D — G",
           notes: [
             [60, 64, 67],
             [57, 60, 64],
@@ -602,7 +609,7 @@ export const LESSONS: Lesson[] = [
     sections: [
       {
         heading: "Subject and answer",
-        body: "The subject appears alone. The answer is the subject a fifth higher, entering while the first voice continues with a countersubject. Track the subject through every voice — it will be inverted, stretched and hidden.",
+        body: "The subject is a fugue's recurring theme, usually heard alone at the start. Another voice answers in the dominant key, often a fifth up or a fourth down. A real answer transposes the intervals exactly; a tonal answer adjusts some to preserve the key relationship. A recurring companion melody is a countersubject, but not every fugue has one.",
         example: {
           label: "Subject, then answer a fifth up",
           notes: [60, 62, 64, 60, 67, 69, 71, 67],
@@ -611,7 +618,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "Post-tonal patterns",
-        body: "Without a key, composers organise by interval. A whole-tone scale has only whole steps. A twelve-tone row uses every pitch once. Listen for the recurring interval, not the home note.",
+        body: "Some music organises around interval patterns rather than a major or minor key. A whole-tone collection divides the octave into six whole steps. A twelve-tone row orders all twelve pitch classes once before the row repeats; a pitch class groups octave-equivalent notes, such as every C. These are different techniques, not rules for all modern music.",
         example: {
           label: "Whole-tone scale",
           notes: [60, 62, 64, 66, 68, 70, 72],

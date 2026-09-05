@@ -1,208 +1,356 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Volume2 } from "lucide-react";
-import { playChord, playMidiSequence, playProgression, playTimbre } from "@/lib/game/audio";
-import { CURRICULUM, levelFor } from "@/lib/game/curriculum";
-import { lessonFor, type LessonExample } from "@/lib/game/lessons";
+import { ArrowRight, BookOpen, Check, Home, RotateCcw, Volume2, Square } from "lucide-react";
+import {
+  playChord,
+  playMidiSequence,
+  playProgression,
+  playTimbre,
+  stopTones,
+} from "@/lib/game/audio";
+import { levelFor } from "@/lib/game/curriculum";
+import { unitsForLevel, type CourseUnit } from "@/lib/game/course";
+import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
+import { type LessonExample } from "@/lib/game/lessons";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
 import { cn } from "@/lib/utils";
 
-function playExample(ex: LessonExample) {
-  if (ex.mode === "timbre") {
-    playTimbre((ex.notes as number[])[0] ?? 64, ex.timbre ?? "Warm", 1.1);
-    return;
-  }
-  if (ex.mode === "progression") {
-    playProgression(ex.notes as number[][], 0.85, 0.8);
-    return;
-  }
-  if (ex.mode === "chord") {
-    playChord(ex.notes as number[]);
-    return;
-  }
-  const notes = ex.notes as number[];
-  playMidiSequence(notes, notes.length > 5 ? 0.24 : 0.42, notes.length > 5 ? 0.32 : 0.5);
+export function LessonScreen({ level, unitId }: { level: number; unitId?: string }) {
+  const units = unitsForLevel(level);
+  const progress = useGameStore((s) => s.unitProgress);
+  const [fallbackId] = useState(
+    () => (units.find((u) => !progress[u.id]?.completedAt) ?? units[0])?.id,
+  );
+  const unit = units.find((u) => u.id === (unitId ?? fallbackId)) ?? units[0];
+  if (!unit)
+    return (
+      <GameShell title="Lesson not found">
+        <p>Choose a chapter from the learning path.</p>
+        <Button asChild className="mt-4">
+          <Link to="/curriculum">Learning path</Link>
+        </Button>
+      </GameShell>
+    );
+  return <FocusedLesson key={unit.id} unit={unit} />;
 }
 
-export function LessonScreen({ level }: { level: number }) {
-  const grade = useGameStore((s) => s.gradeLevel);
-  const lessonsRead = useGameStore((s) => s.lessonsRead);
-  const markLessonRead = useGameStore((s) => s.markLessonRead);
-  const cur = levelFor(level);
-  const lesson = lessonFor(level);
-  const locked = level > grade;
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const answered = Object.keys(answers).length;
-  const correctCount = lesson.check.filter((q, i) => answers[i] === q.answer).length;
-  const checkDone = answered >= lesson.check.length;
-  const alreadyRead = lessonsRead.includes(level);
-  const next = CURRICULUM.find((l) => l.level === level + 1);
-  const prev = CURRICULUM.find((l) => l.level === level - 1);
+function FocusedLesson({ unit }: { unit: CourseUnit }) {
+  const saved = useGameStore((s) => s.unitProgress[unit.id]);
+  const allProgress = useGameStore((s) => s.unitProgress);
+  const open = useGameStore((s) => s.openUnit);
+  const answer = useGameStore((s) => s.answerLearningUnit);
+  const advance = useGameStore((s) => s.advanceLearningUnit);
+  const revisit = useGameStore((s) => s.revisitUnit);
+  const markHintUsed = useGameStore((s) => s.useLearningHint);
+  const p = saved ?? freshUnitProgress();
+  const heading = useRef<HTMLHeadingElement>(null);
+  const units = unitsForLevel(unit.level);
+  const position = units.findIndex((u) => u.id === unit.id) + 1;
+  const questionIndex = p.step - 2;
+  const question = unit.checks[questionIndex];
+  const picked = p.answers[questionIndex];
+  const next = nextUnit(allProgress, unit.id);
+  const done = p.step === 4;
+  const correct = unit.checks.filter((q, i) => p.answers[i] === q.answer).length;
 
-  const finish = () => {
-    if (!alreadyRead) markLessonRead(level);
-  };
+  useEffect(() => {
+    open(unit.id);
+  }, [open, unit.id]);
+  useEffect(() => {
+    heading.current?.focus();
+    stopTones();
+  }, [p.step]);
+  useEffect(() => () => stopTones(), []);
 
   return (
-    <GameShell title={`Level ${level} · Lesson`} backTo="/curriculum">
-      <article className="flex flex-col gap-6">
-        <header>
-          <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-harmony)]">
-            {cur.phase} · {cur.subtitle}
-          </p>
-          <h2 className="mt-1 font-[var(--font-display)] text-3xl leading-tight tracking-[-0.03em] text-balance">
-            {cur.title}
-          </h2>
-          <p className="mt-3 text-[var(--color-muted)] text-pretty">{lesson.intro}</p>
-          {locked ? (
-            <p className="mt-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-2)] px-3 py-2 text-sm text-[var(--color-muted)]">
-              You are at grade {grade}. Read ahead freely — the drill unlocks when you arrive.
-            </p>
-          ) : null}
-        </header>
-
-        <section>
-          <p className="mb-2 text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">
-            You will learn
-          </p>
-          <ul className="space-y-1.5">
-            {cur.objectives.map((o) => (
-              <li key={o} className="flex items-start gap-2 text-sm">
-                <Check className="mt-0.5 size-4 shrink-0 text-[var(--color-harmony)]" />
-                {o}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {lesson.sections.map((s) => (
-          <section
-            key={s.heading}
-            className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5"
-          >
-            <h3 className="font-[var(--font-display)] text-xl tracking-[-0.02em]">{s.heading}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)] text-pretty">
-              {s.body}
-            </p>
-            {s.example ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-4"
-                onClick={() => playExample(s.example!)}
-              >
-                <Volume2 className="size-4" />
-                {s.example.label}
-              </Button>
-            ) : null}
-          </section>
-        ))}
-
-        <section className="rounded-[var(--radius-xl)] border border-[var(--color-border-strong)] bg-[var(--color-ink-2)] p-5">
-          <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-harmony)]">
-            Quick check · {correctCount}/{lesson.check.length}
-          </p>
-          <div className="mt-3 space-y-5">
-            {lesson.check.map((q, i) => {
-              const picked = answers[i];
+    <GameShell title="Your learning session" backTo="/">
+      <article className="mx-auto max-w-2xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-muted)]">
+          <Link to="/curriculum" className="inline-flex min-h-11 items-center gap-2">
+            <BookOpen className="size-4" />
+            Chapter {unit.level + 1} · lesson {position} of {units.length}
+          </Link>
+          <span>{p.reviewing ? "Recall practice" : `About ${unit.minutes} min`} · untimed</span>
+        </div>
+        <div>
+          <div className="flex justify-between gap-2 text-sm" aria-label="Lesson steps">
+            {["Learn", "Try it", "Recall", "Done"].map((label, i) => {
+              const current = done ? 3 : p.step >= 2 ? 2 : p.step;
               return (
-                <div key={q.prompt}>
-                  <p className="text-sm font-medium">{q.prompt}</p>
-                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {q.options.map((opt) => {
-                      const state =
-                        picked == null
-                          ? "idle"
-                          : opt === q.answer
-                            ? "right"
-                            : opt === picked
-                              ? "wrong"
-                              : "idle";
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          disabled={picked != null}
-                          onClick={() => setAnswers((a) => ({ ...a, [i]: opt }))}
-                          className={cn(
-                            "min-h-11 rounded-[var(--radius-md)] border px-3 py-2 text-left text-sm transition-colors",
-                            state === "right" &&
-                              "border-[var(--color-harmony)] bg-[color-mix(in_oklab,var(--color-harmony)_18%,transparent)]",
-                            state === "wrong" &&
-                              "border-[var(--color-ember)] bg-[color-mix(in_oklab,var(--color-ember)_16%,transparent)]",
-                            state === "idle" &&
-                              "border-[var(--color-border)] bg-[var(--color-ink)] hover:border-[var(--color-border-strong)]",
-                            picked != null && state === "idle" && "opacity-50",
-                          )}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {picked != null ? (
-                    <p className="mt-2 text-sm text-[var(--color-muted)]">{q.why}</p>
-                  ) : null}
-                </div>
+                <span
+                  key={label}
+                  aria-current={i === current ? "step" : undefined}
+                  className={cn(
+                    "border-b-2 pb-2 flex-1",
+                    i <= current
+                      ? "border-[var(--color-harmony)] text-[var(--color-parchment)]"
+                      : "border-[var(--color-border)] text-[var(--color-muted)]",
+                  )}
+                >
+                  {label}
+                </span>
               );
             })}
           </div>
-        </section>
+          <p className="mt-3 text-sm text-[var(--color-muted)]">
+            Your place is saved on this device. You can stop at any step.
+          </p>
+        </div>
+        <header>
+          <p className="text-sm text-[var(--color-harmony)]">{levelFor(unit.level).subtitle}</p>
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="mt-2 font-[var(--font-display)] text-3xl leading-tight tracking-[-0.03em] outline-none"
+          >
+            {done
+              ? "A good place to pause."
+              : p.step === 1
+                ? "Make it musical"
+                : p.step >= 2
+                  ? `Recall ${questionIndex + 1} of ${unit.checks.length}`
+                  : unit.title}
+          </h2>
+          <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">{unit.goal}</p>
+        </header>
 
-        <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-parchment)] p-5 text-[var(--color-ink)]">
-          <p className="text-xs uppercase tracking-[0.16em] opacity-70">Now train it</p>
-          <h3 className="mt-1 font-[var(--font-display)] text-2xl tracking-[-0.03em]">
-            {lesson.drill.label}
-          </h3>
-          <p className="mt-1 text-sm opacity-75">{lesson.drill.why}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild onClick={finish} disabled={locked}>
-              <Link to={lesson.drill.to} search={{}}>
-                {locked ? `Unlocks at grade ${level}` : "Start drill"}
-                <ArrowRight className="size-4" />
+        {p.step === 0 ? (
+          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
+            <p className="text-base leading-8">{unit.body}</p>
+            {unit.example ? <ExampleAudio example={unit.example} /> : null}
+            <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
+              Try this idea <ArrowRight className="size-4" />
+            </Button>
+          </section>
+        ) : null}
+
+        {p.step === 1 ? (
+          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
+            <p className="text-base leading-8">{unit.tryIt}</p>
+            {unit.example ? <ExampleAudio example={unit.example} /> : null}
+            <p className="mt-4 text-sm text-[var(--color-muted)]">
+              Try it aloud, on paper, or in your head. This activity is self-guided.
+            </p>
+            <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
+              Ready for two quick checks <ArrowRight className="size-4" />
+            </Button>
+          </section>
+        ) : null}
+
+        {question ? (
+          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
+            <h3 className="text-lg font-medium leading-relaxed">{question.prompt}</h3>
+            <div className="mt-4 grid gap-3">
+              {question.options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={picked !== undefined}
+                  onClick={() => answer(unit.id, option)}
+                  className={cn(
+                    "min-h-12 rounded-[var(--radius-md)] border p-3 text-left text-base leading-relaxed",
+                    picked !== undefined && option === question.answer
+                      ? "border-[var(--color-harmony)] bg-[var(--color-ink-3)]"
+                      : "border-[var(--color-border-strong)]",
+                    picked === option &&
+                      picked !== question.answer &&
+                      "border-[var(--color-ember)]",
+                    picked === undefined && "hover:bg-[var(--color-ink-3)]",
+                  )}
+                >
+                  {option}
+                  {picked !== undefined && option === question.answer ? (
+                    <span className="ml-2 text-sm text-[var(--color-harmony)]">
+                      ✓ Correct answer
+                    </span>
+                  ) : picked === option ? (
+                    <span className="ml-2 text-sm text-[var(--color-ember)]">Your answer</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+            {picked !== undefined ? (
+              <div role="status" className="mt-5 space-y-3">
+                <p className="font-medium">
+                  {picked === question.answer ? "You’ve got it." : "Here’s the connection."}
+                </p>
+                <p className="text-base leading-relaxed text-[var(--color-muted)]">
+                  {question.why}
+                </p>
+                <Button className="w-full sm:w-auto" onClick={() => advance(unit.id)}>
+                  {questionIndex === unit.checks.length - 1 ? "Save and finish" : "Next check"}
+                  <ArrowRight className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--color-muted)]">
+                Take your time. Each answer comes with an explanation.
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {done ? (
+          <section className="rounded-[var(--radius-xl)] border border-[var(--color-harmony)] bg-[var(--color-ink-2)] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-[var(--color-harmony)]">
+              <Check className="size-5" />
+              <span>Lesson completed · {unit.title}</span>
+            </div>
+            <p className="mt-4 text-base leading-relaxed">
+              {p.assisted
+                ? "You worked through the ideas with a refresher. Try the next recall without help when you feel ready."
+                : correct === unit.checks.length
+                  ? "Both ideas recalled correctly."
+                  : `${correct} of ${unit.checks.length} recalled before the explanation. You worked through the corrections; that counts as learning.`}
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
+              {p.nextReviewAt
+                ? `A short recall will be ready ${new Date(p.nextReviewAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}.`
+                : "You can revisit this lesson whenever you like."}{" "}
+              Your learning stays with you between visits.
+            </p>
+            <Button asChild className="mt-6 w-full">
+              <Link to="/">
+                <Home className="size-4" />
+                Finish for now
               </Link>
             </Button>
-            {!alreadyRead && (checkDone || locked) ? (
+            {next ? (
               <Button
-                variant="outline"
-                className="border-[var(--color-ink)]/30 text-[var(--color-ink)] hover:bg-[var(--color-ink)]/5"
-                onClick={finish}
+                asChild
+                variant="secondary"
+                className="mt-3 h-auto min-h-11 w-full whitespace-normal py-3 text-left"
               >
-                Mark as read
+                <Link
+                  to="/lesson/$level"
+                  params={{ level: String(next.level) }}
+                  search={{ unit: next.id }}
+                >
+                  Another idea: {next.title}
+                  <ArrowRight className="size-4 shrink-0" />
+                </Link>
               </Button>
-            ) : alreadyRead ? (
-              <span className="inline-flex items-center gap-1 text-sm opacity-70">
-                <Check className="size-4" /> Read
-              </span>
-            ) : null}
-          </div>
-        </section>
+            ) : (
+              <p className="mt-4">
+                You have explored every lesson. Revisit the practical tasks, and use the drills to
+                keep building fluency.
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={() => revisit(unit.id)}>
+                <BookOpen className="size-4" />
+                Read again
+              </Button>
+              <Button variant="ghost" onClick={() => revisit(unit.id, true)}>
+                <RotateCcw className="size-4" />
+                Try recall again
+              </Button>
+            </div>
+          </section>
+        ) : null}
 
-        <nav className="flex justify-between text-sm">
-          {prev ? (
-            <Link
-              to="/lesson/$level"
-              params={{ level: String(prev.level) }}
-              className="text-[var(--color-muted)] hover:text-[var(--color-parchment)]"
-            >
-              ← Level {prev.level}
+        {p.step >= 2 && !done ? (
+          <details
+            key={p.reviewing ? "review" : "lesson"}
+            onToggle={(e) => {
+              if (e.currentTarget.open) markHintUsed(unit.id);
+            }}
+            className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-4"
+          >
+            <summary className="cursor-pointer text-sm">Need the idea again?</summary>
+            <p className="mt-3 text-base leading-8">{unit.body}</p>
+            <p className="mt-3 text-sm text-[var(--color-muted)]">
+              Reading this is welcome. Use the next scheduled recall to try without help.
+            </p>
+          </details>
+        ) : null}
+        {!done ? (
+          <Button variant="ghost" asChild>
+            <Link to="/">
+              <Home className="size-4" />
+              Save my place and leave
             </Link>
-          ) : (
-            <span />
-          )}
-          {next ? (
-            <Link
-              to="/lesson/$level"
-              params={{ level: String(next.level) }}
-              className="text-[var(--color-muted)] hover:text-[var(--color-parchment)]"
-            >
-              Level {next.level} →
-            </Link>
-          ) : null}
-        </nav>
+          </Button>
+        ) : null}
       </article>
     </GameShell>
+  );
+}
+
+function ExampleAudio({ example }: { example: LessonExample }) {
+  const muted = useGameStore((s) => s.settings.muted);
+  const [playing, setPlaying] = useState(false);
+  const [error, setError] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+      stopTones();
+    },
+    [],
+  );
+  const stop = () => {
+    stopTones();
+    setPlaying(false);
+    if (timer.current) clearTimeout(timer.current);
+  };
+  const play = () => {
+    stop();
+    setError(false);
+    try {
+      const notes = example.notes as number[];
+      if (example.mode === "timbre") playTimbre(notes[0] ?? 64, example.timbre ?? "Warm", 1.1);
+      else if (example.mode === "progression")
+        playProgression(example.notes as number[][], 0.85, 0.8);
+      else if (example.mode === "chord") playChord(notes);
+      else
+        playMidiSequence(
+          notes,
+          notes.length > 5 ? 0.24 : 0.42,
+          notes.length > 5 ? 0.32 : 0.5,
+          example.volumes,
+        );
+      setPlaying(true);
+      const seconds =
+        example.mode === "timbre"
+          ? 1.2
+          : example.mode === "chord"
+            ? 1
+            : example.mode === "progression"
+              ? example.notes.length * 0.85
+              : notes.length * (notes.length > 5 ? 0.24 : 0.42) + 0.5;
+      timer.current = setTimeout(() => setPlaying(false), seconds * 1000);
+    } catch {
+      setError(true);
+    }
+  };
+  return (
+    <div className="mt-5">
+      <Button
+        variant="secondary"
+        className="h-auto min-h-11 whitespace-normal py-3 text-left"
+        onClick={playing ? stop : play}
+        disabled={muted && !playing}
+      >
+        {playing ? <Square className="size-4 shrink-0" /> : <Volume2 className="size-4 shrink-0" />}
+        {playing ? "Stop example" : example.label}
+      </Button>
+      {muted ? (
+        <p className="mt-2 text-sm text-[var(--color-muted)]">
+          Sound is muted.{" "}
+          <Link to="/settings" className="underline">
+            Change sound settings
+          </Link>
+          , or use the written example.
+        </p>
+      ) : null}
+      {error ? (
+        <p role="status" className="mt-2 text-sm">
+          Audio isn’t available here. The written example still works.
+        </p>
+      ) : null}
+    </div>
   );
 }

@@ -1,125 +1,93 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { FigureNoteGlyph } from "./figurenote";
+import { ArrowRight, Volume2 } from "lucide-react";
 import { KnightCrest } from "./crest";
 import { Button } from "@/components/ui/button";
-import { FIGURENOTE_COLORS, figureNoteShape, noteName } from "@/lib/game/music";
 import { useGameStore } from "@/lib/game/store";
-import { unlockAudio, playMidi, playMidiSequence } from "@/lib/game/audio";
-
-const PAGES = [
-  {
-    title: "You are the Harmony Knight",
-    subtitle: "A quest to master the language of music.",
-    body: "From first sound to Grade 8 analysis. Short sessions. You set the scaffolding. Nothing is timed unless you ask.",
-  },
-  {
-    title: "Your confidence slider",
-    subtitle: "Always in your control.",
-    body: "Slide left for color, shape, and a quiet ghost tone. Slide right to read standard notation alone. It never locks.",
-  },
-  {
-    title: "Colors are your guide",
-    subtitle: "Figurenotes make music visible.",
-    body: "C is a red circle. D is an orange square. G is a blue circle. Tap a shape to hear its pitch. As confidence rises, color fades into the staff.",
-  },
-  {
-    title: "Learn by playing",
-    subtitle: "No pressure. No punishment.",
-    body: "Every level opens with a short lesson you can hear as well as read. Practice waits. Strike trains timing. Duel: pick a higher note that blends — safe keys glow, and a ghost helps if you clash. Miss a few days? A five-note warm-up restores the blade.",
-  },
-  {
-    title: "Ready to begin?",
-    subtitle: "The hall is open.",
-    body: "",
-  },
-];
+import { playMidi } from "@/lib/game/audio";
+import { cn } from "@/lib/utils";
 
 export function OnboardingScreen() {
-  const [page, setPage] = useState(0);
   const complete = useGameStore((s) => s.completeOnboarding);
+  const settings = useGameStore((s) => s.settings);
   const navigate = useNavigate();
-  const current = PAGES[page]!;
-
-  const finish = () => {
-    unlockAudio();
-    playMidiSequence([60, 64, 67, 72], 0.16, 0.3);
+  const [audioError, setAudioError] = useState(false);
+  const finish = (firstLesson: boolean) => {
     complete();
-    void navigate({ to: "/" });
+    if (firstLesson)
+      void navigate({ to: "/lesson/$level", params: { level: "0" }, search: { unit: "0-pitch" } });
+    else void navigate({ to: "/" });
   };
-
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--color-ink)] px-6 py-8 text-[var(--color-parchment)]">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={finish}
-            className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-parchment)]"
-          >
-            Skip
-          </button>
+    <div
+      className={cn(
+        "flex min-h-dvh items-center bg-[var(--color-ink)] px-5 py-8 text-[var(--color-parchment)]",
+        settings.highContrast && "high-contrast",
+        settings.reducedMotion && "reduce-motion",
+      )}
+    >
+      <main className="mx-auto w-full max-w-lg space-y-6">
+        <div className="flex items-center gap-3">
+          <KnightCrest size={56} />
+          <span className="font-[var(--font-display)] text-2xl">Harmony Knight</span>
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          {page === 2 ? (
-            <div className="mb-8 flex items-end gap-3">
-              {[60, 62, 64, 65, 67].map((midi) => (
-                <button
-                  key={midi}
-                  type="button"
-                  onClick={() => {
-                    unlockAudio();
-                    playMidi(midi);
-                  }}
-                  aria-label={`Play ${noteName(midi)}`}
-                  className="flex min-h-11 min-w-11 flex-col items-center justify-center rounded-[var(--radius-sm)] transition-transform duration-[var(--motion-quick)] active:scale-[0.94]"
-                >
-                  <FigureNoteGlyph
-                    shape={figureNoteShape(midi)}
-                    color={FIGURENOTE_COLORS[midi % 12]!}
-                    size={36}
-                  />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="mb-8">
-              <KnightCrest size={104} />
-            </div>
-          )}
-          <h1 className="font-[var(--font-display)] text-3xl leading-tight tracking-[-0.03em] text-balance">
-            {current.title}
+        <div>
+          <p className="text-sm text-[var(--color-harmony)]">A little music. A clear next step.</p>
+          <h1 className="mt-3 font-[var(--font-display)] text-4xl leading-tight">
+            Music theory starts with a sound.
           </h1>
-          <p className="mt-3 text-[var(--color-harmony)]">{current.subtitle}</p>
-          {current.body ? (
-            <p className="mt-5 max-w-sm text-sm leading-relaxed text-[var(--color-muted)] text-pretty">
-              {current.body}
+          <p className="mt-4 text-base leading-relaxed text-[var(--color-muted)]">
+            Begin with no prior knowledge and explore your way to harmony, counterpoint and
+            composition. Short lessons save your place as you go.
+          </p>
+        </div>
+        <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">
+          <h2 className="text-lg font-medium">Try two notes, if you like</h2>
+          <p className="mt-2 text-base text-[var(--color-muted)]">
+            Same kind of sound, different pitches.
+          </p>
+          <div className="mt-4 flex gap-3">
+            {[
+              { label: "Low C", midi: 48 },
+              { label: "High C", midi: 72 },
+            ].map((n) => (
+              <Button
+                key={n.midi}
+                variant="secondary"
+                disabled={settings.muted}
+                onClick={() => {
+                  try {
+                    playMidi(n.midi);
+                  } catch {
+                    setAudioError(true);
+                  }
+                }}
+              >
+                <Volume2 className="size-4" />
+                {n.label}
+              </Button>
+            ))}
+          </div>
+          {audioError ? (
+            <p role="status" className="mt-3 text-sm">
+              Audio is unavailable here. You can still use the written lessons.
             </p>
           ) : null}
+        </section>
+        <p className="text-base leading-relaxed text-[var(--color-muted)]">
+          One idea, one practical task, two recall questions. No lesson timer. Come back whenever
+          you’re ready.
+        </p>
+        <div className="space-y-3">
+          <Button size="xl" className="w-full" onClick={() => finish(true)}>
+            Start my first 3-minute lesson
+            <ArrowRight className="size-4" />
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => finish(false)}>
+            I’d like to explore the home screen
+          </Button>
         </div>
-        <div className="flex justify-center gap-1.5 pb-6">
-          {PAGES.map((_, i) => (
-            <span
-              key={i}
-              className="h-1.5 rounded-full transition-[width,background-color] duration-[var(--motion-fast)]"
-              style={{
-                width: i === page ? 22 : 8,
-                background: i === page ? "var(--color-parchment)" : "var(--color-ink-3)",
-              }}
-            />
-          ))}
-        </div>
-        <Button
-          size="xl"
-          onClick={() => {
-            unlockAudio();
-            if (page === PAGES.length - 1) finish();
-            else setPage((p) => p + 1);
-          }}
-        >
-          {page === PAGES.length - 1 ? "Begin your quest" : "Next"}
-        </Button>
-      </div>
+      </main>
     </div>
   );
 }

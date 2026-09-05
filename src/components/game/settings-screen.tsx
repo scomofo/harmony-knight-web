@@ -13,6 +13,12 @@ export function SettingsScreen() {
     <GameShell title="Settings">
       <div className="space-y-6">
         <Toggle
+          label="Focus mode"
+          hint="Keep the next lesson prominent and collapse optional game challenges."
+          checked={settings.focusMode}
+          onChange={(v) => patch({ focusMode: v })}
+        />
+        <Toggle
           label="High contrast"
           hint="Stronger borders, less wash."
           checked={settings.highContrast}
@@ -20,7 +26,7 @@ export function SettingsScreen() {
         />
         <Toggle
           label="Reduce motion"
-          hint="Quieter strike-lane animation."
+          hint="Reduce movement throughout the app."
           checked={settings.reducedMotion}
           onChange={(v) => patch({ reducedMotion: v })}
         />
@@ -49,7 +55,7 @@ export function SettingsScreen() {
           />
         </label>
         <label className="block">
-          <span className="text-sm">Session length · {settings.sessionMinutes} min</span>
+          <span className="text-sm">Practice session length · {settings.sessionMinutes} min</span>
           <input
             type="range"
             min={3}
@@ -87,12 +93,14 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="flex w-full items-center justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-ink-2)] px-4 py-3 text-left"
     >
       <span>
         <span className="block text-sm">{label}</span>
-        <span className="block text-xs text-[var(--color-muted)]">{hint}</span>
+        <span className="block text-sm text-[var(--color-muted)]">{hint}</span>
       </span>
       <span
         className="relative h-6 w-11 rounded-full"
