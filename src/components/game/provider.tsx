@@ -36,9 +36,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-[var(--color-ink)] text-[var(--color-parchment)]">
         <KnightCrest size={96} />
-        <p className="font-[var(--font-display)] text-2xl tracking-[-0.03em]">
-          Harmony Knight
-        </p>
+        <p className="font-[var(--font-display)] text-2xl tracking-[-0.03em]">Harmony Knight</p>
         <p className="text-sm text-[var(--color-muted)]">Opening the hall…</p>
       </div>
     );

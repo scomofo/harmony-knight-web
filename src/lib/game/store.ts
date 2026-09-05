@@ -1,9 +1,17 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { BROKEN_BLADE_LENGTH, FEVER_THRESHOLD, GRADE_THRESHOLDS } from "./curriculum";
-import { newSRItem, type SRItem } from "./sr";
+import {
+  BROKEN_BLADE_LENGTH,
+  FEVER_THRESHOLD,
+  GRADE_THRESHOLDS,
+  MAX_GRADE,
+  levelFor,
+  topicCountsForGrade,
+  type AppRoute,
+} from "./curriculum.ts";
+import { newSRItem, type SRItem } from "./sr.ts";
 
-export type QuestMode = "practice" | "realtime" | "duel" | "recovery";
+export type QuestMode = "practice" | "realtime" | "duel" | "recovery" | "study";
 
 export type Quest = {
   id: string;
@@ -42,8 +50,9 @@ type GameState = {
   bestStreak: number;
   totalNotesPlayed: number;
   totalCorrectNotes: number;
-  attemptsAtGrade: number;
-  correctAtGrade: number;
+  /** Rolling window of recent answers on this grade's own topics. */
+  recentAtGrade: boolean[];
+  lessonsRead: number[];
   lastActiveAt: string;
   inBrokenBladeRecovery: boolean;
   gradeLevel: number;
@@ -60,6 +69,7 @@ type GameState = {
   hydrateDay: () => void;
   completeOnboarding: () => void;
   markDuelIntroSeen: () => void;
+  markLessonRead: (level: number) => void;
   setConfidence: (value: number) => void;
   patchSettings: (patch: Partial<Settings>) => void;
   updateSRItem: (item: SRItem) => void;
@@ -69,22 +79,42 @@ type GameState = {
     correct: boolean;
     responseMs: number;
     topicId: string;
+    /** Only note-reading should colour the pitch heatmap. */
+    trackHeat?: boolean;
   }) => { points: number; fever: boolean; leveledUp: boolean; newGrade: number };
   finishRecoveryIfDone: (sessionCorrect: number) => void;
-  recordRealtime: (hit: boolean) => void;
-  recordDuel: (valid: boolean, points: number) => void;
+  recordRealtime: (hit: boolean) => GradeOutcome;
+  recordDuel: (valid: boolean, points: number) => GradeOutcome;
   winDuel: () => void;
   claimQuest: (id: string) => void;
   recordHeat: (midi: number, correct: boolean) => void;
   resetProgress: () => void;
 };
 
+export type GradeOutcome = { leveledUp: boolean; newGrade: number };
+
 function dayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
-function defaultQuests(): Quest[] {
+function defaultQuests(grade = 0): Quest[] {
+  const level = levelFor(grade);
+  const study: Quest[] =
+    level.route === "/practice" || level.route === "/realtime" || level.route === "/duel"
+      ? []
+      : [
+          {
+            id: "daily-study-8",
+            title: `Study: 8 answers in ${level.drillLabel}`,
+            mode: "study",
+            targetCount: 8,
+            progressCount: 0,
+            rewardHarmonyPoints: 25,
+            claimed: false,
+          },
+        ];
   return [
+    ...study,
     {
       id: "daily-read-5",
       title: "Read 5 notes",
@@ -126,6 +156,32 @@ function emptyMastery(topicId: string): SkillMastery {
   };
 }
 
+/**
+ * Judge the rolling window of answers on this grade's topics. Returns the new
+ * window and whether the knight advanced.
+ */
+function judgeGrade(
+  s: { gradeLevel: number; recentAtGrade: boolean[] },
+  topicId: string,
+  correct: boolean,
+): { recentAtGrade: boolean[]; gradeLevel: number; leveledUp: boolean } {
+  if (!topicCountsForGrade(topicId, s.gradeLevel)) {
+    return { recentAtGrade: s.recentAtGrade, gradeLevel: s.gradeLevel, leveledUp: false };
+  }
+  const threshold = GRADE_THRESHOLDS[s.gradeLevel];
+  const window = threshold?.minSessionAttempts ?? 20;
+  const recent = [...(s.recentAtGrade ?? []), correct].slice(-window);
+  if (
+    threshold &&
+    s.gradeLevel < MAX_GRADE &&
+    recent.length >= threshold.minSessionAttempts &&
+    recent.filter(Boolean).length / recent.length >= threshold.minSessionAccuracy
+  ) {
+    return { recentAtGrade: [], gradeLevel: s.gradeLevel + 1, leveledUp: true };
+  }
+  return { recentAtGrade: recent, gradeLevel: s.gradeLevel, leveledUp: false };
+}
+
 function bumpQuest(quests: Quest[], mode: QuestMode, amount = 1): Quest[] {
   return quests.map((q) =>
     q.mode === mode && !q.claimed
@@ -142,8 +198,8 @@ const initial = {
   bestStreak: 0,
   totalNotesPlayed: 0,
   totalCorrectNotes: 0,
-  attemptsAtGrade: 0,
-  correctAtGrade: 0,
+  recentAtGrade: [] as boolean[],
+  lessonsRead: [] as number[],
   lastActiveAt: new Date().toISOString(),
   inBrokenBladeRecovery: false,
   gradeLevel: 0,
@@ -152,7 +208,7 @@ const initial = {
   harmonyPoints: 0,
   weakNotesMidi: [] as number[],
   questsDay: dayKey(),
-  quests: defaultQuests(),
+  quests: defaultQuests(0),
   mastery: {} as Record<string, SkillMastery>,
   srItems: {} as Record<string, SRItem>,
   heatmap: {} as Record<number, HeatCell>,
@@ -173,25 +229,26 @@ export const useGameStore = create<GameState>()(
         const now = new Date();
         const last = new Date(get().lastActiveAt);
         const hours = (now.getTime() - last.getTime()) / 36e5;
-        const broken =
-          get().currentStreak > 0 && hours >= 48
-            ? true
-            : get().inBrokenBladeRecovery;
+        const broken = get().currentStreak > 0 && hours >= 48 ? true : get().inBrokenBladeRecovery;
         const today = dayKey(now);
         set({
           hydrated: true,
           inBrokenBladeRecovery: broken,
-          quests: get().questsDay === today ? get().quests : defaultQuests(),
+          quests: get().questsDay === today ? get().quests : defaultQuests(get().gradeLevel),
           questsDay: today,
         });
       },
       completeOnboarding: () => set({ onboardingDone: true }),
       markDuelIntroSeen: () => set({ duelIntroSeen: true }),
+      markLessonRead: (level) =>
+        set({
+          lessonsRead: get().lessonsRead.includes(level)
+            ? get().lessonsRead
+            : [...get().lessonsRead, level],
+        }),
       setConfidence: (value) => set({ confidence: Math.max(0, Math.min(1, value)) }),
-      patchSettings: (patch) =>
-        set({ settings: { ...get().settings, ...patch } }),
-      updateSRItem: (item) =>
-        set({ srItems: { ...get().srItems, [item.id]: item } }),
+      patchSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
+      updateSRItem: (item) => set({ srItems: { ...get().srItems, [item.id]: item } }),
       ensureSRPool: (midis, grade) => {
         const items = { ...get().srItems };
         const result: SRItem[] = [];
@@ -203,7 +260,7 @@ export const useGameStore = create<GameState>()(
         set({ srItems: items });
         return result;
       },
-      recordPractice: ({ midi, correct, responseMs, topicId }) => {
+      recordPractice: ({ midi, correct, responseMs, topicId, trackHeat = true }) => {
         const s = get();
         const streak = correct ? s.currentStreak + 1 : 0;
         const fever = streak >= FEVER_THRESHOLD;
@@ -221,42 +278,33 @@ export const useGameStore = create<GameState>()(
         const heat = s.heatmap[midi] ?? { attempts: 0, correct: 0 };
         const totalNotes = s.totalNotesPlayed + 1;
         const totalCorrect = s.totalCorrectNotes + (correct ? 1 : 0);
-        const attemptsAtGrade = (s.attemptsAtGrade ?? 0) + 1;
-        const correctAtGrade = (s.correctAtGrade ?? 0) + (correct ? 1 : 0);
-
-        let gradeLevel = s.gradeLevel;
-        let leveledUp = false;
-        const threshold = GRADE_THRESHOLDS[s.gradeLevel];
-        if (
-          threshold &&
-          attemptsAtGrade >= threshold.minSessionAttempts &&
-          correctAtGrade / attemptsAtGrade >= threshold.minSessionAccuracy &&
-          s.gradeLevel < 10
-        ) {
-          gradeLevel = s.gradeLevel + 1;
-          leveledUp = true;
-        }
+        const { recentAtGrade, gradeLevel, leveledUp } = judgeGrade(s, topicId, correct);
+        const isNoteReading = topicId === "note-reading-c4-b4";
+        const questMode: QuestMode = s.inBrokenBladeRecovery
+          ? "recovery"
+          : isNoteReading
+            ? "practice"
+            : "study";
 
         set({
           currentStreak: streak,
           bestStreak: Math.max(s.bestStreak, streak),
           totalNotesPlayed: totalNotes,
           totalCorrectNotes: totalCorrect,
-          attemptsAtGrade: leveledUp ? 0 : attemptsAtGrade,
-          correctAtGrade: leveledUp ? 0 : correctAtGrade,
+          recentAtGrade,
           lastActiveAt: new Date().toISOString(),
           harmonyPoints: s.harmonyPoints + points,
           mastery: { ...s.mastery, [topicId]: nextMastery },
-          heatmap: {
-            ...s.heatmap,
-            [midi]: {
-              attempts: heat.attempts + 1,
-              correct: heat.correct + (correct ? 1 : 0),
-            },
-          },
-          quests: correct
-            ? bumpQuest(s.quests, s.inBrokenBladeRecovery ? "recovery" : "practice")
-            : s.quests,
+          heatmap: trackHeat
+            ? {
+                ...s.heatmap,
+                [midi]: {
+                  attempts: heat.attempts + 1,
+                  correct: heat.correct + (correct ? 1 : 0),
+                },
+              }
+            : s.heatmap,
+          quests: correct ? bumpQuest(s.quests, questMode) : s.quests,
           gradeLevel,
         });
         return { points, fever, leveledUp, newGrade: gradeLevel };
@@ -269,21 +317,29 @@ export const useGameStore = create<GameState>()(
       },
       recordRealtime: (hit) => {
         const s = get();
+        const judged = judgeGrade(s, "realtime", hit);
         set({
           lastActiveAt: new Date().toISOString(),
           currentStreak: hit ? s.currentStreak + 1 : 0,
           bestStreak: hit ? Math.max(s.bestStreak, s.currentStreak + 1) : s.bestStreak,
           harmonyPoints: s.harmonyPoints + (hit ? 8 : 0),
           quests: hit ? bumpQuest(s.quests, "realtime") : s.quests,
+          recentAtGrade: judged.recentAtGrade,
+          gradeLevel: judged.gradeLevel,
         });
+        return { leveledUp: judged.leveledUp, newGrade: judged.gradeLevel };
       },
       recordDuel: (valid, points) => {
         const s = get();
+        const judged = judgeGrade(s, "duel", valid);
         set({
           lastActiveAt: new Date().toISOString(),
           harmonyPoints: s.harmonyPoints + points,
           quests: valid ? bumpQuest(s.quests, "duel") : s.quests,
+          recentAtGrade: judged.recentAtGrade,
+          gradeLevel: judged.gradeLevel,
         });
+        return { leveledUp: judged.leveledUp, newGrade: judged.gradeLevel };
       },
       winDuel: () =>
         set({
@@ -325,7 +381,7 @@ export const useGameStore = create<GameState>()(
           onboardingDone: true,
           lastActiveAt: new Date().toISOString(),
           questsDay: dayKey(),
-          quests: defaultQuests(),
+          quests: defaultQuests(0),
         }),
     }),
     {
@@ -345,6 +401,7 @@ export const useGameStore = create<GameState>()(
           hydrateDay,
           completeOnboarding,
           markDuelIntroSeen,
+          markLessonRead,
           setConfidence,
           patchSettings,
           updateSRItem,
@@ -363,6 +420,7 @@ export const useGameStore = create<GameState>()(
         void hydrateDay;
         void completeOnboarding;
         void markDuelIntroSeen;
+        void markLessonRead;
         void setConfidence;
         void patchSettings;
         void updateSRItem;
@@ -391,8 +449,50 @@ export function masteryStars(m?: SkillMastery): number {
   return 0;
 }
 
-export function questRoute(mode: QuestMode): "/practice" | "/realtime" | "/duel" {
+export function questRoute(mode: QuestMode, grade = 0): AppRoute {
   if (mode === "duel") return "/duel";
   if (mode === "realtime") return "/realtime";
+  if (mode === "study") return levelFor(grade).route;
   return "/practice";
+}
+
+export type GradeProgress = {
+  grade: number;
+  answered: number;
+  needed: number;
+  accuracy: number;
+  neededAccuracy: number;
+  /** Correct answers still required if every remaining answer is right. */
+  remaining: number;
+  maxed: boolean;
+};
+
+/** How close the knight is to the next grade, for the hall and summaries. */
+export function gradeProgress(s: { gradeLevel: number; recentAtGrade: boolean[] }): GradeProgress {
+  const threshold = GRADE_THRESHOLDS[s.gradeLevel];
+  const recent = s.recentAtGrade ?? [];
+  if (!threshold || s.gradeLevel >= MAX_GRADE) {
+    return {
+      grade: s.gradeLevel,
+      answered: recent.length,
+      needed: 0,
+      accuracy: 1,
+      neededAccuracy: 1,
+      remaining: 0,
+      maxed: true,
+    };
+  }
+  const correct = recent.filter(Boolean).length;
+  const needed = threshold.minSessionAttempts;
+  const accuracy = recent.length ? correct / recent.length : 0;
+  const remaining = Math.max(0, Math.ceil(needed * threshold.minSessionAccuracy) - correct);
+  return {
+    grade: s.gradeLevel,
+    answered: recent.length,
+    needed,
+    accuracy,
+    neededAccuracy: threshold.minSessionAccuracy,
+    remaining,
+    maxed: false,
+  };
 }

@@ -1,17 +1,28 @@
-import { shuffle } from "./music";
-import { buildSessionQueue, scheduleItem, type SRItem, type SRResponse } from "./sr";
+import { shuffle } from "./music.ts";
+import { buildSessionQueue, scheduleItem, type SRItem, type SRResponse } from "./sr.ts";
 
 export type PracticeNote = { midi: number };
 
+/** Landmark notes from the Level 1 lesson: Bass F, Middle C, Treble G. */
+export const LANDMARKS = { bassF: 53, middleC: 60, trebleG: 67 } as const;
+
+/**
+ * Which notes a grade reads. Level 0 is the C–E–G the sensory level uses;
+ * Level 1 adds the rest of the treble octave plus Bass F as a landmark;
+ * Level 3 adds the bass-clef notes just below middle C; later grades add
+ * the full chromatic octave above.
+ */
 export function buildNotePool(gradeLevel: number): PracticeNote[] {
   if (gradeLevel === 0) return [{ midi: 60 }, { midi: 64 }, { midi: 67 }];
   if (gradeLevel <= 2) {
-    return [60, 62, 64, 65, 67, 69, 71].map((midi) => ({ midi }));
+    return [LANDMARKS.bassF, 60, 62, 64, 65, 67, 69, 71].map((midi) => ({ midi }));
   }
   if (gradeLevel <= 4) {
-    return [57, 59, 60, 62, 64, 65, 67, 69, 71, 72].map((midi) => ({ midi }));
+    return [53, 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72].map((midi) => ({ midi }));
   }
-  return Array.from({ length: 13 }, (_, i) => ({ midi: 60 + i }));
+  return [53, 55, 57, 59, ...Array.from({ length: 13 }, (_, i) => 60 + i)].map((midi) => ({
+    midi,
+  }));
 }
 
 export class PracticeQuestionEngine {
@@ -38,12 +49,13 @@ export class PracticeQuestionEngine {
 
     const srItem = this.srQueue[this.srQueueIndex]!;
     const targetMidi = Number.parseInt(srItem.id.replace("note_", ""), 10);
-    this.targetNote =
-      this.notePool.find((n) => n.midi === targetMidi) ?? this.notePool[0]!;
+    this.targetNote = this.notePool.find((n) => n.midi === targetMidi) ?? this.notePool[0]!;
 
-    const distractors = shuffle(
-      this.notePool.filter((n) => n.midi !== this.targetNote!.midi),
-    ).slice(0, 3);
+    // Prefer distractors near the target so the drill trains reading, not guessing.
+    const others = this.notePool.filter((n) => n.midi !== this.targetNote!.midi);
+    const near = shuffle(others.filter((n) => Math.abs(n.midi - this.targetNote!.midi) <= 7));
+    const far = shuffle(others.filter((n) => Math.abs(n.midi - this.targetNote!.midi) > 7));
+    const distractors = [...near, ...far].slice(0, 3);
 
     this.answerOptions = shuffle([this.targetNote, ...distractors]);
     return true;
@@ -66,11 +78,7 @@ export class PracticeQuestionEngine {
     let updatedSRItem: SRItem | null = null;
     if (this.srQueue.length && this.srQueueIndex < this.srQueue.length) {
       const current = this.srQueue[this.srQueueIndex]!;
-      const response: SRResponse = isCorrect
-        ? this.questionHadError
-          ? "hard"
-          : "good"
-        : "again";
+      const response: SRResponse = isCorrect ? (this.questionHadError ? "hard" : "good") : "again";
       updatedSRItem = scheduleItem(current, response);
       if (isCorrect) this.srQueueIndex += 1;
     }

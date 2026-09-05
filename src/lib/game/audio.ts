@@ -1,4 +1,4 @@
-import { midiToFreq } from "./music";
+import { midiToFreq } from "./music.ts";
 
 type Bus = {
   ctx: AudioContext;
@@ -145,10 +145,105 @@ export function playHit(kind: "perfect" | "great" | "good" | "miss" | "correct" 
     playTone(b.sfx, b.ctx, 110, 0.28, t + 0.02, "triangle", 0.06);
     return;
   }
-  const freq =
-    kind === "perfect" || kind === "correct" ? 880 : kind === "great" ? 740 : 620;
+  const freq = kind === "perfect" || kind === "correct" ? 880 : kind === "great" ? 740 : 620;
   playTone(b.sfx, b.ctx, freq, 0.14, t, "sine", 0.12);
   playTone(b.sfx, b.ctx, freq * 1.5, 0.1, t, "triangle", 0.05);
+}
+
+export type Timbre = "Warm" | "Hollow" | "Bright" | "Reed";
+
+/**
+ * Four clearly different colours of the same pitch, for the sensory level.
+ * Warm = soft triangle, Hollow = square with a closed filter (clarinet-like),
+ * Bright = sawtooth with an open filter, Reed = two detuned pulses.
+ */
+export function playTimbre(midi: number, timbre: Timbre, duration = 0.9, volume = 1) {
+  const b = unlockAudio();
+  const { ctx, sfx } = b;
+  const freq = midiToFreq(midi);
+  const t = ctx.currentTime;
+  const voice = (
+    type: OscillatorType,
+    detune: number,
+    cutoff: number,
+    gain: number,
+    freqMul = 1,
+  ) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = cutoff;
+    filter.Q.value = timbre === "Hollow" ? 6 : 0.7;
+    osc.type = type;
+    osc.frequency.value = freq * freqMul;
+    osc.detune.value = detune;
+    osc.connect(filter);
+    filter.connect(g);
+    g.connect(sfx);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain * volume, t + (timbre === "Bright" ? 0.01 : 0.06));
+    g.gain.exponentialRampToValueAtTime(gain * volume * 0.6, t + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    osc.start(t);
+    osc.stop(t + duration + 0.02);
+    osc.onended = () => {
+      osc.disconnect();
+      filter.disconnect();
+      g.disconnect();
+    };
+  };
+  switch (timbre) {
+    case "Warm":
+      voice("triangle", 0, freq * 3, 0.2);
+      voice("sine", 0, freq * 2, 0.06, 2);
+      break;
+    case "Hollow":
+      voice("square", 0, freq * 2.2, 0.1);
+      break;
+    case "Bright":
+      voice("sawtooth", 0, Math.min(9000, freq * 14), 0.09);
+      voice("sawtooth", 7, Math.min(9000, freq * 14), 0.05);
+      break;
+    case "Reed":
+      voice("square", -9, freq * 6, 0.07);
+      voice("sawtooth", 9, freq * 5, 0.06);
+      voice("sine", 0, freq * 2, 0.04, 3);
+      break;
+  }
+}
+
+/** Play a chord progression, one chord after another. */
+export function playProgression(chords: number[][], gap = 0.75, duration = 0.7, volume = 0.8) {
+  const b = unlockAudio();
+  const t = b.ctx.currentTime;
+  chords.forEach((chord, i) => {
+    chord.forEach((midi) => layeredNote(midiToFreq(midi), duration, t + i * gap, volume));
+  });
+}
+
+/** A short click pattern for rhythm playback: accented first beat. */
+export function playRhythmPattern(beats: number[], bpm = 88, midi = 60) {
+  const b = unlockAudio();
+  const beatSec = 60 / bpm;
+  let offset = 0;
+  const { ctx, sfx } = b;
+  beats.forEach((beat, i) => {
+    const when = ctx.currentTime + offset;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.value = i === 0 ? 1400 : 900;
+    osc.connect(g);
+    g.connect(sfx);
+    g.gain.setValueAtTime(i === 0 ? 0.12 : 0.07, when);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
+    osc.start(when);
+    osc.stop(when + 0.07);
+    layeredNote(midiToFreq(midi), Math.min(0.35, beat * beatSec), when, 0.7);
+    offset += beat * beatSec;
+  });
+  return offset;
 }
 
 export function playSuccess() {

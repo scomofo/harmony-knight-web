@@ -18,7 +18,8 @@ export function HeatmapScreen() {
   return (
     <GameShell title="Note heatmap">
       <p className="mb-5 text-sm text-[var(--color-muted)] text-pretty">
-        Pitch-class accuracy across every session. Cool steel is sure. Ember still slips. Tap a pitch to hear it.
+        Pitch-class accuracy across every session. Cool steel is sure. Ember still slips. Tap a
+        pitch to hear it.
       </p>
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
         {cells.map((c) => {

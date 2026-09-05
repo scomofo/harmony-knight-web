@@ -1,19 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { QuizScreen } from "@/components/game/quiz-screen";
-import { playMidiSequence } from "@/lib/game/audio";
 import { scaleExercise } from "@/lib/game/exercises";
+import { useGameStore } from "@/lib/game/store";
 
 export const Route = createFileRoute("/scale")({
   component: ScaleRoute,
 });
 
 function ScaleRoute() {
+  const grade = useGameStore((s) => s.gradeLevel);
   return (
     <QuizScreen
       title="Scales"
       topicId="scales"
-      make={scaleExercise}
-      play={(ex) => playMidiSequence(ex.notes, 0.18, 0.28)}
+      make={() => scaleExercise(grade)}
+      intro="Every major scale is the same shape from a different start. Listen for the first note."
+      lessonLevel={3}
     />
   );
 }
