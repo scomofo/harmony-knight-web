@@ -33,7 +33,9 @@ import {
   topicCountsForGrade,
 } from "./curriculum.ts";
 import { LESSONS, lessonFor } from "./lessons.ts";
-import { buildNotePool } from "./practice.ts";
+import { buildNotePool, PracticeQuestionEngine } from "./practice.ts";
+import { noteReviewPlan, recordNoteAttempt, weakNotesFor } from "./review.ts";
+import { newSRItem, type SRItem } from "./sr.ts";
 import { gradeProgress, useGameStore } from "./store.ts";
 
 const repeat = (n: number, fn: () => void) => {
@@ -41,6 +43,11 @@ const repeat = (n: number, fn: () => void) => {
 };
 
 describe("music theory helpers", () => {
+  it("places sharps on their natural note's staff step", () => {
+    for (const natural of [60, 62, 65, 67, 69]) {
+      assert.equal(staffStepsFromC4(natural + 1), staffStepsFromC4(natural));
+    }
+  });
   it("writes key signatures in the conventional order", () => {
     const d = KEYS.find((k) => k.name === "D Major")!;
     assert.deepEqual(keySignatureAccidentals(d), ["F#", "C#"]);
@@ -337,5 +344,152 @@ describe("grade trial in the store", () => {
       topicId: "note-reading-c4-b4",
     });
     assert.equal(useGameStore.getState().heatmap[64]?.attempts, 1);
+  });
+});
+
+// Regressions for saved review history and first-attempt practice scoring.
+describe("personal note review", () => {
+  it("adds a fresh mistake and clears it after consistent independent success", () => {
+    let history = recordNoteAttempt(undefined, false);
+    assert.deepEqual(weakNotesFor({ 60: history }), [60]);
+    for (let i = 0; i < 3; i++) history = recordNoteAttempt(history, true);
+    assert.deepEqual(weakNotesFor({ 60: history }), [60]);
+    history = recordNoteAttempt(history, true);
+    assert.deepEqual(weakNotesFor({ 60: history }), []);
+    for (let i = 0; i < 20; i++) history = recordNoteAttempt(history, true);
+    assert.equal(history.recentCorrect?.length, 10);
+    assert.equal(history.attempts, 25);
+    assert.equal(history.correct, 24);
+  });
+
+  it("uses existing heatmap saves and rebuilds weak notes on hydration", () => {
+    useGameStore.getState().resetProgress();
+    useGameStore.setState({
+      heatmap: JSON.parse(
+        JSON.stringify({ 60: { attempts: 5, correct: 2 }, 64: { attempts: 10, correct: 9 } }),
+      ),
+      weakNotesMidi: [99],
+    });
+    useGameStore.getState().hydrateDay();
+    assert.deepEqual(useGameStore.getState().weakNotesMidi, [60]);
+    assert.equal(useGameStore.getState().heatmap[60]?.attempts, 5);
+  });
+
+  it("persists per-note recent results while excluding study answers", () => {
+    useGameStore.getState().resetProgress();
+    const state = useGameStore.getState();
+    state.recordPractice({
+      midi: 60,
+      correct: false,
+      responseMs: 300,
+      topicId: "note-reading-c4-b4",
+    });
+    state.recordPractice({ midi: 60, correct: true, responseMs: 300, topicId: "intervals" });
+    const saved = JSON.parse(JSON.stringify(useGameStore.getState().heatmap));
+    assert.deepEqual(saved[60], { attempts: 1, correct: 0, recentCorrect: [false] });
+    assert.deepEqual(weakNotesFor(saved), [60]);
+    state.resetProgress();
+    assert.deepEqual(useGameStore.getState().heatmap, {});
+    assert.deepEqual(useGameStore.getState().weakNotesMidi, []);
+  });
+
+  it("separates due, new, and future notes and limits review to the unlocked pool", () => {
+    const now = new Date("2026-09-05T12:00:00Z");
+    const reviewed = (midi: number, next: string, repetitions = 1): SRItem => ({
+      ...newSRItem(`note_${midi}`, "note-reading", 0),
+      repetitions,
+      lastReviewedAt: "2026-09-04T12:00:00Z",
+      nextReviewAt: next,
+    });
+    const items = {
+      note_60: reviewed(60, now.toISOString(), 0), // A failed review is due, not new.
+      note_64: reviewed(64, "2026-09-06T12:00:00Z"),
+      note_67: newSRItem("note_67", "note-reading", 0),
+      note_53: reviewed(53, "2026-09-01T12:00:00Z"),
+    };
+    const plan = noteReviewPlan(
+      0,
+      { 60: recordNoteAttempt(undefined, false), 53: recordNoteAttempt(undefined, false) },
+      items,
+      now,
+    );
+    assert.deepEqual(plan.due, [60]);
+    assert.deepEqual(plan.unseen, [67]);
+    assert.deepEqual(plan.weak, [60]);
+    assert.deepEqual(
+      noteReviewPlan(
+        0,
+        {},
+        { note_60: items.note_64, note_64: items.note_64, note_67: items.note_64 },
+        now,
+      ).due,
+      [],
+    );
+  });
+});
+
+describe("practice corrections", () => {
+  function focusedEngine(item = newSRItem("note_60", "note-reading", 1)) {
+    const engine = new PracticeQuestionEngine();
+    engine.notePool = buildNotePool(1);
+    engine.rebuildQueue([item], true);
+    assert.ok(engine.generateQuestion());
+    return engine;
+  }
+
+  it("keeps real distractors when only one weak note is targeted", () => {
+    const engine = focusedEngine();
+    assert.equal(engine.targetNote?.midi, 60);
+    assert.equal(engine.answerOptions.length, 4);
+    assert.equal(new Set(engine.answerOptions.map((n) => n.midi)).size, 4);
+  });
+
+  it("keeps mistake penalties and treats retries as assisted", () => {
+    const engine = focusedEngine({
+      ...newSRItem("note_60", "note-reading", 1),
+      repetitions: 4,
+      intervalDays: 30,
+    });
+    const options = engine.answerOptions;
+    const missed = engine.recordAnswer({ midi: 64 });
+    assert.equal(missed.firstAttempt, true);
+    assert.equal(missed.updatedSRItem?.repetitions, 0);
+    assert.equal(missed.updatedSRItem?.easeFactor, 2.3);
+    assert.ok(engine.generateQuestion());
+    assert.equal(engine.questionHadError, true);
+    assert.deepEqual(engine.answerOptions, options);
+    const repeatedMiss = engine.recordAnswer({ midi: 64 });
+    assert.equal(repeatedMiss.firstAttempt, false);
+    assert.equal(repeatedMiss.updatedSRItem?.easeFactor, 2.3);
+    engine.generateQuestion();
+    const correction = engine.recordAnswer({ midi: 60 });
+    assert.equal(correction.isCorrect, true);
+    assert.equal(correction.firstAttempt, false);
+    assert.equal(correction.updatedSRItem?.intervalDays, 1);
+    assert.equal(correction.updatedSRItem?.repetitions, 1);
+    assert.ok((correction.updatedSRItem?.easeFactor ?? 3) < 2.3);
+    assert.equal(engine.isQueueExhausted, true);
+    assert.equal(engine.generateQuestion(), false);
+    assert.equal(engine.recordAnswer({ midi: 60 }).updatedSRItem, null);
+  });
+
+  it("starts a new independent attempt in the next round", () => {
+    const engine = focusedEngine();
+    engine.recordAnswer({ midi: 64 });
+    engine.generateQuestion();
+    const corrected = engine.recordAnswer({ midi: 60 }).updatedSRItem!;
+    engine.rebuildQueue([corrected], true);
+    engine.generateQuestion();
+    assert.equal(engine.questionHadError, false);
+    const fresh = engine.recordAnswer({ midi: 60 });
+    assert.equal(fresh.firstAttempt, true);
+    assert.equal(fresh.updatedSRItem?.intervalDays, 3);
+  });
+
+  it("does not generate a question for an empty review list", () => {
+    const engine = new PracticeQuestionEngine();
+    engine.notePool = buildNotePool(0);
+    engine.rebuildQueue([], true);
+    assert.equal(engine.generateQuestion(), false);
   });
 });

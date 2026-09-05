@@ -117,7 +117,8 @@ export function diatonicIndex(pc: number): number {
 export function staffStepsFromC4(midi: number): number {
   const oct = octaveOf(midi);
   const pc = pitchClass(midi);
-  const dia = DIATONIC.includes(pc) ? DIATONIC.indexOf(pc) : DIATONIC.findIndex((n) => n > pc);
+  // NOTE_NAMES spells chromatic pitches as sharps, which share the natural's staff position.
+  const dia = DIATONIC.includes(pc) ? DIATONIC.indexOf(pc) : DIATONIC.findIndex((n) => n > pc) - 1;
   const octaveOffset = (oct - 4) * 7;
   return octaveOffset + (dia < 0 ? 6 : dia);
 }

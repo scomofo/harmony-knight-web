@@ -10,5 +10,5 @@ export const Route = createFileRoute("/practice")({
 
 function PracticeRoute() {
   const { mode } = Route.useSearch();
-  return <PracticeScreen mode={mode} />;
+  return <PracticeScreen key={mode ?? "practice"} mode={mode} />;
 }

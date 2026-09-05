@@ -10,6 +10,7 @@ import {
   type AppRoute,
 } from "./curriculum.ts";
 import { newSRItem, type SRItem } from "./sr.ts";
+import { recordNoteAttempt, weakNotesFor, type NoteHistory } from "./review.ts";
 
 export type QuestMode = "practice" | "realtime" | "duel" | "recovery" | "study";
 
@@ -40,7 +41,7 @@ export type Settings = {
   muted: boolean;
 };
 
-export type HeatCell = { attempts: number; correct: number };
+export type HeatCell = NoteHistory;
 
 type GameState = {
   hydrated: boolean;
@@ -236,6 +237,7 @@ export const useGameStore = create<GameState>()(
           inBrokenBladeRecovery: broken,
           quests: get().questsDay === today ? get().quests : defaultQuests(get().gradeLevel),
           questsDay: today,
+          weakNotesMidi: weakNotesFor(get().heatmap),
         });
       },
       completeOnboarding: () => set({ onboardingDone: true }),
@@ -280,6 +282,10 @@ export const useGameStore = create<GameState>()(
         const totalCorrect = s.totalCorrectNotes + (correct ? 1 : 0);
         const { recentAtGrade, gradeLevel, leveledUp } = judgeGrade(s, topicId, correct);
         const isNoteReading = topicId === "note-reading-c4-b4";
+        const heatmap =
+          trackHeat && isNoteReading
+            ? { ...s.heatmap, [midi]: recordNoteAttempt(heat, correct) }
+            : s.heatmap;
         const questMode: QuestMode = s.inBrokenBladeRecovery
           ? "recovery"
           : isNoteReading
@@ -295,15 +301,8 @@ export const useGameStore = create<GameState>()(
           lastActiveAt: new Date().toISOString(),
           harmonyPoints: s.harmonyPoints + points,
           mastery: { ...s.mastery, [topicId]: nextMastery },
-          heatmap: trackHeat
-            ? {
-                ...s.heatmap,
-                [midi]: {
-                  attempts: heat.attempts + 1,
-                  correct: heat.correct + (correct ? 1 : 0),
-                },
-              }
-            : s.heatmap,
+          heatmap,
+          weakNotesMidi: weakNotesFor(heatmap),
           quests: correct ? bumpQuest(s.quests, questMode) : s.quests,
           gradeLevel,
         });
