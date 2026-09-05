@@ -8,6 +8,14 @@ type Bus = {
 };
 
 let bus: Bus | null = null;
+let masterGain = 0.8;
+const activeTones = new Set<OscillatorNode>();
+
+/** Cancel current and scheduled teaching tones when a learner stops or leaves. */
+export function stopTones() {
+  for (const osc of activeTones) osc.stop();
+  activeTones.clear();
+}
 
 function getCtx(): AudioContext {
   const AC =
@@ -24,7 +32,7 @@ export function unlockAudio() {
     const music = ctx.createGain();
     sfx.gain.value = 0.85;
     music.gain.value = 0.35;
-    master.gain.value = 0.8;
+    master.gain.value = masterGain * masterGain;
     sfx.connect(master);
     music.connect(master);
     master.connect(ctx.destination);
@@ -37,8 +45,9 @@ export function unlockAudio() {
 }
 
 export function setMasterGain(value: number) {
+  masterGain = Math.max(0, Math.min(1, value));
   if (!bus) return;
-  const v = Math.max(0, Math.min(1, value));
+  const v = masterGain;
   bus.master.gain.setTargetAtTime(v * v, bus.ctx.currentTime, 0.03);
 }
 
@@ -56,6 +65,7 @@ function playTone(
   gain = 0.18,
 ) {
   const osc = ctx.createOscillator();
+  activeTones.add(osc);
   const g = ctx.createGain();
   const filter = ctx.createBiquadFilter();
   filter.type = "lowpass";
@@ -73,6 +83,7 @@ function playTone(
   osc.start(t);
   osc.stop(t + duration + 0.02);
   osc.onended = () => {
+    activeTones.delete(osc);
     osc.disconnect();
     filter.disconnect();
     g.disconnect();
@@ -93,10 +104,15 @@ export function playMidi(midi: number, duration = 0.55, volume = 1) {
   layeredNote(midiToFreq(midi), duration, b.ctx.currentTime, volume);
 }
 
-export function playMidiSequence(midis: number[], gap = 0.32, duration = 0.4) {
+export function playMidiSequence(midis: number[], gap = 0.32, duration = 0.4, volumes?: number[]) {
   const b = unlockAudio();
   midis.forEach((midi, i) => {
-    layeredNote(midiToFreq(midi), duration, b.ctx.currentTime + i * gap, 1);
+    layeredNote(
+      midiToFreq(midi),
+      duration,
+      b.ctx.currentTime + i * gap,
+      Math.max(0.001, Math.min(1, volumes?.[i] ?? 1)),
+    );
   });
 }
 
@@ -170,6 +186,7 @@ export function playTimbre(midi: number, timbre: Timbre, duration = 0.9, volume 
     freqMul = 1,
   ) => {
     const osc = ctx.createOscillator();
+    activeTones.add(osc);
     const g = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
@@ -188,6 +205,7 @@ export function playTimbre(midi: number, timbre: Timbre, duration = 0.9, volume 
     osc.start(t);
     osc.stop(t + duration + 0.02);
     osc.onended = () => {
+      activeTones.delete(osc);
       osc.disconnect();
       filter.disconnect();
       g.disconnect();

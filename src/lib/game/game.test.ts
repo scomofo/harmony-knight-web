@@ -37,10 +37,327 @@ import { buildNotePool, PracticeQuestionEngine } from "./practice.ts";
 import { noteReviewPlan, recordNoteAttempt, weakNotesFor } from "./review.ts";
 import { newSRItem, type SRItem } from "./sr.ts";
 import { gradeProgress, useGameStore } from "./store.ts";
+import { playMidiSequence, setMasterGain, stopTones, unlockAudio } from "./audio.ts";
+import { COURSE_UNITS, unitById, unitsForLevel } from "./course.ts";
+import {
+  advanceUnit,
+  answerUnit,
+  dueUnits,
+  freshUnitProgress,
+  localDayKey,
+  nextUnit,
+  weekDays,
+} from "./learning.ts";
+
+describe("focused curriculum and saved learning", () => {
+  const unit = COURSE_UNITS[0]!;
+  const now = new Date("2026-09-05T12:00:00Z");
+  function finish(correct = true) {
+    let p = freshUnitProgress();
+    p = advanceUnit(unit, p, now);
+    p = advanceUnit(unit, p, now);
+    for (const q of unit.checks) {
+      p = answerUnit(unit, p, correct ? q.answer : q.options.find((a) => a !== q.answer)!);
+      p = advanceUnit(unit, p, now);
+    }
+    return p;
+  }
+
+  it("provides 44 complete lessons with 88 unambiguous checks across all 11 chapters", () => {
+    assert.equal(COURSE_UNITS.length, 44);
+    assert.equal(new Set(COURSE_UNITS.map((u) => u.id)).size, 44);
+    assert.equal(COURSE_UNITS.flatMap((u) => u.checks).length, 88);
+    for (const level of CURRICULUM) assert.equal(unitsForLevel(level.level).length, 4);
+    for (const u of COURSE_UNITS) {
+      assert.ok(u.body.length > 120 && u.tryIt.length > 70 && u.goal.length > 10, u.id);
+      for (const q of u.checks) {
+        assert.equal(q.options.filter((a) => a === q.answer).length, 1, q.prompt);
+        assert.equal(new Set(q.options).size, q.options.length, q.prompt);
+        assert.ok(q.why.length > 20, q.prompt);
+      }
+      if (u.example) {
+        const notes = u.example.notes.flat();
+        assert.ok(
+          notes.every((n) => Number.isInteger(n) && n >= 0 && n <= 127),
+          u.id,
+        );
+        if (u.example.volumes) assert.equal(u.example.volumes.length, notes.length);
+      }
+    }
+  });
+
+  it("keeps half-step and seventh-chord audio faithful to their teaching", () => {
+    assert.deepEqual(unitById("1-steps")!.example!.notes, [60, 61, 60, 62]);
+    assert.deepEqual(unitById("8-sevenths")!.example!.notes, [
+      [60, 64, 67, 71],
+      [60, 64, 67, 70],
+      [60, 63, 67, 70],
+      [60, 63, 66, 70],
+    ]);
+    const dynamics = unitById("0-dynamics")!.example!;
+    assert.deepEqual(dynamics.notes, [64, 64]);
+    assert.ok(dynamics.volumes![0]! < dynamics.volumes![1]!);
+  });
+
+  it("requires both answered checks and preserves the original answer after a reveal", () => {
+    let p = freshUnitProgress();
+    assert.equal(answerUnit(unit, p, unit.checks[0]!.answer), p);
+    p = advanceUnit(unit, advanceUnit(unit, p, now), now);
+    assert.equal(advanceUnit(unit, p, now), p);
+    assert.equal(answerUnit(unit, p, "invented answer"), p);
+    const wrong = unit.checks[0]!.options.find((a) => a !== unit.checks[0]!.answer)!;
+    p = answerUnit(unit, p, wrong);
+    assert.equal(answerUnit(unit, p, unit.checks[0]!.answer).answers[0], wrong);
+    p = advanceUnit(unit, p, now);
+    assert.equal(p.completedAt, null);
+    assert.equal(advanceUnit(unit, p, now), p);
+    assert.equal(finish(false).step, 4, "Corrections are learning, not a permanent lock");
+  });
+
+  it("schedules only learned lessons and advances due independent recall from 1 to 3 to 7 days", () => {
+    let p = finish();
+    const progress = { [unit.id]: p };
+    assert.equal(dueUnits(progress, now).length, 0);
+    assert.equal(dueUnits(progress, new Date(p.nextReviewAt!))[0]?.id, unit.id);
+    for (const expected of [3, 7]) {
+      const reviewAt = new Date(p.nextReviewAt!);
+      p = { ...p, step: 2, answers: {}, reviewing: true };
+      for (const q of unit.checks) {
+        p = answerUnit(unit, p, q.answer);
+        p = advanceUnit(unit, p, reviewAt);
+      }
+      assert.equal(p.intervalDays, expected);
+    }
+    assert.equal(p.reviewCount, 2);
+  });
+
+  it("shortens due assisted reviews and gives no extra scheduling credit for early repeats", () => {
+    const completed = finish();
+    let repeat = {
+      ...completed,
+      step: 3,
+      answers: { 0: unit.checks[0]!.answer, 1: unit.checks[1]!.answer },
+      reviewing: true,
+    };
+    const early = advanceUnit(unit, repeat, now);
+    assert.equal(early.nextReviewAt, completed.nextReviewAt);
+    assert.equal(early.reviewCount, 0);
+    const assisted = advanceUnit(
+      unit,
+      { ...repeat, intervalDays: 7, assisted: true },
+      new Date(completed.nextReviewAt!),
+    );
+    assert.equal(assisted.intervalDays, 1);
+    const wrong = advanceUnit(
+      unit,
+      {
+        ...repeat,
+        intervalDays: 7,
+        answers: {
+          ...repeat.answers,
+          1: unit.checks[1]!.options.find((a) => a !== unit.checks[1]!.answer)!,
+        },
+      },
+      new Date(completed.nextReviewAt!),
+    );
+    assert.equal(wrong.intervalDays, 1);
+  });
+
+  it("resumes an unfinished advanced lesson and handles completion of the entire path", () => {
+    const advanced = COURSE_UNITS.at(-1)!;
+    assert.equal(nextUnit({ [advanced.id]: freshUnitProgress() }, advanced.id)?.id, advanced.id);
+    assert.equal(nextUnit({}, "removed-id")?.id, unit.id);
+    const fugue = unitById("10-fugue")!;
+    assert.equal(nextUnit({ [fugue.id]: finish() }, fugue.id)?.id, "10-development");
+    const completed = Object.fromEntries(COURSE_UNITS.map((u) => [u.id, finish()]));
+    assert.equal(nextUnit(completed), undefined);
+  });
+
+  it("awards completion once, preserves checkpoints, and keeps learning separate from grade trials", () => {
+    useGameStore.getState().resetProgress();
+    useGameStore.setState({ gradeLevel: 7, lessonsRead: [1, 2], recentAtGrade: [true, false] });
+    const s = useGameStore.getState();
+    s.openUnit(unit.id);
+    s.advanceLearningUnit(unit.id);
+    s.advanceLearningUnit(unit.id);
+    s.answerLearningUnit(unit.id, unit.checks[0]!.answer);
+    s.openUnit(unit.id);
+    assert.equal(useGameStore.getState().unitProgress[unit.id]!.answers[0], unit.checks[0]!.answer);
+    s.advanceLearningUnit(unit.id);
+    s.answerLearningUnit(unit.id, unit.checks[1]!.answer);
+    s.advanceLearningUnit(unit.id);
+    s.advanceLearningUnit(unit.id);
+    assert.equal(useGameStore.getState().harmonyPoints, 25);
+    s.revisitUnit(unit.id, true);
+    for (const q of unit.checks) {
+      s.answerLearningUnit(unit.id, q.answer);
+      s.advanceLearningUnit(unit.id);
+    }
+    const saved = useGameStore.getState();
+    assert.equal(saved.harmonyPoints, 25);
+    assert.equal(saved.gradeLevel, 7);
+    assert.deepEqual(saved.recentAtGrade, [true, false]);
+    assert.deepEqual(saved.lessonsRead, [1, 2]);
+    assert.equal(saved.learningDays.length, 1);
+  });
+
+  it("merges old saves without losing existing grades, history or settings", () => {
+    useGameStore.getState().resetProgress();
+    const current = useGameStore.getState();
+    const merge = useGameStore.persist.getOptions().merge!;
+    const legacy = {
+      gradeLevel: 8,
+      harmonyPoints: 321,
+      lessonsRead: [0, 1],
+      settings: { muted: true, sessionMinutes: 12 },
+      heatmap: { 60: { attempts: 5, correct: 4 } },
+    };
+    const merged = merge(JSON.parse(JSON.stringify(legacy)), current);
+    assert.equal(merged.gradeLevel, 8);
+    assert.equal(merged.harmonyPoints, 321);
+    assert.deepEqual(merged.lessonsRead, [0, 1]);
+    assert.equal(merged.settings.muted, true);
+    assert.equal(merged.settings.sessionMinutes, 12);
+    assert.equal(merged.settings.focusMode, true);
+    assert.equal(merged.heatmap[60]!.correct, 4);
+    assert.deepEqual(merged.unitProgress, {});
+    assert.equal(typeof merged.openUnit, "function");
+    const modern = merge(
+      JSON.parse(
+        JSON.stringify({
+          unitProgress: {
+            [unit.id]: { ...freshUnitProgress(), step: 2, answers: { 0: unit.checks[0]!.answer } },
+          },
+          activeUnitId: unit.id,
+        }),
+      ),
+      current,
+    );
+    assert.equal(modern.unitProgress[unit.id]!.step, 2);
+    assert.equal(modern.unitProgress[unit.id]!.answers[0], unit.checks[0]!.answer);
+    assert.equal(modern.activeUnitId, unit.id);
+  });
+
+  it("welcomes returning learners without a recovery debt or changed earned progress", () => {
+    useGameStore.getState().resetProgress();
+    useGameStore.setState({
+      currentStreak: 12,
+      harmonyPoints: 90,
+      lastActiveAt: "2020-01-01T00:00:00Z",
+      inBrokenBladeRecovery: true,
+    });
+    useGameStore.getState().hydrateDay();
+    assert.equal(useGameStore.getState().inBrokenBladeRecovery, false);
+    assert.equal(useGameStore.getState().currentStreak, 12);
+    assert.equal(useGameStore.getState().harmonyPoints, 90);
+  });
+
+  it("uses local calendar days and a Monday-based week across month boundaries", () => {
+    const sunday = new Date(2026, 2, 1, 12);
+    assert.equal(localDayKey(sunday), "2026-03-01");
+    assert.deepEqual(
+      weekDays(sunday).map((d) => d.key),
+      [
+        "2026-02-23",
+        "2026-02-24",
+        "2026-02-25",
+        "2026-02-26",
+        "2026-02-27",
+        "2026-02-28",
+        "2026-03-01",
+      ],
+    );
+  });
+});
 
 const repeat = (n: number, fn: () => void) => {
   for (let i = 0; i < n; i++) fn();
 };
+
+describe("teaching audio", () => {
+  it("honours mute before the first tone, varies example dynamics, and cancels queued notes", () => {
+    const oscillators: { stops: (number | undefined)[]; startAt: number }[] = [];
+    const envelopes: number[][] = [];
+    const param = () => ({
+      value: 0,
+      setValueAtTime() {},
+      exponentialRampToValueAtTime() {},
+      setTargetAtTime(value: number) {
+        this.value = value;
+      },
+    });
+    class TestAudioContext {
+      state = "running";
+      currentTime = 0;
+      destination = {};
+      createGain() {
+        const ramps: number[] = [];
+        envelopes.push(ramps);
+        return {
+          gain: {
+            ...param(),
+            exponentialRampToValueAtTime(value: number) {
+              ramps.push(value);
+            },
+          },
+          connect() {},
+          disconnect() {},
+        };
+      }
+      createOscillator() {
+        const record = { stops: [] as (number | undefined)[], startAt: 0 };
+        oscillators.push(record);
+        return {
+          frequency: param(),
+          connect() {},
+          disconnect() {},
+          type: "triangle",
+          onended: null,
+          start(time: number) {
+            record.startAt = time;
+          },
+          stop(time?: number) {
+            record.stops.push(time);
+          },
+        };
+      }
+      createBiquadFilter() {
+        return { frequency: param(), connect() {}, disconnect() {}, type: "lowpass" };
+      }
+    }
+    const original = Object.getOwnPropertyDescriptor(globalThis, "window");
+    Object.defineProperty(globalThis, "window", {
+      value: { AudioContext: TestAudioContext },
+      configurable: true,
+    });
+    try {
+      setMasterGain(0);
+      const bus = unlockAudio();
+      assert.equal(bus.master.gain.value, 0);
+      setMasterGain(0.5);
+      assert.equal(bus.master.gain.value, 0.25);
+      playMidiSequence([64, 64], 0.42, 0.5, [0.25, 0.85]);
+      // Three master buses, then three layered oscillators per note.
+      assert.ok(envelopes[3]![0]! < envelopes[6]![0]!, "Second note must have the larger envelope");
+      assert.ok(oscillators.some((o) => o.startAt > 0));
+      stopTones();
+      assert.ok(
+        oscillators.every((o) => o.stops.at(-1) === undefined),
+        "All queued tones should stop immediately",
+      );
+      const stopped = oscillators.map((o) => o.stops.length);
+      stopTones();
+      assert.deepEqual(
+        oscillators.map((o) => o.stops.length),
+        stopped,
+        "Stopping is idempotent",
+      );
+    } finally {
+      if (original) Object.defineProperty(globalThis, "window", original);
+      else Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+});
 
 describe("music theory helpers", () => {
   it("places sharps on their natural note's staff step", () => {

@@ -41,7 +41,9 @@
     background: var(--color-ink);
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     text-wrap: balance;
   }
 
@@ -66,8 +68,35 @@
   --color-muted: #c5ccd3;
 }
 
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+.lesson-progress {
+  appearance: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-ink-3);
+  color: var(--color-harmony);
+}
+.lesson-progress::-webkit-progress-bar {
+  background: var(--color-ink-3);
+}
+.lesson-progress::-webkit-progress-value {
+  background: var(--color-harmony);
+}
+.lesson-progress::-moz-progress-bar {
+  background: var(--color-harmony);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

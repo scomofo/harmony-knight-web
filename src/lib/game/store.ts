@@ -11,6 +11,14 @@ import {
 } from "./curriculum.ts";
 import { newSRItem, type SRItem } from "./sr.ts";
 import { recordNoteAttempt, weakNotesFor, type NoteHistory } from "./review.ts";
+import { unitById } from "./course.ts";
+import {
+  advanceUnit,
+  answerUnit,
+  freshUnitProgress,
+  localDayKey,
+  type UnitProgress,
+} from "./learning.ts";
 
 export type QuestMode = "practice" | "realtime" | "duel" | "recovery" | "study";
 
@@ -34,6 +42,7 @@ export type SkillMastery = {
 };
 
 export type Settings = {
+  focusMode: boolean;
   highContrast: boolean;
   reducedMotion: boolean;
   sessionMinutes: number;
@@ -54,6 +63,9 @@ type GameState = {
   /** Rolling window of recent answers on this grade's own topics. */
   recentAtGrade: boolean[];
   lessonsRead: number[];
+  unitProgress: Record<string, UnitProgress>;
+  activeUnitId: string | null;
+  learningDays: string[];
   lastActiveAt: string;
   inBrokenBladeRecovery: boolean;
   gradeLevel: number;
@@ -71,6 +83,11 @@ type GameState = {
   completeOnboarding: () => void;
   markDuelIntroSeen: () => void;
   markLessonRead: (level: number) => void;
+  openUnit: (id: string) => void;
+  answerLearningUnit: (id: string, answer: string) => void;
+  advanceLearningUnit: (id: string) => void;
+  revisitUnit: (id: string, review?: boolean) => void;
+  useLearningHint: (id: string) => void;
   setConfidence: (value: number) => void;
   patchSettings: (patch: Partial<Settings>) => void;
   updateSRItem: (item: SRItem) => void;
@@ -201,6 +218,9 @@ const initial = {
   totalCorrectNotes: 0,
   recentAtGrade: [] as boolean[],
   lessonsRead: [] as number[],
+  unitProgress: {} as Record<string, UnitProgress>,
+  activeUnitId: null as string | null,
+  learningDays: [] as string[],
   lastActiveAt: new Date().toISOString(),
   inBrokenBladeRecovery: false,
   gradeLevel: 0,
@@ -214,9 +234,10 @@ const initial = {
   srItems: {} as Record<string, SRItem>,
   heatmap: {} as Record<number, HeatCell>,
   settings: {
+    focusMode: true,
     highContrast: false,
     reducedMotion: false,
-    sessionMinutes: 12,
+    sessionMinutes: 3,
     masterVolume: 0.8,
     muted: false,
   } satisfies Settings,
@@ -228,13 +249,11 @@ export const useGameStore = create<GameState>()(
       ...initial,
       hydrateDay: () => {
         const now = new Date();
-        const last = new Date(get().lastActiveAt);
-        const hours = (now.getTime() - last.getTime()) / 36e5;
-        const broken = get().currentStreak > 0 && hours >= 48 ? true : get().inBrokenBladeRecovery;
         const today = dayKey(now);
         set({
           hydrated: true,
-          inBrokenBladeRecovery: broken,
+          // Returning after a break never creates a debt or changes earned progress.
+          inBrokenBladeRecovery: false,
           quests: get().questsDay === today ? get().quests : defaultQuests(get().gradeLevel),
           questsDay: today,
           weakNotesMidi: weakNotesFor(get().heatmap),
@@ -242,6 +261,62 @@ export const useGameStore = create<GameState>()(
       },
       completeOnboarding: () => set({ onboardingDone: true }),
       markDuelIntroSeen: () => set({ duelIntroSeen: true }),
+      openUnit: (id) => {
+        if (!unitById(id)) return;
+        const s = get();
+        set({
+          activeUnitId: id,
+          unitProgress: { ...s.unitProgress, [id]: s.unitProgress[id] ?? freshUnitProgress() },
+        });
+      },
+      answerLearningUnit: (id, answer) => {
+        const unit = unitById(id);
+        const p = get().unitProgress[id];
+        if (!unit || !p) return;
+        const next = answerUnit(unit, p, answer);
+        if (next === p) return;
+        set({
+          unitProgress: { ...get().unitProgress, [id]: next },
+          lastActiveAt: new Date().toISOString(),
+        });
+      },
+      advanceLearningUnit: (id) => {
+        const unit = unitById(id);
+        const s = get();
+        const p = s.unitProgress[id];
+        if (!unit || !p) return;
+        const next = advanceUnit(unit, p);
+        if (next === p) return;
+        const finished = next.step === 4;
+        const today = localDayKey();
+        set({
+          unitProgress: { ...s.unitProgress, [id]: next },
+          harmonyPoints: s.harmonyPoints + (finished && !p.completedAt ? 25 : 0),
+          learningDays:
+            finished && !s.learningDays.includes(today)
+              ? [...s.learningDays, today].slice(-366)
+              : s.learningDays,
+          lastActiveAt: new Date().toISOString(),
+        });
+      },
+      revisitUnit: (id, review = false) => {
+        const s = get();
+        const p = s.unitProgress[id];
+        if (!unitById(id) || !p?.completedAt) return;
+        set({
+          activeUnitId: id,
+          unitProgress: {
+            ...s.unitProgress,
+            [id]: { ...p, step: review ? 2 : 0, answers: {}, reviewing: review, assisted: !review },
+          },
+        });
+      },
+      useLearningHint: (id) => {
+        const s = get();
+        const p = s.unitProgress[id];
+        if (p && !p.assisted)
+          set({ unitProgress: { ...s.unitProgress, [id]: { ...p, assisted: true } } });
+      },
       markLessonRead: (level) =>
         set({
           lessonsRead: get().lessonsRead.includes(level)
@@ -395,12 +470,29 @@ export const useGameStore = create<GameState>()(
           : localStorage,
       ),
       skipHydration: true,
+      // Zustand's default merge is shallow: retain new settings for pre-course saves.
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<GameState> | undefined;
+        return {
+          ...current,
+          ...saved,
+          settings: { ...current.settings, ...saved?.settings },
+          unitProgress: saved?.unitProgress ?? {},
+          learningDays: saved?.learningDays ?? [],
+          activeUnitId: saved?.activeUnitId ?? null,
+        };
+      },
       partialize: (s) => {
         const {
           hydrateDay,
           completeOnboarding,
           markDuelIntroSeen,
           markLessonRead,
+          openUnit,
+          answerLearningUnit,
+          advanceLearningUnit,
+          revisitUnit,
+          useLearningHint,
           setConfidence,
           patchSettings,
           updateSRItem,
@@ -420,6 +512,11 @@ export const useGameStore = create<GameState>()(
         void completeOnboarding;
         void markDuelIntroSeen;
         void markLessonRead;
+        void openUnit;
+        void answerLearningUnit;
+        void advanceLearningUnit;
+        void revisitUnit;
+        void useLearningHint;
         void setConfidence;
         void patchSettings;
         void updateSRItem;
