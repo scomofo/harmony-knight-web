@@ -137,20 +137,29 @@ export function playChosenNote(midi: number, correct: boolean, targetMidi?: numb
   layeredNote(midiToFreq(targetMidi), 0.7, t + 0.42, 1);
 }
 
-export function playClick(accent = false) {
-  const b = unlockAudio();
-  const { ctx, sfx } = b;
+function clickAt(ctx: AudioContext, dest: GainNode, when: number, accent = false) {
   const osc = ctx.createOscillator();
+  activeTones.add(osc);
   const g = ctx.createGain();
   osc.type = "square";
   osc.frequency.value = accent ? 1400 : 900;
   osc.connect(g);
-  g.connect(sfx);
-  const t = ctx.currentTime;
+  g.connect(dest);
+  const t = when;
   g.gain.setValueAtTime(accent ? 0.12 : 0.07, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
   osc.start(t);
   osc.stop(t + 0.07);
+  osc.onended = () => {
+    activeTones.delete(osc);
+    osc.disconnect();
+    g.disconnect();
+  };
+}
+
+export function playClick(accent = false) {
+  const { ctx, sfx } = unlockAudio();
+  clickAt(ctx, sfx, ctx.currentTime, accent);
 }
 
 export function playHit(kind: "perfect" | "great" | "good" | "miss" | "correct" | "wrong") {
@@ -248,20 +257,68 @@ export function playRhythmPattern(beats: number[], bpm = 88, midi = 60) {
   const { ctx, sfx } = b;
   beats.forEach((beat, i) => {
     const when = ctx.currentTime + offset;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = "square";
-    osc.frequency.value = i === 0 ? 1400 : 900;
-    osc.connect(g);
-    g.connect(sfx);
-    g.gain.setValueAtTime(i === 0 ? 0.12 : 0.07, when);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
-    osc.start(when);
-    osc.stop(when + 0.07);
+    clickAt(ctx, sfx, when, i === 0);
     layeredNote(midiToFreq(midi), Math.min(0.35, beat * beatSec), when, 0.7);
     offset += beat * beatSec;
   });
   return offset;
+}
+
+/** Attack maps sustain to the next attack or bar line. An accent map adds a quiet subdivision pulse. */
+export function playOnsetGrid(
+  rows: number[][],
+  columns: number,
+  stepBeats: number,
+  subdivisionPulse = false,
+  bpm = 72,
+) {
+  const { ctx, sfx } = unlockAudio();
+  const stepSeconds = (60 / bpm) * stepBeats;
+  const start = ctx.currentTime;
+  if (subdivisionPulse) {
+    for (let i = 0; i < columns; i++)
+      clickAt(
+        ctx,
+        sfx,
+        start + i * stepSeconds,
+        rows.some((row) => row.includes(i)),
+      );
+    return;
+  }
+  rows.forEach((row, r) => {
+    const attacks = [...row].sort((a, b) => a - b);
+    attacks.forEach((column, i) => {
+      const duration = ((attacks[i + 1] ?? columns) - column) * stepSeconds - 0.02;
+      layeredNote(midiToFreq(r ? 55 : 67), duration, start + column * stepSeconds, 0.65);
+    });
+  });
+}
+
+/** Repeated bass pitches are held; an explicit suspension also ties the first two upper notes. */
+export function playVoicePhrase(
+  bass: number[],
+  upper: number[],
+  gap = 0.75,
+  tiePreparation = false,
+) {
+  const { ctx } = unlockAudio();
+  const start = ctx.currentTime;
+  const line = (notes: number[], lower: boolean) => {
+    for (let i = 0; i < notes.length; i++) {
+      let end = i + 1;
+      if (lower) while (end < notes.length && notes[end] === notes[i]) end++;
+      else if (tiePreparation && i === 0 && notes[0] === notes[1]) end = 2;
+      layeredNote(
+        midiToFreq(notes[i]!),
+        gap * (end - i) - 0.03,
+        start + i * gap,
+        lower ? 0.55 : 0.8,
+      );
+      i = end - 1;
+    }
+  };
+  line(bass, true);
+  line(upper, false);
 }
 
 export function playSuccess() {
@@ -277,5 +334,6 @@ if (typeof window !== "undefined") {
   window.addEventListener("keydown", () => unlockAudio(), { once: true });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") resumeAudio();
+    else stopTones();
   });
 }

@@ -11,10 +11,13 @@ import {
 import { levelFor } from "@/lib/game/curriculum";
 import { unitsForLevel, type CourseUnit } from "@/lib/game/course";
 import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
+import { activityForUnit } from "@/lib/game/activity-catalog";
+import { activityComplete } from "@/lib/game/activities";
 import { type LessonExample } from "@/lib/game/lessons";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
+import { LessonActivityPanel } from "./lesson-activity";
 import { cn } from "@/lib/utils";
 
 export function LessonScreen({ level, unitId }: { level: number; unitId?: string }) {
@@ -39,6 +42,8 @@ export function LessonScreen({ level, unitId }: { level: number; unitId?: string
 function FocusedLesson({ unit }: { unit: CourseUnit }) {
   const saved = useGameStore((s) => s.unitProgress[unit.id]);
   const allProgress = useGameStore((s) => s.unitProgress);
+  const practicalProgress = useGameStore((s) => s.activityProgress[unit.id]);
+  const activity = activityForUnit(unit.id);
   const open = useGameStore((s) => s.openUnit);
   const answer = useGameStore((s) => s.answerLearningUnit);
   const advance = useGameStore((s) => s.advanceLearningUnit);
@@ -128,12 +133,23 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
 
         {p.step === 1 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
-            <p className="text-base leading-8">{unit.tryIt}</p>
-            {unit.example ? <ExampleAudio example={unit.example} /> : null}
-            <p className="mt-4 text-sm text-[var(--color-muted)]">
-              Try it aloud, on paper, or in your head. This activity is self-guided.
-            </p>
-            <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
+            {activity ? (
+              <LessonActivityPanel unitId={unit.id} activity={activity} />
+            ) : (
+              <>
+                <p className="text-base leading-8">{unit.tryIt}</p>
+                {unit.example ? <ExampleAudio example={unit.example} /> : null}
+                <p className="mt-4 text-sm text-[var(--color-muted)]">
+                  Try it aloud, on paper, or in your head. This listening or reflection activity is
+                  self-guided.
+                </p>
+              </>
+            )}
+            <Button
+              disabled={Boolean(activity && !activityComplete(activity, practicalProgress))}
+              className="mt-6 w-full sm:w-auto"
+              onClick={() => advance(unit.id)}
+            >
               Ready for two quick checks <ArrowRight className="size-4" />
             </Button>
           </section>
