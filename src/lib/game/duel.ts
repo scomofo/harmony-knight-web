@@ -26,6 +26,11 @@ export type TurnResult = {
 const C_MAJOR = [60, 62, 64, 65, 67, 69, 71, 72];
 const A_MINOR = [57, 59, 60, 62, 64, 65, 67, 69];
 
+/** In two voices the lower part is the bass: a fourth above it is dissonant. */
+export function counterpointQuality(semitones: number): IntervalQuality {
+  return Math.abs(semitones) % 12 === 5 ? "dissonance" : classifyInterval(semitones);
+}
+
 function randInt(max: number) {
   return Math.floor(Math.random() * max);
 }
@@ -79,23 +84,22 @@ export function validateMove(args: {
   previousUserNote?: DuelNote | null;
 }): DuelMoveResult {
   const { cantusNote, userNote, previousCantusNote, previousUserNote } = args;
-  const quality = classifyInterval(userNote.midi - cantusNote.midi);
+  const quality = counterpointQuality(userNote.midi - cantusNote.midi);
   const violations: CounterpointViolation[] = [];
 
   if (previousCantusNote && previousUserNote) {
     const prevInterval = Math.abs(previousUserNote.midi - previousCantusNote.midi) % 12;
     const currInterval = Math.abs(userNote.midi - cantusNote.midi) % 12;
-    if ((prevInterval === 7 && currInterval === 7) || (prevInterval === 0 && currInterval === 0)) {
-      violations.push(currInterval === 7 ? "parallelFifths" : "parallelOctaves");
-    }
     const cantusDir = cantusNote.midi - previousCantusNote.midi;
     const userDir = userNote.midi - previousUserNote.midi;
+    const similar = Math.sign(cantusDir) === Math.sign(userDir) && cantusDir !== 0;
     if (
-      Math.sign(cantusDir) === Math.sign(userDir) &&
-      Math.sign(cantusDir) !== 0 &&
-      (currInterval === 7 || currInterval === 0) &&
-      prevInterval !== currInterval
+      similar &&
+      ((prevInterval === 7 && currInterval === 7) || (prevInterval === 0 && currInterval === 0))
     ) {
+      violations.push(currInterval === 7 ? "parallelFifths" : "parallelOctaves");
+    }
+    if (similar && (currInterval === 7 || currInterval === 0) && prevInterval !== currInterval) {
       violations.push("hiddenFifthsOrOctaves");
     }
   }
@@ -148,7 +152,7 @@ export function suggestGhostResolution(args: {
     const name = intervalName(interval).toLowerCase();
     const reason =
       interval === 3 || interval === 4
-        ? `Try skipping one white key — ${name}s blend.`
+        ? `Try a ${name} above the bass — thirds blend.`
         : interval === 7 || interval === 12
           ? `A ${name} above is solid and open.`
           : `A ${name} above also blends.`;
@@ -181,7 +185,7 @@ export function plainMoveMessage(semitones: number, quality: IntervalQuality): s
   if (abs === 8 || abs === 9) return "A sixth — that blends.";
   if (abs === 7) return "A fifth — solid and open.";
   if (abs === 12) return "An octave — solid.";
-  if (abs === 5) return "A fourth — stable.";
+  if (abs === 5) return "A fourth above the bass — dissonant in this two-voice exercise.";
   if (abs === 0) return "Unison — same pitch.";
   return `${intervalName(abs)} · ${quality === "imperfectConsonance" ? "blends" : "stable"}`;
 }
@@ -189,11 +193,11 @@ export function plainMoveMessage(semitones: number, quality: IntervalQuality): s
 export function violationLabel(v: CounterpointViolation): string {
   switch (v) {
     case "parallelFifths":
-      return "Two fifths in a row — pick a closer interval.";
+      return "Both voices moved in parallel fifths. Try a third or sixth.";
     case "parallelOctaves":
-      return "Two octaves in a row — pick a closer interval.";
+      return "Both voices moved in parallel octaves. Try a third or sixth.";
     case "hiddenFifthsOrOctaves":
-      return "Both voices leapt to a fifth or octave. Try a step instead.";
+      return "Both voices moved in the same direction into a fifth or octave. Try contrary motion, a third or a sixth.";
     case "voiceCrossing":
       return "Too low — stay to the right of their note.";
   }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { playChord, playLevelUp, playMidi, playSuccess } from "@/lib/game/audio";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { playChord, playLevelUp, playMidi, playSuccess, stopTones } from "@/lib/game/audio";
 import {
   generateCantusFirmus,
   harmonyMeterDelta,
@@ -23,7 +23,8 @@ import { Staff } from "./staff";
 
 export function DuelScreen() {
   const store = useGameStore();
-  const beginner = store.gradeLevel <= 1;
+  const [sessionGrade, setSessionGrade] = useState(store.gradeLevel);
+  const beginner = sessionGrade <= 1;
   const firstDuel = store.duelWins === 0;
   const fromMidi = 60;
   const toMidi = beginner ? 76 : 79;
@@ -43,8 +44,19 @@ export function DuelScreen() {
   const [complete, setComplete] = useState(false);
   const [sessionPoints, setSessionPoints] = useState(0);
   const [validCount, setValidCount] = useState(0);
+  const [attemptCount, setAttemptCount] = useState(0);
   const [highlight, setHighlight] = useState<number | null>(null);
   const [leveled, setLeveled] = useState<number | null>(null);
+  const attemptedTurn = useRef(-1);
+  const closed = useRef(false);
+
+  useEffect(() => {
+    closed.current = false;
+    return () => {
+      closed.current = true;
+      stopTones();
+    };
+  }, []);
 
   const turn = user.length;
   const current = cantus[turn] ?? null;
@@ -78,21 +90,27 @@ export function DuelScreen() {
   );
 
   const start = () => {
+    stopTones();
+    closed.current = false;
+    setSessionGrade(store.gradeLevel);
+    const nextBeginner = store.gradeLevel <= 1;
     const next = generateCantusFirmus(store.gradeLevel, {
       firstDuel: store.duelWins === 0,
     });
     setCantus(next);
     setUser([]);
     setHistory([]);
-    setMeter(startMeter);
+    setMeter(nextBeginner ? 0.4 : 0.2);
     setGhost(null);
     setComplete(false);
     setSessionPoints(0);
     setValidCount(0);
+    setAttemptCount(0);
     setHighlight(null);
     setLeveled(null);
+    attemptedTurn.current = -1;
     setMessage(
-      beginner
+      nextBeginner
         ? "New phrase. Stay above them. Glowing keys blend."
         : "A new cantus. Stay above it. Prefer thirds and sixths.",
     );
@@ -100,7 +118,8 @@ export function DuelScreen() {
   };
 
   const playMove = (midi: number) => {
-    if (!current || complete) return;
+    if (!current || closed.current) return;
+    stopTones();
     setHighlight(midi);
     const candidate = { midi };
     const result = validateMove({
@@ -109,6 +128,9 @@ export function DuelScreen() {
       previousCantusNote: prevC,
       previousUserNote: prevU,
     });
+    const firstAttempt = attemptedTurn.current !== turn;
+    attemptedTurn.current = turn;
+    if (firstAttempt) setAttemptCount((n) => n + 1);
     playChord([current.midi, midi], 0.7);
 
     if (!result.isValid) {
@@ -123,16 +145,18 @@ export function DuelScreen() {
           ? result.violations.map(violationLabel).join(" · ")
           : "That clashes. Try a glowing key — skip one white key for a third.";
       setMessage(why);
-      store.recordDuel(false, 0);
+      if (firstAttempt) store.recordDuel(false, 0);
       return;
     }
 
     const acceptedGhost = Boolean(ghost && midi === ghost.suggestedNote.midi);
     const delta = harmonyMeterDelta(result, acceptedGhost);
     const nextMeter = Math.max(0, Math.min(1, meter + delta));
-    const pts = Math.round(
-      (result.quality === "imperfectConsonance" ? 16 : 12) * (acceptedGhost ? 1.15 : 1),
-    );
+    const pts = firstAttempt
+      ? Math.round(
+          (result.quality === "imperfectConsonance" ? 16 : 12) * (acceptedGhost ? 1.15 : 1),
+        )
+      : 0;
     const nextUser = [...user, candidate];
     const nextHistory: TurnResult[] = [
       ...history,
@@ -147,10 +171,10 @@ export function DuelScreen() {
     setHistory(nextHistory);
     setMeter(nextMeter);
     setGhost(null);
-    setValidCount((n) => n + 1);
+    setValidCount((n) => n + Number(firstAttempt));
     setSessionPoints((p) => p + pts);
-    const judged = store.recordDuel(true, pts);
-    if (judged.leveledUp) {
+    const judged = firstAttempt ? store.recordDuel(true, pts) : null;
+    if (judged?.leveledUp) {
       playLevelUp();
       setLeveled(judged.newGrade);
     }
@@ -161,9 +185,11 @@ export function DuelScreen() {
     );
 
     if (nextUser.length >= cantus.length) {
+      closed.current = true;
       setComplete(true);
       if (nextMeter >= winAt) {
         store.winDuel();
+        setSessionPoints((p) => p + 40);
         playSuccess();
         setMessage("The Sentinel yields. Harmony holds.");
       } else {
@@ -223,7 +249,9 @@ export function DuelScreen() {
           ) : (
             <p className="py-8 text-center text-sm text-[var(--color-muted)]">Phrase complete.</p>
           )}
-          <p className="mt-2 text-sm text-[var(--color-parchment)]">{message}</p>
+          <p role="status" className="mt-2 text-sm text-[var(--color-parchment)]">
+            {message}
+          </p>
           {ghost ? (
             <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-3)] p-3">
               <p className="text-sm text-[var(--color-harmony)]">
@@ -245,7 +273,10 @@ export function DuelScreen() {
             <button
               key={i}
               type="button"
-              onClick={() => playChord(p.user != null ? [p.cantus, p.user] : [p.cantus], 0.7)}
+              onClick={() => {
+                stopTones();
+                playChord(p.user != null ? [p.cantus, p.user] : [p.cantus], 0.7);
+              }}
               className="rounded-full border border-[var(--color-border)] px-2 py-1 font-mono text-xs tabular-nums text-[var(--color-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-parchment)]"
             >
               {noteName(p.cantus)}
@@ -263,22 +294,53 @@ export function DuelScreen() {
           hintMidi={ghost?.suggestedNote.midi ?? hint?.suggestedNote.midi ?? null}
           dimUnsafe={beginner}
         />
-        <div className="flex gap-2">
+        <p className="text-sm text-[var(--color-muted)]">
+          First tries count toward accuracy and grade progress. Corrections help finish the phrase
+          without extra answer points.
+        </p>
+        <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={start}>
             New phrase
           </Button>
           {current ? (
-            <Button variant="ghost" onClick={() => playMidi(current.midi)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                stopTones();
+                playMidi(current.midi);
+              }}
+            >
               Hear them
             </Button>
           ) : null}
+          <Button variant="ghost" onClick={stopTones}>
+            Stop sound
+          </Button>
+          <Button
+            variant="outline"
+            disabled={complete}
+            onClick={() => {
+              closed.current = true;
+              stopTones();
+              setComplete(true);
+            }}
+          >
+            End phrase
+          </Button>
         </div>
       </div>
       {complete ? (
         <SessionSummary
-          title={meter >= winAt ? "Duel won" : "Phrase complete"}
+          title={
+            user.length < cantus.length
+              ? "Duel ended"
+              : meter >= winAt
+                ? "Duel won"
+                : "Phrase complete"
+          }
           correct={validCount}
-          total={cantus.length}
+          total={attemptCount}
+          accuracyLabel="First try"
           points={sessionPoints}
           streak={store.currentStreak}
           leveledUp={leveled != null}

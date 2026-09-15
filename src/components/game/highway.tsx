@@ -11,6 +11,7 @@ import {
 } from "@/lib/game/realtime";
 import { figureNoteColor } from "@/lib/game/music";
 import { playMidi } from "@/lib/game/audio";
+import { ignoreGameKey } from "@/lib/game/input";
 
 export type HighwayStats = {
   score: number;
@@ -107,7 +108,7 @@ export function NoteHighway({
   }, [chart.durationSeconds, onComplete, onHit, reducedMotion, statsRef]);
 
   const tapLane = (lane: number) => {
-    if (!runningRef.current) return;
+    if (!runningRef.current || completedRef.current) return;
     const t = timeRef.current;
     let best: ChartNote | null = null;
     let bestDelta = 99;
@@ -147,6 +148,7 @@ export function NoteHighway({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!runningRef.current || completedRef.current || ignoreGameKey(e)) return;
       const map: Record<string, number> = {
         Digit1: 0,
         Digit2: 1,
@@ -180,6 +182,9 @@ export function NoteHighway({
             onPointerDown={(e) => {
               e.preventDefault();
               tapLane(i);
+            }}
+            onClick={(e) => {
+              if (e.detail === 0) tapLane(i);
             }}
             className="flex min-h-14 flex-col items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-2)] text-sm font-medium"
             style={{ boxShadow: `inset 0 -3px 0 ${figureNoteColor(LANE_MIDIS[i]!)}` }}

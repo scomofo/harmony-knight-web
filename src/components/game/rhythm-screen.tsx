@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Volume2 } from "lucide-react";
-import { playClick, playHit, playLevelUp, playRhythmPattern } from "@/lib/game/audio";
+import { playClick, playHit, playLevelUp, playRhythmPattern, stopTones } from "@/lib/game/audio";
 import { rhythmExercise, RHYTHMS, type Exercise } from "@/lib/game/exercises";
 import { BEAT_MS, RHYTHM_BPM, noteValueName, scoreTaps, type TapScore } from "@/lib/game/rhythm";
 import { gradeProgress, useGameStore } from "@/lib/game/store";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
 import { SessionSummary } from "./session-summary";
 import { cn } from "@/lib/utils";
+import { ignoreGameKey } from "@/lib/game/input";
 
 const BPM = RHYTHM_BPM;
 const GOAL = 10;
@@ -27,6 +28,7 @@ export function RhythmScreen() {
   const origin = useRef(0);
   const timers = useRef<number[]>([]);
   const [session, setSession] = useState({ total: 0, correct: 0, points: 0 });
+  const [barNumber, setBarNumber] = useState(1);
   const [summary, setSummary] = useState(false);
   const [leveled, setLeveled] = useState<number | null>(null);
   const beats = (ex.metadata?.beats as number[] | undefined) ?? [1, 1, 1, 1];
@@ -34,24 +36,66 @@ export function RhythmScreen() {
   const totalBeats = beats.reduce((a, b) => a + b, 0);
   const progress = gradeProgress(store);
 
+  const [paused, setPaused] = useState(false);
+  const closed = useRef(false);
+  const pausedRef = useRef(false);
+  const phaseRef = useRef<TapPhase>("idle");
+  const nameRecorded = useRef(false);
+  const tapRecorded = useRef(false);
+  const tapsRef = useRef<number[]>([]);
+  const askedAt = useRef(Date.now());
+  const pausedAt = useRef(0);
+
+  const transition = (next: TapPhase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
   const clearTimers = () => {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
+    stopTones();
+  };
+  const cancelTap = () => {
+    clearTimers();
+    if (phaseRef.current === "countin" || phaseRef.current === "tapping") {
+      transition("idle");
+      tapsRef.current = [];
+      setTaps([]);
+    }
+  };
+  const finish = () => {
+    closed.current = true;
+    cancelTap();
+    setSummary(true);
+  };
+  const pause = () => {
+    if (!pausedRef.current) pausedAt.current = Date.now();
+    pausedRef.current = true;
+    setPaused(true);
+    cancelTap();
   };
 
   useEffect(() => {
-    const id = window.setTimeout(() => playRhythmPattern(beats, BPM), 250);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ex.correctAnswer]);
+    closed.current = false;
+    return () => {
+      closed.current = true;
+      clearTimers();
+    };
+  }, []);
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState === "hidden") pause();
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => document.removeEventListener("visibilitychange", hide);
+  });
 
-  useEffect(() => () => clearTimers(), []);
-
-  const record = (correct: boolean, why: "name" | "tap") => {
-    const outcome = store.recordPractice({
+  const record = (correct: boolean, responseMs: number) => {
+    if (closed.current || pausedRef.current) return;
+    const outcome = useGameStore.getState().recordPractice({
       midi: 60,
       correct,
-      responseMs: 900,
+      responseMs,
       topicId: "rhythm",
       trackHeat: false,
     });
@@ -61,37 +105,59 @@ export function RhythmScreen() {
     }
     setSession((s) => ({
       total: s.total + 1,
-      correct: s.correct + (correct ? 1 : 0),
-      points: s.points + outcome.points + (why === "tap" && correct ? 5 : 0),
+      correct: s.correct + Number(correct),
+      points: s.points + outcome.points,
     }));
   };
 
   const nextExercise = () => {
     clearTimers();
+    nameRecorded.current = false;
+    tapRecorded.current = false;
+    tapsRef.current = [];
+    askedAt.current = Date.now();
     setPicked(null);
     setTaps([]);
     setTapScore(null);
-    setPhase("idle");
-    setEx(rhythmExercise(grade));
+    transition("idle");
+    setEx(rhythmExercise(useGameStore.getState().gradeLevel));
   };
 
   const choose = (option: string) => {
-    if (picked) return;
+    if (
+      nameRecorded.current ||
+      closed.current ||
+      pausedRef.current ||
+      phaseRef.current === "countin" ||
+      phaseRef.current === "tapping"
+    )
+      return;
+    nameRecorded.current = true;
     const correct = option === ex.correctAnswer;
     setPicked(option);
     playHit(correct ? "correct" : "wrong");
-    record(correct, "name");
+    record(correct, Date.now() - askedAt.current);
   };
 
   const startTapBack = () => {
+    if (
+      closed.current ||
+      pausedRef.current ||
+      phaseRef.current === "countin" ||
+      phaseRef.current === "tapping"
+    )
+      return;
     clearTimers();
+    tapsRef.current = [];
     setTaps([]);
     setTapScore(null);
-    setPhase("countin");
-    const beatsIn = meter === "3/4" ? 3 : 4;
+    transition("countin");
+    const beatsIn = Number.parseInt(meter, 10);
+    setCount(beatsIn);
     for (let i = 0; i < beatsIn; i++) {
       timers.current.push(
         window.setTimeout(() => {
+          if (closed.current || pausedRef.current) return;
           playClick(i === 0);
           setCount(beatsIn - i);
         }, i * BEAT_MS),
@@ -99,64 +165,56 @@ export function RhythmScreen() {
     }
     timers.current.push(
       window.setTimeout(() => {
+        if (closed.current || pausedRef.current) return;
         origin.current = performance.now();
-        setPhase("tapping");
+        transition("tapping");
         setCount(0);
         playClick(true);
+        timers.current.push(
+          window.setTimeout(
+            () => {
+              if (closed.current || pausedRef.current || phaseRef.current !== "tapping") return;
+              const score = scoreTaps(beats, tapsRef.current);
+              setTapScore(score);
+              transition("scored");
+              playHit(score.passed ? "correct" : "wrong");
+              if (!tapRecorded.current) {
+                tapRecorded.current = true;
+                record(score.passed, performance.now() - origin.current);
+              }
+            },
+            (totalBeats + 1) * BEAT_MS,
+          ),
+        );
       }, beatsIn * BEAT_MS),
     );
   };
 
-  // Finish scoring once the bar plus a beat of grace has elapsed.
-  useEffect(() => {
-    if (phase !== "tapping") return;
-    const id = window.setTimeout(() => finishTapping(), (totalBeats + 1) * BEAT_MS);
-    timers.current.push(id);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
-
-  const tapsRef = useRef<number[]>([]);
-  tapsRef.current = taps;
-
-  const finishTapping = () => {
-    if (phase !== "tapping") return;
-    const score = scoreTaps(beats, tapsRef.current);
-    setTapScore(score);
-    setPhase("scored");
-    playHit(score.passed ? "correct" : "wrong");
-    record(score.passed, "tap");
-  };
-
   const onTap = () => {
-    if (phase !== "tapping") return;
-    playClick(taps.length === 0);
-    const next = [...taps, performance.now() - origin.current];
-    setTaps(next);
-    tapsRef.current = next;
+    if (closed.current || pausedRef.current || phaseRef.current !== "tapping") return;
+    playClick(tapsRef.current.length === 0);
+    tapsRef.current = [...tapsRef.current, performance.now() - origin.current];
+    setTaps([...tapsRef.current]);
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (closed.current || pausedRef.current || ignoreGameKey(e)) return;
       if (e.code === "Space") {
         e.preventDefault();
-        if (phase === "tapping") onTap();
-        else if (phase === "idle" || phase === "scored") playRhythmPattern(beats, BPM);
+        if (phaseRef.current === "tapping") onTap();
+        else if (phaseRef.current !== "countin") {
+          stopTones();
+          playRhythmPattern(beats, BPM);
+        }
         return;
       }
       const idx = ["Digit1", "Digit2", "Digit3", "Digit4"].indexOf(e.code);
-      if (idx >= 0 && ex.options[idx] != null && phase !== "tapping") choose(ex.options[idx]!);
+      if (idx >= 0 && ex.options[idx] != null) choose(ex.options[idx]!);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-
-  useEffect(() => {
-    if (session.total >= GOAL && !summary) {
-      const t = window.setTimeout(() => setSummary(true), 900);
-      return () => window.clearTimeout(t);
-    }
-  }, [session.total, summary]);
 
   const stepDone = picked != null;
   const tapDone = phase === "scored";
@@ -165,6 +223,25 @@ export function RhythmScreen() {
   return (
     <GameShell title="Rhythm">
       <div className="flex flex-col gap-5">
+        <Button
+          variant="secondary"
+          disabled={summary}
+          onClick={() => {
+            if (!paused) pause();
+            else {
+              pausedRef.current = false;
+              setPaused(false);
+              askedAt.current += Date.now() - pausedAt.current;
+            }
+          }}
+        >
+          {paused ? "Resume" : "Pause"}
+        </Button>
+        {paused ? (
+          <p role="status">
+            Paused. An interrupted tap run is not scored. Resume, then start a fresh count-in.
+          </p>
+        ) : null}
         <p className="text-sm text-[var(--color-muted)] text-pretty">
           Body Base-10: a whole note is arms wide, a half is hands to the waist, a quarter is a
           clap, an eighth a finger tap. Hear the bar, name it, then tap it back.{" "}
@@ -180,8 +257,7 @@ export function RhythmScreen() {
 
         <div className="flex items-center justify-between text-xs text-[var(--color-muted)]">
           <span className="font-mono tabular-nums">
-            {session.correct}/{session.total} · bar{" "}
-            {Math.min(Math.floor(session.total / 2) + 1, GOAL / 2)} of {GOAL / 2}
+            {session.correct}/{session.total} first tries · bar {barNumber} · goal {GOAL} answers
           </span>
           {!progress.maxed ? (
             <span className="font-mono tabular-nums">
@@ -220,14 +296,22 @@ export function RhythmScreen() {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => playRhythmPattern(beats, BPM)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={paused || summary || phase === "countin" || phase === "tapping"}
+              onClick={() => {
+                stopTones();
+                playRhythmPattern(beats, BPM);
+              }}
+            >
               <Volume2 className="size-4" />
               Hear the bar
             </Button>
             <Button
               variant={stepDone && !tapDone ? "default" : "outline"}
               size="sm"
-              disabled={phase === "countin" || phase === "tapping"}
+              disabled={paused || summary || phase === "countin" || phase === "tapping"}
               onClick={startTapBack}
             >
               {tapDone ? "Tap again" : "Tap it back"}
@@ -238,7 +322,13 @@ export function RhythmScreen() {
         {phase === "countin" || phase === "tapping" ? (
           <button
             type="button"
-            onPointerDown={onTap}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              onTap();
+            }}
+            onClick={(e) => {
+              if (e.detail === 0) onTap();
+            }}
             className={cn(
               "flex min-h-32 select-none flex-col items-center justify-center rounded-[var(--radius-xl)] border text-center transition-colors",
               phase === "tapping"
@@ -264,8 +354,17 @@ export function RhythmScreen() {
           </button>
         ) : null}
 
+        <p className="text-sm text-[var(--color-muted)]">
+          Only the first naming answer and first completed tap run per bar count toward accuracy,
+          points and the grade trial. Tap again freely to practise.
+        </p>
+        <Button variant="ghost" onClick={stopTones}>
+          Stop sound
+        </Button>
+
         {tapScore ? (
           <div
+            role="status"
             className={cn(
               "rounded-[var(--radius-md)] border p-3 text-sm",
               tapScore.passed ? "border-[var(--color-harmony)]" : "border-[var(--color-ember)]",
@@ -302,7 +401,9 @@ export function RhythmScreen() {
               <button
                 key={opt}
                 type="button"
-                disabled={stepDone || phase === "tapping"}
+                disabled={
+                  stepDone || paused || summary || phase === "countin" || phase === "tapping"
+                }
                 onClick={() => choose(opt)}
                 className={cn(
                   "min-h-14 rounded-[var(--radius-md)] border px-4 py-2 text-left text-sm transition-colors",
@@ -332,10 +433,26 @@ export function RhythmScreen() {
         ) : null}
 
         <div className="flex gap-2">
-          <Button className="flex-1" onClick={nextExercise} disabled={!stepDone}>
-            {bothDone ? "Next bar" : stepDone ? "Skip tapping · next bar" : "Name it first"}
+          <Button
+            className="flex-1"
+            onClick={() => {
+              if (session.total >= GOAL) finish();
+              else {
+                setBarNumber((n) => n + 1);
+                nextExercise();
+              }
+            }}
+            disabled={!stepDone || paused || summary || phase === "countin" || phase === "tapping"}
+          >
+            {session.total >= GOAL
+              ? "Finish session"
+              : bothDone
+                ? "Next bar"
+                : stepDone
+                  ? "Skip tapping · next bar"
+                  : "Name it first"}
           </Button>
-          <Button variant="outline" onClick={() => setSummary(true)}>
+          <Button variant="outline" onClick={finish}>
             End
           </Button>
         </div>
@@ -346,13 +463,18 @@ export function RhythmScreen() {
           correct={session.correct}
           total={session.total}
           points={session.points}
+          accuracyLabel="First try"
           streak={store.currentStreak}
           leveledUp={leveled != null}
           newGrade={leveled ?? undefined}
           onAgain={() => {
+            closed.current = false;
+            pausedRef.current = false;
+            setPaused(false);
             setSummary(false);
             setLeveled(null);
             setSession({ total: 0, correct: 0, points: 0 });
+            setBarNumber(1);
             nextExercise();
           }}
         />

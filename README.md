@@ -39,9 +39,28 @@ The hall and Note progress screen show notes that **need work**, are **due now**
 
 ## Learning path and return flow
 
-The course covers Western music-theory foundations through advanced concepts. Practical
-singing, writing, rhythm and composition tasks are self-guided; the app checks conceptual
-recall, not a submitted score or full composition.
+The course covers Western music-theory foundations through advanced concepts. **28 lessons
+include 42 interactive tasks**, alongside the 88 conceptual recall checks. Listening,
+notation reflection and open composition prompts remain self-guided.
+
+| Interactive family                  | What learners do                                                                                                                                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chords · 19 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths and borrowed chords. Hear their voicing on its own or after a chord context.                   |
+| Rhythm · 11 tasks                   | Toggle attacks or accents on an untimed subdivision grid. Build durations, dotted rhythms, tied offbeat entries, meter groupings and both parts of 3:2; hear the result together.                                          |
+| Melody and voice leading · 12 tasks | Edit a phrase above a bass or reference line. Repair parallels, create contrary motion, close a cadence, prepare a suspension, control a passing tone, shape a line, transpose/invert a subject and write a Dorian phrase. |
+
+Each task provides written feedback, playback of the learner's answer and an example,
+and an optional worked answer. Drafts, task position, feedback, first-check outcomes and
+assistance are saved across reloads. Correct all tasks (with help if needed) before recall;
+retries preserve the original first-check result and award no extra XP. Existing saves
+already in Recall or Done keep their place. Note palettes and native selects work with
+keyboard or pointer; rhythm buttons support native Space activation. Audio is optional.
+
+Voice-leading judgments match the stated task: a fourth over the bass is dissonant in
+first species, but a stepwise weak passing fourth and a prepared 4–3 suspension are valid
+in their respective exercises. Repeating a stationary fifth or octave is not parallel
+motion. Open-ended tasks accept alternative answers satisfying their rules. These short
+fragments do not assess complete SATB scores, full species compositions or musical style.
 
 | Chapter               | Four focused lessons                                                        |
 | --------------------- | --------------------------------------------------------------------------- |
@@ -83,15 +102,22 @@ skill drills through rolling windows of relevant answers at 80–92% accuracy. T
 be explored without grinding those trials. Grades, note reviews, daily challenges and games
 remain accessible in the home screen's expandable training hall.
 
-The existing duel practises first species; later-species and composition lessons currently
-use self-guided tasks. Broader assessed score-writing and composition feedback are future
-work, not capabilities implied by completing the last chapter.
+The duel practises a simplified first-species fragment. Its first attempted answer per turn
+determines accuracy, answer points and grade credit; corrections still complete the phrase.
+The 40-point phrase-win reward appears in both saved points and the session summary.
+Rhythm naming and the first completed tap run each count once per bar; Tap again is practice.
+Interrupted tap runs are discarded without a mistake. Quiz feedback stays until Continue.
+Quiz and rhythm sessions have explicit pause/resume/end controls; changing tabs pauses them.
+Strike resumes the same chart and score after a pause and reports the harmony points saved.
+End, restart and navigation cancel pending session work and scheduled audio.
 
 Content lives in `src/lib/game/course.ts` (focused lessons and checks),
 `src/lib/game/lessons.ts` (retained overview teaching and examples), and
 `src/lib/game/curriculum.ts` (game levels, topics, unlocks).
 `src/lib/game/learning.ts` owns lesson state transitions and review scheduling;
 `src/lib/game/store.ts` persists progress alongside the existing save.
+`src/lib/game/activity-catalog.ts` authors the interactive tasks; `activities.ts` owns
+their judgments and progress transitions. `lesson-activity.tsx` renders the three editors.
 
 ## Design and editorial references
 
@@ -101,6 +127,7 @@ These are product design choices, not a claim of clinical efficacy or a substitu
 usability research with adults with ADHD.
 
 Terminology checks include [Open Music Theory's harmony and cadence explanation](https://viva.pressbooks.pub/openmusictheory/chapter/intro-to-harmony/)
+and [species-counterpoint rules](https://viva.pressbooks.pub/openmusictheory/chapter/species-counterpoint/),
 and [University of Puget Sound's fugue analysis](https://musictheory.pugetsound.edu/mt21c/FugueAnalysis.html).
 The new teaching and exercises are authored for this app. Cadences distinguish an authentic
 V–I ending from the specific perfect-authentic criteria; fugue teaching distinguishes real
@@ -116,22 +143,28 @@ saved mute/volume before the first tone, and lets learners stop scheduled exampl
 ## Commands
 
 ```bash
-npm install
+npm ci
 npm run dev
+npm test
 npm run typecheck
 npm run build
-npm run test:game
 ```
 
 Dev server binds `0.0.0.0:8080`. Production preview uses `npm run preview`.
 
-`npm run test:game` covers 48 cases for music theory, curriculum completeness, lesson checkpoints,
-recall scheduling, one-time rewards, old-save compatibility, note review and correction scheduling.
-Type checking and the production build also pass. Browser, keyboard and visual QA should include
-the home/lesson return path, mobile text wrapping, reduced motion and muted audio. The inherited `npm test` also runs app-builder template checks;
-on a standalone clone at `b608568`, 16 of those checks fail because workspace-only `.grok`
-files are absent or template branding assertions no longer match this app. These failures
-also reproduce before the note-review changes.
+Use Node 24. GitHub Actions runs a clean `npm ci`, `npm test`, type checking and a production
+build on pull requests and pushes to main, with read-only repository permissions and no
+deployment or database credentials.
+
+`npm test` runs the script tests (`test:template`), game/app-data/auth tests (`test:unit`),
+then React interaction tests in jsdom (`test:ui`). `test:game` runs just the game logic.
+The inherited script tests use isolated app-env and branding fixtures instead of assuming
+this clone has an app-builder workspace. Four authoring-document checks skip with an
+explicit reason when those unpublished instruction files are absent; runtime assertions
+still run. Regression coverage includes first-attempt credit, canceled timers, pause/resume,
+native keyboard controls, interactive judgments, saved drafts, assisted answers and audio
+scheduling. Component tests do not replace real-browser visual and audio QA: check narrow
+screens, actual keyboard/touch timing, sound envelopes and the full lesson return flow.
 
 ## Accessibility
 

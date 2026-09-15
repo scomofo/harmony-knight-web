@@ -12,6 +12,13 @@ import {
 import { newSRItem, type SRItem } from "./sr.ts";
 import { recordNoteAttempt, weakNotesFor, type NoteHistory } from "./review.ts";
 import { unitById } from "./course.ts";
+import { activityForUnit } from "./activity-catalog.ts";
+import {
+  activityComplete,
+  updateActivity,
+  type ActivityAction,
+  type ActivityProgress,
+} from "./activities.ts";
 import {
   advanceUnit,
   answerUnit,
@@ -64,6 +71,7 @@ type GameState = {
   recentAtGrade: boolean[];
   lessonsRead: number[];
   unitProgress: Record<string, UnitProgress>;
+  activityProgress: Record<string, ActivityProgress>;
   activeUnitId: string | null;
   learningDays: string[];
   lastActiveAt: string;
@@ -88,6 +96,7 @@ type GameState = {
   advanceLearningUnit: (id: string) => void;
   revisitUnit: (id: string, review?: boolean) => void;
   useLearningHint: (id: string) => void;
+  updateLearningActivity: (id: string, action: ActivityAction) => void;
   setConfidence: (value: number) => void;
   patchSettings: (patch: Partial<Settings>) => void;
   updateSRItem: (item: SRItem) => void;
@@ -219,6 +228,7 @@ const initial = {
   recentAtGrade: [] as boolean[],
   lessonsRead: [] as number[],
   unitProgress: {} as Record<string, UnitProgress>,
+  activityProgress: {} as Record<string, ActivityProgress>,
   activeUnitId: null as string | null,
   learningDays: [] as string[],
   lastActiveAt: new Date().toISOString(),
@@ -285,6 +295,8 @@ export const useGameStore = create<GameState>()(
         const s = get();
         const p = s.unitProgress[id];
         if (!unit || !p) return;
+        const activity = activityForUnit(id);
+        if (p.step === 1 && activity && !activityComplete(activity, s.activityProgress[id])) return;
         const next = advanceUnit(unit, p);
         if (next === p) return;
         const finished = next.step === 4;
@@ -316,6 +328,18 @@ export const useGameStore = create<GameState>()(
         const p = s.unitProgress[id];
         if (p && !p.assisted)
           set({ unitProgress: { ...s.unitProgress, [id]: { ...p, assisted: true } } });
+      },
+      updateLearningActivity: (id, action) => {
+        const activity = activityForUnit(id);
+        if (!activity) return;
+        const s = get();
+        const next = updateActivity(activity, s.activityProgress[id], action);
+        if (next === s.activityProgress[id]) return;
+        set({
+          activityProgress: { ...s.activityProgress, [id]: next },
+          lastActiveAt: new Date().toISOString(),
+        });
+        if (action.type === "reveal") get().useLearningHint(id);
       },
       markLessonRead: (level) =>
         set({
@@ -478,6 +502,7 @@ export const useGameStore = create<GameState>()(
           ...saved,
           settings: { ...current.settings, ...saved?.settings },
           unitProgress: saved?.unitProgress ?? {},
+          activityProgress: saved?.activityProgress ?? {},
           learningDays: saved?.learningDays ?? [],
           activeUnitId: saved?.activeUnitId ?? null,
         };
@@ -493,6 +518,7 @@ export const useGameStore = create<GameState>()(
           advanceLearningUnit,
           revisitUnit,
           useLearningHint,
+          updateLearningActivity,
           setConfidence,
           patchSettings,
           updateSRItem,
@@ -517,6 +543,7 @@ export const useGameStore = create<GameState>()(
         void advanceLearningUnit;
         void revisitUnit;
         void useLearningHint;
+        void updateLearningActivity;
         void setConfidence;
         void patchSettings;
         void updateSRItem;

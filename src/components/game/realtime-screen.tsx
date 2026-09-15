@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import { playLevelUp, playSuccess } from "@/lib/game/audio";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { playLevelUp, playSuccess, stopTones } from "@/lib/game/audio";
 import { buildTrainingChart, type ChartNote, type HitWindow } from "@/lib/game/realtime";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,11 @@ export function RealtimeScreen() {
   const recordRealtime = useGameStore((s) => s.recordRealtime);
   const [chart, setChart] = useState(() => buildTrainingChart());
   const [running, setRunning] = useState(false);
+  const [started, setStarted] = useState(false);
   const [done, setDone] = useState(false);
   const [hud, setHud] = useState({ score: 0, combo: 0, last: "" });
   const [leveled, setLeveled] = useState<number | null>(null);
+  const active = useRef(false);
   const statsRef = useRef<HighwayStats>({
     score: 0,
     combo: 0,
@@ -35,6 +37,7 @@ export function RealtimeScreen() {
 
   const onHit = useCallback(
     (_note: ChartNote, rating: HitWindow) => {
+      if (!active.current) return;
       onHud();
       const judged = recordRealtime(rating !== "miss");
       if (judged.leveledUp) {
@@ -46,6 +49,8 @@ export function RealtimeScreen() {
   );
 
   const onComplete = useCallback(() => {
+    if (!active.current) return;
+    active.current = false;
     setRunning(false);
     setDone(true);
     const s = statsRef.current;
@@ -53,13 +58,33 @@ export function RealtimeScreen() {
   }, []);
 
   const start = () => {
+    stopTones();
     setChart(buildTrainingChart(16, 0.68));
     setDone(false);
     setLeveled(null);
     setRunning(true);
+    setStarted(true);
+    active.current = true;
     setHud({ score: 0, combo: 0, last: "" });
     statsRef.current = { score: 0, combo: 0, hits: 0, misses: 0, last: null };
   };
+
+  const pause = useCallback(() => {
+    active.current = false;
+    setRunning(false);
+    stopTones();
+  }, []);
+
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState === "hidden") pause();
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      document.removeEventListener("visibilitychange", hide);
+      stopTones();
+    };
+  }, [pause]);
 
   return (
     <GameShell title="Strike Training">
@@ -86,16 +111,36 @@ export function RealtimeScreen() {
           onHud={onHud}
           statsRef={statsRef}
         />
-        <Button size="lg" onClick={() => (running ? setRunning(false) : start())}>
-          {running ? "Pause run" : done ? "Run again" : "Start run"}
+        <Button
+          size="lg"
+          onClick={() => {
+            if (running) pause();
+            else if (started && !done) {
+              active.current = true;
+              setRunning(true);
+            } else start();
+          }}
+        >
+          {running ? "Pause run" : started && !done ? "Resume run" : "Start run"}
         </Button>
+        {started && !done ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              pause();
+              setDone(true);
+            }}
+          >
+            End run
+          </Button>
+        ) : null}
       </div>
       {done ? (
         <SessionSummary
           title="Run complete"
           correct={statsRef.current.hits}
           total={statsRef.current.hits + statsRef.current.misses}
-          points={Math.round(statsRef.current.score / 10)}
+          points={statsRef.current.hits * 8}
           streak={streak}
           leveledUp={leveled != null}
           newGrade={leveled ?? undefined}

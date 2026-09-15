@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -144,10 +151,7 @@ test("__root.tsx og:type no longer satisfies the canvas gate", () => {
     narrowFile: "x-banner.jpg",
   });
   mkdirSync(join(root, "src/routes"), { recursive: true });
-  writeFileSync(
-    join(root, "src/routes/__root.tsx"),
-    '{ property: "og:type", content: "x:game" }',
-  );
+  writeFileSync(join(root, "src/routes/__root.tsx"), '{ property: "og:type", content: "x:game" }');
   const warnings = computeBrandWarnings({ hasCanvas: true, workspaceRoot: root });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /x:game/);
@@ -304,16 +308,27 @@ test("cli: a non-game with a compliant card passes", () => {
 // --- the prompts are the only enforcement here, so pin them to the code ---
 
 const readDoc = (rel) => readFileSync(join(TEMPLATE_ROOT, rel), "utf8");
+const workspaceDocs = {
+  skip: [".grok/skills/og/SKILL.md", "AGENTS.md"].every((rel) =>
+    existsSync(join(TEMPLATE_ROOT, rel)),
+  )
+    ? false
+    : "Workspace authoring instructions are not distributed with the standalone app",
+};
 
-test("SKILL.md and AGENTS.md name the marker path and bound this script uses", () => {
-  // Prose wraps, so the minute count may straddle a line break.
-  const bound = new RegExp(`${OG_PENDING_MAX_AGE_MS / 60_000}\\s+minutes`);
-  for (const rel of [".grok/skills/og/SKILL.md", "AGENTS.md"]) {
-    const doc = readDoc(rel);
-    assert.ok(doc.includes(`/workspace/${OG_PENDING_REL_PATH}`), `${rel}: marker path`);
-    assert.ok(bound.test(doc), `${rel}: staleness bound`);
-  }
-});
+test(
+  "SKILL.md and AGENTS.md name the marker path and bound this script uses",
+  workspaceDocs,
+  () => {
+    // Prose wraps, so the minute count may straddle a line break.
+    const bound = new RegExp(`${OG_PENDING_MAX_AGE_MS / 60_000}\\s+minutes`);
+    for (const rel of [".grok/skills/og/SKILL.md", "AGENTS.md"]) {
+      const doc = readDoc(rel);
+      assert.ok(doc.includes(`/workspace/${OG_PENDING_REL_PATH}`), `${rel}: marker path`);
+      assert.ok(bound.test(doc), `${rel}: staleness bound`);
+    }
+  },
+);
 
 // The two places that own "never wait on the brand task". Scanning the whole
 // of AGENTS.md instead would make every unrelated `wait_tasks` mention a future
@@ -340,10 +355,12 @@ function prohibitionSection({ rel, label, from, until }) {
   const rest = doc.slice(start + from.length);
   const end = rest.search(until);
   // Markdown emphasis and prose wrapping both sit between the two words.
-  return (from + (end === -1 ? rest : rest.slice(0, end))).replace(/[`*]/g, "").replace(/\s+/g, " ");
+  return (from + (end === -1 ? rest : rest.slice(0, end)))
+    .replace(/[`*]/g, "")
+    .replace(/\s+/g, " ");
 }
 
-test("the sections that own the brand-task prohibition never affirm a wait", () => {
+test("the sections that own the brand-task prohibition never affirm a wait", workspaceDocs, () => {
   // Pinned on the shape of the prohibition, not on a negation being somewhere
   // nearby: "So: wait_tasks before the final verify, but never get_task_output"
   // keeps a negation in the sentence while instructing exactly the wait.
@@ -362,7 +379,7 @@ test("the sections that own the brand-task prohibition never affirm a wait", () 
   }
 });
 
-test("SKILL.md tells the pass to self-check with the flag this CLI accepts", () => {
+test("SKILL.md tells the pass to self-check with the flag this CLI accepts", workspaceDocs, () => {
   const skill = readDoc(".grok/skills/og/SKILL.md");
   const invocations = skill.match(/node scripts\/brand-check\.mjs[^\n`]*/g) ?? [];
   assert.ok(invocations.length > 0);

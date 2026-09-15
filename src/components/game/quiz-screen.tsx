@@ -9,9 +9,11 @@ import {
   playMidiSequence,
   playProgression,
   playTimbre,
+  stopTones,
   type Timbre,
 } from "@/lib/game/audio";
 import type { Exercise } from "@/lib/game/exercises";
+import { ignoreGameKey } from "@/lib/game/input";
 import { gradeProgress, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
@@ -80,24 +82,51 @@ export function QuizScreen({
   const [picked, setPicked] = useState<string | null>(null);
   const [session, setSession] = useState({ total: 0, correct: 0, points: 0, streak: 0 });
   const [summary, setSummary] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const pausedAt = useRef(0);
+  const answered = useRef(false);
+  const closed = useRef(false);
   const [leveled, setLeveled] = useState<number | null>(null);
   const askedAt = useRef(Date.now());
   const progress = gradeProgress(store);
 
   const hear = (exercise = ex) => {
+    if (closed.current || pausedRef.current || store.settings.muted) return;
+    stopTones();
     if (play) play(exercise);
     else playExercise(exercise);
   };
 
   useEffect(() => {
     askedAt.current = Date.now();
-    const t = window.setTimeout(() => hear(ex), 200);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ex]);
 
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState === "hidden") {
+        if (!pausedRef.current) pausedAt.current = Date.now();
+        pausedRef.current = true;
+        setPaused(true);
+        stopTones();
+      }
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      document.removeEventListener("visibilitychange", hide);
+      stopTones();
+    };
+  }, []);
+
+  const finish = () => {
+    closed.current = true;
+    stopTones();
+    setSummary(true);
+  };
+
   const choose = (option: string) => {
-    if (picked || summary) return;
+    if (answered.current || closed.current || pausedRef.current) return;
+    answered.current = true;
     const correct = option === ex.correctAnswer;
     setPicked(option);
     playHit(correct ? "correct" : "wrong");
@@ -119,23 +148,20 @@ export function QuizScreen({
       streak: correct ? session.streak + 1 : 0,
     };
     setSession(next);
-    // Give the explanation time to be read; longer when wrong.
-    window.setTimeout(
-      () => {
-        if (next.total >= goal) {
-          setSummary(true);
-          return;
-        }
-        setPicked(null);
-        setEx(make());
-      },
-      correct ? 1400 : 2600,
-    );
+  };
+
+  const continueQuestion = () => {
+    if (!answered.current || closed.current || pausedRef.current) return;
+    stopTones();
+    if (session.total >= goal) return finish();
+    answered.current = false;
+    setPicked(null);
+    setEx(make());
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (summary) return;
+      if (closed.current || pausedRef.current || ignoreGameKey(e)) return;
       if (e.code === "Space") {
         e.preventDefault();
         hear();
@@ -149,7 +175,12 @@ export function QuizScreen({
   });
 
   const again = () => {
+    stopTones();
+    closed.current = false;
+    answered.current = false;
+    pausedRef.current = false;
     setSummary(false);
+    setPaused(false);
     setLeveled(null);
     setSession({ total: 0, correct: 0, points: 0, streak: 0 });
     setPicked(null);
@@ -183,8 +214,8 @@ export function QuizScreen({
 
         <div className="flex items-center justify-between text-xs text-[var(--color-muted)]">
           <span className="font-mono tabular-nums">
-            {session.correct}/{session.total} · question {Math.min(session.total + 1, goal)} of{" "}
-            {goal}
+            {session.correct}/{session.total} · question{" "}
+            {Math.min(session.total + (revealed ? 0 : 1), goal)} of {goal}
           </span>
           {session.streak >= 3 ? (
             <span className="text-[var(--color-ember)]">Streak {session.streak}</span>
@@ -194,6 +225,22 @@ export function QuizScreen({
             </span>
           ) : null}
         </div>
+        <Button
+          variant="secondary"
+          disabled={summary}
+          onClick={() => {
+            stopTones();
+            if (pausedRef.current) askedAt.current += Date.now() - pausedAt.current;
+            else pausedAt.current = Date.now();
+            pausedRef.current = !pausedRef.current;
+            setPaused(pausedRef.current);
+          }}
+        >
+          {paused ? "Resume" : "Pause"}
+        </Button>
+        {paused ? (
+          <p role="status">Paused. Your question and feedback are saved for this session.</p>
+        ) : null}
         <div className="h-1 overflow-hidden rounded-full bg-[var(--color-ink-3)]">
           <div
             className="h-full rounded-full bg-[var(--color-harmony)] transition-[width] duration-[var(--motion-fast)]"
@@ -211,6 +258,7 @@ export function QuizScreen({
           {visual ? <div className="mt-4 flex justify-center">{visual(ex, revealed)}</div> : null}
           {revealed ? (
             <div
+              role="status"
               className={cn(
                 "mt-4 rounded-[var(--radius-md)] border p-3 text-sm",
                 wasRight
@@ -227,9 +275,20 @@ export function QuizScreen({
             <p className="mt-3 text-sm text-[var(--color-muted)]">{ex.hint}</p>
           ) : null}
           {ex.playback !== "silent" ? (
-            <Button variant="ghost" size="sm" className="mt-4" onClick={() => hear()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-4"
+              disabled={paused || summary || store.settings.muted}
+              onClick={() => hear()}
+            >
               <Volume2 className="size-4" />
-              Hear again
+              Hear example
+            </Button>
+          ) : null}
+          {ex.playback !== "silent" ? (
+            <Button variant="ghost" size="sm" onClick={stopTones}>
+              Stop sound
             </Button>
           ) : null}
         </div>
@@ -247,7 +306,7 @@ export function QuizScreen({
               <button
                 key={opt}
                 type="button"
-                disabled={revealed}
+                disabled={revealed || paused || summary}
                 onClick={() => choose(opt)}
                 className={cn(
                   "flex min-h-14 items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 text-left text-sm transition-colors",
@@ -269,11 +328,16 @@ export function QuizScreen({
         <p className="text-center text-xs text-[var(--color-subtle)]">
           Keys 1–4 answer · Space hears it again.
         </p>
+        {revealed ? (
+          <Button onClick={continueQuestion} disabled={paused || summary}>
+            {session.total >= goal ? "Finish session" : "Continue"}
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           onClick={() => {
             if (session.total === 0 && onExit) onExit();
-            else setSummary(true);
+            else finish();
           }}
         >
           End session
