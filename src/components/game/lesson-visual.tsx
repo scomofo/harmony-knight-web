@@ -21,9 +21,15 @@ const HARMONY = "var(--color-harmony)";
 const SVG_CLASS = "mx-auto block h-auto w-full max-w-[420px]";
 
 /** A still picture for lesson text. Picks the drawing by the visual's kind. */
-export function LessonFigure({ visual }: { visual: LessonVisual }) {
+export function LessonFigure({
+  visual,
+  className = "mt-5",
+}: {
+  visual: LessonVisual;
+  className?: string;
+}) {
   return (
-    <figure className="mt-5">
+    <figure className={className}>
       <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink)] px-2 py-1">
         {visual.kind === "staff" ? (
           <StaffDiagram visual={visual} />

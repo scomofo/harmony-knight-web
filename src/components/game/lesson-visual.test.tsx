@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { useGameStore } from "@/lib/game/store";
 import { LessonFigure } from "./lesson-visual";
@@ -176,4 +176,16 @@ it("lights grid cells and circle-of-fifths keys", () => {
   );
   expect(container.querySelectorAll("[data-key]").length).toBe(12);
   expect(container.querySelectorAll("[data-lit]").length).toBe(3);
+});
+
+it("keeps the picture on the Try-it step and in the recall hint, not only on Learn", () => {
+  useGameStore.getState().resetProgress();
+  render(<LessonScreen level={1} unitId="1-staff" />);
+  const figure = () => screen.queryByRole("img", { name: /eight notes climbing/i });
+  expect(figure()).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Try this idea/ }));
+  expect(figure()).toBeTruthy();
+  act(() => useGameStore.getState().advanceLearningUnit("1-staff"));
+  expect(screen.getByText("Need the idea again?")).toBeTruthy();
+  expect(figure()).toBeTruthy();
 });
