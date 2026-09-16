@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Check, Home, RotateCcw, Volume2, Square } from "lucide-react";
 import {
   playChord,
+  playMidi,
   playMidiSequence,
   playProgression,
   playTimbre,
@@ -312,31 +313,31 @@ function ExampleAudio({ example }: { example: LessonExample }) {
     setPlaying(false);
     if (timer.current) clearTimeout(timer.current);
   };
-  const play = () => {
+  const play = (noteIndex?: number) => {
     stop();
     setError(false);
     try {
       const notes = example.notes as number[];
-      if (example.mode === "timbre") playTimbre(notes[0] ?? 64, example.timbre ?? "Warm", 1.1);
+      const gap = example.sequence?.gap ?? (notes.length > 5 ? 0.24 : 0.42);
+      const duration = example.sequence?.duration ?? (notes.length > 5 ? 0.32 : 0.5);
+      if (noteIndex !== undefined)
+        playMidi(notes[noteIndex]!, duration, example.volumes?.[noteIndex] ?? 1);
+      else if (example.mode === "timbre") playTimbre(notes[0] ?? 64, example.timbre ?? "Warm", 1.1);
       else if (example.mode === "progression")
         playProgression(example.notes as number[][], 0.85, 0.8);
       else if (example.mode === "chord") playChord(notes);
-      else
-        playMidiSequence(
-          notes,
-          notes.length > 5 ? 0.24 : 0.42,
-          notes.length > 5 ? 0.32 : 0.5,
-          example.volumes,
-        );
+      else playMidiSequence(notes, gap, duration, example.volumes);
       setPlaying(true);
       const seconds =
-        example.mode === "timbre"
-          ? 1.2
-          : example.mode === "chord"
-            ? 1
-            : example.mode === "progression"
-              ? example.notes.length * 0.85
-              : notes.length * (notes.length > 5 ? 0.24 : 0.42) + 0.5;
+        noteIndex !== undefined
+          ? duration + 0.05
+          : example.mode === "timbre"
+            ? 1.2
+            : example.mode === "chord"
+              ? 1
+              : example.mode === "progression"
+                ? example.notes.length * 0.85
+                : (notes.length - 1) * gap + duration + 0.05;
       timer.current = setTimeout(() => setPlaying(false), seconds * 1000);
     } catch {
       setError(true);
@@ -347,12 +348,26 @@ function ExampleAudio({ example }: { example: LessonExample }) {
       <Button
         variant="secondary"
         className="h-auto min-h-11 whitespace-normal py-3 text-left"
-        onClick={playing ? stop : play}
+        onClick={playing ? stop : () => play()}
         disabled={muted && !playing}
       >
         {playing ? <Square className="size-4 shrink-0" /> : <Volume2 className="size-4 shrink-0" />}
         {playing ? "Stop example" : example.label}
       </Button>
+      {example.mode === "sequence" && example.sequence?.noteLabels ? (
+        <div
+          className="mt-3 flex flex-wrap gap-3"
+          role="group"
+          aria-label="Hear each note separately"
+        >
+          {example.sequence.noteLabels.map((label, index) => (
+            <Button key={label} variant="outline" disabled={muted} onClick={() => play(index)}>
+              <Volume2 className="size-4 shrink-0" />
+              Hear {label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
       {muted ? (
         <p className="mt-2 text-sm text-[var(--color-muted)]">
           Sound is muted.{" "}
