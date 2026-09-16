@@ -14,10 +14,58 @@ export type LessonExample = {
   sequence?: { gap: number; duration: number; noteLabels?: string[] };
 };
 
+/** Note lengths a rhythm picture can show. Dotted values carry their dot. */
+export type RhythmValue =
+  "whole" | "half" | "quarter" | "eighth" | "dotted-half" | "dotted-quarter";
+
+export const RHYTHM_BEATS: Record<RhythmValue, number> = {
+  whole: 4,
+  half: 2,
+  quarter: 1,
+  eighth: 0.5,
+  "dotted-half": 3,
+  "dotted-quarter": 1.5,
+};
+
+/**
+ * A picture that accompanies a section's text, so a learner can see what the
+ * words describe before hearing it. Every kind carries a caption shown under
+ * the picture and an alt text spoken by screen readers.
+ */
+export type LessonVisual = { caption: string; alt: string } & (
+  | {
+      /** Notes at their staff positions, in Figurenotes colour, letter names underneath. */
+      kind: "staff";
+      /** "grand" draws treble and bass staves with middle C on its own ledger line between them. */
+      clef: "treble" | "bass" | "grand";
+      notes: number[];
+      /** Marks drawn between neighbouring notes, e.g. "W" and "H" for whole and half steps. */
+      gaps?: string[];
+    }
+  | {
+      /** One octave or more of piano keys, with some keys lit. */
+      kind: "keyboard";
+      from: number;
+      to: number;
+      highlight: number[];
+    }
+  | {
+      /** Note values drawn on one line with their beat counts. */
+      kind: "rhythm";
+      values: RhythmValue[];
+    }
+  | {
+      /** A treble staff with a major key's sharps or flats. */
+      kind: "key-signature";
+      tonic: string;
+    }
+);
+
 export type LessonSection = {
   heading: string;
   body: string;
   example?: LessonExample;
+  visual?: LessonVisual;
 };
 
 export type CheckQuestion = {
@@ -112,6 +160,14 @@ export const LESSONS: Lesson[] = [
           notes: [60, 62, 64, 65, 67],
           mode: "sequence",
         },
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 62, 64, 65, 67],
+          caption:
+            "C D E F G on the treble staff. Each note has its own colour, and the letter is written underneath.",
+          alt: "Treble staff with five coloured notes rising step by step: C on a short line below the staff, D just under the first line, E on the first line, F in the first space, G on the second line.",
+        },
       },
       {
         heading: "The staff: five lines, four spaces",
@@ -121,11 +177,27 @@ export const LESSONS: Lesson[] = [
           notes: [64, 65, 67, 69, 71, 72, 74, 76],
           mode: "sequence",
         },
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [64, 65, 67, 69, 71, 72, 74, 76],
+          caption:
+            "Climbing from the bottom line: line, space, line, space. E F G A B C D E — after G the alphabet starts again at A.",
+          alt: "Treble staff with eight notes climbing one position at a time, alternating line and space: E on the first line, F in the first space, G on the second line, A in the second space, B on the third line, C in the third space, D on the fourth line, E in the fourth space.",
+        },
       },
       {
         heading: "Three landmarks",
         body: "Middle C sits between the two staves, on its own short line. Treble G is the note the treble clef curls around — the second line up. Bass F is the note between the two dots of the bass clef — the fourth line up. Find the landmark, then count steps.",
         example: { label: "Bass F, Middle C, Treble G", notes: [53, 60, 67], mode: "sequence" },
+        visual: {
+          kind: "staff",
+          clef: "grand",
+          notes: [53, 60, 67],
+          caption:
+            "The three landmarks. Bass F sits between the two dots of the bass clef. Middle C has its own short line between the staves. Treble G is the line the treble clef curls around.",
+          alt: "Grand staff showing three notes: F on the fourth line of the bass staff between the clef's two dots, middle C on a short ledger line between the two staves, and G on the second line of the treble staff where the clef curls.",
+        },
       },
     ],
     check: [
@@ -167,6 +239,13 @@ export const LESSONS: Lesson[] = [
           notes: [60, 60, 60, 60],
           mode: "sequence",
         },
+        visual: {
+          kind: "rhythm",
+          values: ["whole", "half", "quarter", "eighth"],
+          caption:
+            "Whole, half, quarter, eighth. Each is half as long as the one before. Beats are counted underneath.",
+          alt: "Four note values in a row: a hollow whole note worth 4 beats, a hollow half note with a stem worth 2, a filled quarter note worth 1, and a filled eighth note with a flag worth half a beat.",
+        },
       },
       {
         heading: "Time signatures",
@@ -175,6 +254,13 @@ export const LESSONS: Lesson[] = [
       {
         heading: "The dot",
         body: "A dot after a note adds half its value. A dotted half note is 2 + 1 = 3 beats, which fills a whole bar of 3/4. A dotted quarter is 1 + ½ = 1½ beats; pair it with an eighth to make a skipping long-short.",
+        visual: {
+          kind: "rhythm",
+          values: ["half", "dotted-half", "quarter", "dotted-quarter", "eighth"],
+          caption:
+            "The dot adds half the value: a half note becomes 3 beats, a quarter becomes 1½. Dotted quarter plus eighth fills two beats as long-short.",
+          alt: "Five note values: a half note worth 2 beats, a dotted half worth 3, a quarter worth 1, a dotted quarter worth 1 and a half, and an eighth worth half a beat.",
+        },
       },
     ],
     check: [
@@ -212,6 +298,15 @@ export const LESSONS: Lesson[] = [
         heading: "The major scale pattern",
         body: "Whole, whole, half, whole, whole, whole, half. Start on C and you need no sharps or flats. Start anywhere else and some notes must shift to keep the pattern.",
         example: { label: "C major", notes: [60, 62, 64, 65, 67, 69, 71, 72], mode: "sequence" },
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 62, 64, 65, 67, 69, 71, 72],
+          gaps: ["W", "W", "H", "W", "W", "W", "H"],
+          caption:
+            "C major on the staff. W marks a whole step and H a half step: the half steps fall between E–F and B–C.",
+          alt: "Treble staff with the C major scale from middle C up to the C in the third space, with W or H written between neighbouring notes: whole, whole, half, whole, whole, whole, half.",
+        },
       },
       {
         heading: "Sharps and flats in order",
@@ -220,6 +315,13 @@ export const LESSONS: Lesson[] = [
           label: "G major — one sharp, F#",
           notes: [67, 69, 71, 72, 74, 76, 78, 79],
           mode: "sequence",
+        },
+        visual: {
+          kind: "key-signature",
+          tonic: "D",
+          caption:
+            "D major's key signature: F# then C#, written in that order at the start of every line. A semitone above the last sharp, C#, is D.",
+          alt: "Treble staff with two sharps at the start: F sharp on the top line, then C sharp in the third space.",
         },
       },
       {
@@ -270,6 +372,15 @@ export const LESSONS: Lesson[] = [
           label: "Major 3rd, then perfect 5th",
           notes: [60, 64, 60, 67],
           mode: "sequence",
+        },
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 64, 60, 67],
+          gaps: ["3rd", "", "5th"],
+          caption:
+            "C up to E spans three letter names, so it is a third. C up to G spans five, a fifth. Count both ends.",
+          alt: "Treble staff showing middle C then E, labelled a third, and middle C then G, labelled a fifth.",
         },
       },
       {
@@ -565,6 +676,14 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Shape the whole line",
         body: "A good counterpoint has one high point, mostly steps, a few leaps that are then filled in by steps the other way, and a final approach to the last note by step.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 62, 64, 67, 65, 64, 62, 60],
+          caption:
+            "One arch: steps up to a single high point, G, reached by a leap that is filled in by steps coming down, ending by step on C.",
+          alt: "Treble staff with the line C D E G F E D C: three rising steps, a leap to G at the peak, then four falling steps back to C.",
+        },
       },
       {
         heading: "Begin and end on perfect consonances",
@@ -621,6 +740,14 @@ export const LESSONS: Lesson[] = [
           label: "Subject, then answer a fifth up",
           notes: [60, 62, 64, 60, 67, 69, 71, 67],
           mode: "sequence",
+        },
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 62, 64, 60, 67, 69, 71, 67],
+          caption:
+            "The subject C D E C, then the real answer G A B G: the same shape moved up a fifth.",
+          alt: "Treble staff with the four-note subject C D E C followed by the same shape starting on G: G A B G.",
         },
       },
       {

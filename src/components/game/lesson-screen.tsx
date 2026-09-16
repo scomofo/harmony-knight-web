@@ -15,6 +15,7 @@ import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
 import { LessonActivityPanel } from "./lesson-activity";
+import { LessonFigure } from "./lesson-visual";
 import { cn } from "@/lib/utils";
 
 export function LessonScreen({ level, unitId }: { level: number; unitId?: string }) {
@@ -126,6 +127,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
         {p.step === 0 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             <p className="text-base leading-8">{unit.body}</p>
+            {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             {unit.example ? <ExampleAudio example={unit.example} /> : null}
             <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
               Try this idea <ArrowRight className="size-4" />
@@ -140,6 +142,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
             ) : (
               <>
                 <p className="text-base leading-8">{unit.tryIt}</p>
+                {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
                 {unit.example ? <ExampleAudio example={unit.example} /> : null}
                 <p className="mt-4 text-sm text-[var(--color-muted)]">
                   Try it aloud, on paper, or in your head. This listening or reflection activity is

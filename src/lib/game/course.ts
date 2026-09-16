@@ -3,6 +3,7 @@ import {
   type CheckQuestion,
   type LessonExample,
   type LessonSection,
+  type LessonVisual,
 } from "./lessons.ts";
 
 export type CourseUnit = {
@@ -13,6 +14,7 @@ export type CourseUnit = {
   goal: string;
   body: string;
   example?: LessonExample;
+  visual?: LessonVisual;
   tryIt: string;
   checks: CheckQuestion[];
 };
@@ -51,6 +53,7 @@ function unit(
     goal,
     body: section.body,
     example: section.example,
+    visual: section.visual,
     tryIt,
     checks,
   };
@@ -192,6 +195,15 @@ export const COURSE_UNITS: CourseUnit[] = [
         label: "C–C# (half step), C–D (whole step)",
         notes: [60, 61, 60, 62],
         mode: "sequence",
+      },
+      visual: {
+        kind: "keyboard",
+        from: 60,
+        to: 72,
+        highlight: [60, 61, 62, 64, 65, 71, 72],
+        caption:
+          "One octave of piano keys. C to C# is one half step; C to D is two. E–F and B–C have no black key between them, so they are half steps already.",
+        alt: "Piano keyboard from C to the next C with lit keys: C, C sharp and D showing a half step then a whole step, and the E–F and B–C pairs that touch with no black key between.",
       },
     },
     "Measure the smallest keyboard step.",
@@ -340,6 +352,14 @@ export const COURSE_UNITS: CourseUnit[] = [
         label: "A harmonic minor: hear G# lead to A",
         notes: [57, 59, 60, 62, 64, 65, 68, 69],
         mode: "sequence",
+      },
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [57, 59, 60, 62, 64, 65, 68, 69],
+        caption:
+          "A harmonic minor: the natural minor's white notes with the seventh raised to G#, so the last step into A is a half step.",
+        alt: "Treble staff with A B C D E F G sharp A rising from the A below middle C, the G marked with a sharp sign.",
       },
     },
     "Distinguish relative minor, parallel minor and the raised leading tone.",
@@ -937,6 +957,15 @@ export const COURSE_UNITS: CourseUnit[] = [
         label: "D Dorian, returning to D",
         notes: [62, 64, 65, 67, 69, 71, 72, 74, 69, 65, 62],
         mode: "sequence",
+      },
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [62, 64, 65, 67, 69, 71, 72, 74],
+        gaps: ["W", "H", "W", "W", "W", "H", "W"],
+        caption:
+          "D Dorian: all white notes from D to D. The half steps fall between E–F and B–C, giving a minor third (F) and a raised sixth (B).",
+        alt: "Treble staff with D E F G A B C D rising, with whole and half step marks between the notes: whole, half, whole, whole, whole, half, whole.",
       },
     },
     "Hear a mode as a scale with its own home note.",
