@@ -88,6 +88,71 @@ describe("focused curriculum and saved learning", () => {
     }
   });
 
+  it("draws a picture wherever the text describes staff positions, keys, note values or a key signature", () => {
+    const illustrated = [
+      "1-alphabet",
+      "1-staff",
+      "1-landmarks",
+      "1-steps",
+      "2-duration",
+      "2-dots",
+      "3-major",
+      "3-signatures",
+      "3-minor",
+      "4-intervals",
+      "9-line",
+      "10-fugue",
+      "10-modes",
+    ];
+    for (const id of illustrated) assert.ok(unitById(id)!.visual, id);
+    for (const u of COURSE_UNITS) {
+      const v = u.visual;
+      if (!v) continue;
+      assert.ok(v.caption.length > 40 && v.alt.length > 40, u.id);
+      if (v.kind === "staff") {
+        assert.ok(v.notes.length > 0, u.id);
+        assert.ok(
+          v.notes.every((n) => Number.isInteger(n) && n >= 0 && n <= 127),
+          u.id,
+        );
+        if (v.gaps) assert.equal(v.gaps.length, v.notes.length - 1, u.id);
+        if (v.clef === "treble")
+          assert.ok(
+            v.notes.every((n) => n >= 57),
+            u.id,
+          );
+        if (v.clef === "bass")
+          assert.ok(
+            v.notes.every((n) => n <= 64),
+            u.id,
+          );
+        // The picture shows the same notes the audio plays, in order.
+        if (u.example?.mode === "sequence") {
+          const heard = u.example.notes.flat();
+          assert.deepEqual(v.notes, heard.slice(0, v.notes.length), u.id);
+        }
+      } else if (v.kind === "keyboard") {
+        assert.ok(v.to - v.from >= 12, u.id);
+        assert.ok(
+          v.highlight.every((n) => n >= v.from && n <= v.to),
+          u.id,
+        );
+      } else if (v.kind === "key-signature") {
+        assert.ok(
+          KEYS.some((k) => k.tonic === v.tonic && k.isMajor),
+          u.id,
+        );
+      } else {
+        assert.ok(v.values.length >= 2, u.id);
+      }
+    }
+    // The three landmarks sit on a grand staff: bass F below middle C, treble G above.
+    const landmarks = unitById("1-landmarks")!.visual!;
+    assert.equal(landmarks.kind, "staff");
+    assert.equal(landmarks.clef, "grand");
+    assert.deepEqual(landmarks.notes, [53, 60, 67]);
+  });
+
   it("keeps half-step and seventh-chord audio faithful to their teaching", () => {
     assert.deepEqual(unitById("1-steps")!.example!.notes, [60, 61, 60, 62]);
     assert.deepEqual(unitById("8-sevenths")!.example!.notes, [
