@@ -1,5 +1,6 @@
 import { noteName } from "./music.ts";
 import type { ChordTask, LessonActivity, NoteChoice, RhythmTask, VoiceTask } from "./activities.ts";
+import { LISTENING_ACTIVITIES } from "./listening-activities.ts";
 
 const choices = (midis: number[], spelling: Record<number, string> = {}): NoteChoice[] =>
   midis.map((midi) => ({ midi, label: spelling[midi] ?? noteName(midi) }));
@@ -77,6 +78,7 @@ const voice = (
 
 /** Fixed, authored miniatures keep saved drafts stable. Open-ended tasks accept multiple valid answers. */
 export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
+  ...LISTENING_ACTIVITIES,
   "0-pulse": {
     title: "Build a steady pulse",
     tasks: [

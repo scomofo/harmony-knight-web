@@ -14,6 +14,20 @@ import { recordNoteAttempt, weakNotesFor, type NoteHistory } from "./review.ts";
 import { unitById } from "./course.ts";
 import { activityForUnit } from "./activity-catalog.ts";
 import {
+  reviewActivity,
+  recordConcept,
+  type PracticalReview,
+  type ConceptPractice,
+} from "./practical-review.ts";
+import {
+  CHAPTER_CREATIONS,
+  freshCreation,
+  validCreation,
+  hasCreationSound,
+  type CreationDraft,
+  type SavedCreation,
+} from "./creations.ts";
+import {
   activityComplete,
   updateActivity,
   type ActivityAction,
@@ -72,6 +86,10 @@ type GameState = {
   lessonsRead: number[];
   unitProgress: Record<string, UnitProgress>;
   activityProgress: Record<string, ActivityProgress>;
+  practicalReviews: Record<string, PracticalReview>;
+  conceptPractice: Record<string, ConceptPractice>;
+  creationDrafts: Record<number, CreationDraft>;
+  creations: SavedCreation[];
   activeUnitId: string | null;
   learningDays: string[];
   lastActiveAt: string;
@@ -97,6 +115,10 @@ type GameState = {
   revisitUnit: (id: string, review?: boolean) => void;
   useLearningHint: (id: string) => void;
   updateLearningActivity: (id: string, action: ActivityAction) => void;
+  editCreation: (chapter: number, patch: Partial<CreationDraft>) => void;
+  saveCreation: (chapter: number) => boolean;
+  loadCreation: (id: string) => void;
+  newCreation: (chapter: number) => void;
   setConfidence: (value: number) => void;
   patchSettings: (patch: Partial<Settings>) => void;
   updateSRItem: (item: SRItem) => void;
@@ -229,6 +251,10 @@ const initial = {
   lessonsRead: [] as number[],
   unitProgress: {} as Record<string, UnitProgress>,
   activityProgress: {} as Record<string, ActivityProgress>,
+  practicalReviews: {} as Record<string, PracticalReview>,
+  conceptPractice: {} as Record<string, ConceptPractice>,
+  creationDrafts: {} as Record<number, CreationDraft>,
+  creations: [] as SavedCreation[],
   activeUnitId: null as string | null,
   learningDays: [] as string[],
   lastActiveAt: new Date().toISOString(),
@@ -252,6 +278,8 @@ const initial = {
     muted: false,
   } satisfies Settings,
 };
+
+export type GameSave = Omit<typeof initial, "hydrated">;
 
 export const useGameStore = create<GameState>()(
   persist(
@@ -295,14 +323,27 @@ export const useGameStore = create<GameState>()(
         const s = get();
         const p = s.unitProgress[id];
         if (!unit || !p) return;
-        const activity = activityForUnit(id);
-        if (p.step === 1 && activity && !activityComplete(activity, s.activityProgress[id])) return;
+        const review = p.reviewing ? s.practicalReviews[id] : undefined;
+        const activity = review ? reviewActivity(id, review.round) : activityForUnit(id);
+        if (
+          p.step === 1 &&
+          activity &&
+          !activityComplete(activity, review?.progress ?? s.activityProgress[id])
+        )
+          return;
         const next = advanceUnit(unit, p);
         if (next === p) return;
         const finished = next.step === 4;
         const today = localDayKey();
         set({
           unitProgress: { ...s.unitProgress, [id]: next },
+          practicalReviews:
+            finished && review
+              ? {
+                  ...s.practicalReviews,
+                  [id]: { ...review, completedAt: new Date().toISOString() },
+                }
+              : s.practicalReviews,
           harmonyPoints: s.harmonyPoints + (finished && !p.completedAt ? 25 : 0),
           learningDays:
             finished && !s.learningDays.includes(today)
@@ -315,11 +356,37 @@ export const useGameStore = create<GameState>()(
         const s = get();
         const p = s.unitProgress[id];
         if (!unitById(id) || !p?.completedAt) return;
+        if (review && p.reviewing && p.step < 4) return;
+        const previous = s.practicalReviews[id];
+        const practical =
+          review && activityForUnit(id)
+            ? previous && !previous.completedAt
+              ? previous
+              : {
+                  round: (previous?.round ?? -1) + 1,
+                  progress: { index: 0, tasks: {} },
+                  completedAt: null,
+                }
+            : undefined;
+        const usedHelp =
+          practical &&
+          Object.values(practical.progress.tasks).some(
+            (t) => t.assisted || t.firstCorrect === false,
+          );
         set({
           activeUnitId: id,
+          practicalReviews: practical
+            ? { ...s.practicalReviews, [id]: practical }
+            : s.practicalReviews,
           unitProgress: {
             ...s.unitProgress,
-            [id]: { ...p, step: review ? 2 : 0, answers: {}, reviewing: review, assisted: !review },
+            [id]: {
+              ...p,
+              step: review ? (practical ? 1 : 2) : 0,
+              answers: {},
+              reviewing: review,
+              assisted: !review || Boolean(usedHelp),
+            },
           },
         });
       },
@@ -330,16 +397,40 @@ export const useGameStore = create<GameState>()(
           set({ unitProgress: { ...s.unitProgress, [id]: { ...p, assisted: true } } });
       },
       updateLearningActivity: (id, action) => {
-        const activity = activityForUnit(id);
-        if (!activity) return;
         const s = get();
-        const next = updateActivity(activity, s.activityProgress[id], action);
-        if (next === s.activityProgress[id]) return;
+        const review = s.unitProgress[id]?.reviewing ? s.practicalReviews[id] : undefined;
+        const activity = review ? reviewActivity(id, review.round) : activityForUnit(id);
+        if (!activity) return;
+        const previous = review?.progress ?? s.activityProgress[id];
+        const next = updateActivity(activity, previous, action);
+        if (next === previous) return;
+        const task = activity.tasks[next.index]!;
+        const firstCheck =
+          action.type === "check" &&
+          !previous?.tasks[task.id]?.checks &&
+          next.tasks[task.id]?.checks === 1;
         set({
-          activityProgress: { ...s.activityProgress, [id]: next },
+          activityProgress: review ? s.activityProgress : { ...s.activityProgress, [id]: next },
+          practicalReviews: review
+            ? { ...s.practicalReviews, [id]: { ...review, progress: next } }
+            : s.practicalReviews,
+          conceptPractice: firstCheck
+            ? {
+                ...s.conceptPractice,
+                [id]: recordConcept(
+                  s.conceptPractice[id],
+                  next.tasks[task.id]!.firstCorrect === true,
+                ),
+              }
+            : s.conceptPractice,
           lastActiveAt: new Date().toISOString(),
         });
-        if (action.type === "reveal") get().useLearningHint(id);
+        if (
+          action.type === "reveal" ||
+          action.type === "hint" ||
+          (review && firstCheck && !next.tasks[task.id]!.firstCorrect)
+        )
+          get().useLearningHint(id);
       },
       markLessonRead: (level) =>
         set({
@@ -347,6 +438,52 @@ export const useGameStore = create<GameState>()(
             ? get().lessonsRead
             : [...get().lessonsRead, level],
         }),
+      editCreation: (chapter, patch) => {
+        if (!CHAPTER_CREATIONS[chapter]) return;
+        const draft = { ...(get().creationDrafts[chapter] ?? freshCreation(chapter)), ...patch };
+        if (!validCreation(chapter, draft)) return;
+        set({ creationDrafts: { ...get().creationDrafts, [chapter]: draft } });
+      },
+      saveCreation: (chapter) => {
+        const s = get(),
+          draft =
+            s.creationDrafts[chapter] ??
+            (CHAPTER_CREATIONS[chapter] ? freshCreation(chapter) : undefined);
+        if (!draft || !validCreation(chapter, draft) || !hasCreationSound(chapter, draft))
+          return false;
+        if (s.creations.length >= 200 && !s.creations.some((c) => c.id === draft.savedId))
+          return false;
+        const id =
+          s.creations.find((c) => c.id === draft.savedId && c.chapter === chapter)?.id ??
+          `piece-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const creation = {
+          ...draft,
+          title: draft.title.trim() || CHAPTER_CREATIONS[chapter]!.title,
+          savedId: id,
+          id,
+          chapter,
+          updatedAt: new Date().toISOString(),
+        };
+        set({
+          creations: [...s.creations.filter((c) => c.id !== id), creation],
+          creationDrafts: { ...s.creationDrafts, [chapter]: creation },
+        });
+        return true;
+      },
+      loadCreation: (id) => {
+        const saved = get().creations.find((c) => c.id === id);
+        if (saved)
+          set({
+            creationDrafts: {
+              ...get().creationDrafts,
+              [saved.chapter]: { ...saved, savedId: saved.id },
+            },
+          });
+      },
+      newCreation: (chapter) => {
+        if (CHAPTER_CREATIONS[chapter])
+          set({ creationDrafts: { ...get().creationDrafts, [chapter]: freshCreation(chapter) } });
+      },
       setConfidence: (value) => set({ confidence: Math.max(0, Math.min(1, value)) }),
       patchSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
       updateSRItem: (item) => set({ srItems: { ...get().srItems, [item.id]: item } }),
@@ -503,61 +640,21 @@ export const useGameStore = create<GameState>()(
           settings: { ...current.settings, ...saved?.settings },
           unitProgress: saved?.unitProgress ?? {},
           activityProgress: saved?.activityProgress ?? {},
+          practicalReviews: saved?.practicalReviews ?? {},
+          conceptPractice: saved?.conceptPractice ?? {},
+          creationDrafts: saved?.creationDrafts ?? {},
+          creations: saved?.creations ?? [],
           learningDays: saved?.learningDays ?? [],
           activeUnitId: saved?.activeUnitId ?? null,
         };
       },
       partialize: (s) => {
-        const {
-          hydrateDay,
-          completeOnboarding,
-          markDuelIntroSeen,
-          markLessonRead,
-          openUnit,
-          answerLearningUnit,
-          advanceLearningUnit,
-          revisitUnit,
-          useLearningHint,
-          updateLearningActivity,
-          setConfidence,
-          patchSettings,
-          updateSRItem,
-          ensureSRPool,
-          recordPractice,
-          finishRecoveryIfDone,
-          recordRealtime,
-          recordDuel,
-          winDuel,
-          claimQuest,
-          recordHeat,
-          resetProgress,
-          hydrated,
-          ...rest
-        } = s;
-        void hydrateDay;
-        void completeOnboarding;
-        void markDuelIntroSeen;
-        void markLessonRead;
-        void openUnit;
-        void answerLearningUnit;
-        void advanceLearningUnit;
-        void revisitUnit;
-        void useLearningHint;
-        void updateLearningActivity;
-        void setConfidence;
-        void patchSettings;
-        void updateSRItem;
-        void ensureSRPool;
-        void recordPractice;
-        void finishRecoveryIfDone;
-        void recordRealtime;
-        void recordDuel;
-        void winDuel;
-        void claimQuest;
-        void recordHeat;
-        void resetProgress;
-        void hydrated;
-        return rest;
+        // Persist only the declared data fields, never actions or unknown imported keys.
+        return Object.fromEntries(
+          Object.keys(initial)
+            .filter((key) => key !== "hydrated")
+            .map((key) => [key, s[key as keyof GameState]]),
+        ) as GameSave;
       },
     },
   ),

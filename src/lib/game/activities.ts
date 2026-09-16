@@ -40,8 +40,22 @@ export type VoiceTask = ExerciseBase & {
     | "exact"
     | "dorian";
   chords?: number[][];
+  tonic?: number;
 };
-export type ActivityTask = ChordTask | RhythmTask | VoiceTask;
+export type ListeningSound = {
+  midi: number;
+  volume?: number;
+  timbre?: "Warm" | "Hollow" | "Bright" | "Reed";
+};
+export type ListeningTask = ExerciseBase & {
+  kind: "listening";
+  skill: "pitch" | "dynamics" | "timbre";
+  sounds: ListeningSound[];
+  options: string[];
+  references?: { label: string; sound: ListeningSound }[];
+  writtenClue: string;
+};
+export type ActivityTask = ChordTask | RhythmTask | VoiceTask | ListeningTask;
 export type LessonActivity = { title: string; tasks: ActivityTask[] };
 export type ActivityFeedback = { correct: boolean; message: string };
 export type TaskProgress = {
@@ -51,11 +65,13 @@ export type TaskProgress = {
   assisted: boolean;
   solved: boolean;
   feedback?: ActivityFeedback;
+  hintLevel?: number;
+  beforeCorrection?: number[][];
 };
 export type ActivityProgress = { index: number; tasks: Record<string, TaskProgress> };
 export type ActivityAction =
   | { type: "edit"; draft: number[][] }
-  | { type: "check" | "reveal" | "next" | "previous" | "retry" };
+  | { type: "check" | "hint" | "reveal" | "next" | "previous" | "retry" };
 
 const copy = (rows: number[][]) => rows.map((row) => [...row]);
 const same = (a: number[], b: number[]) => a.length === b.length && a.every((n, i) => n === b[i]);
@@ -84,6 +100,20 @@ export function activityComplete(activity: LessonActivity, progress?: ActivityPr
 export function evaluateActivity(task: ActivityTask, draft: number[][]): ActivityFeedback {
   const fail = (message: string): ActivityFeedback => ({ correct: false, message });
   const pass = (): ActivityFeedback => ({ correct: true, message: task.explanation });
+  if (task.kind === "listening") {
+    const picked = draft[0]?.[0];
+    if (
+      draft.length !== 1 ||
+      draft[0]?.length !== 1 ||
+      !Number.isInteger(picked) ||
+      picked! < 0 ||
+      picked! >= task.options.length
+    )
+      return fail("Choose one answer after comparing the sounds or using the written clue.");
+    return picked === task.solution[0]![0]
+      ? pass()
+      : fail(`Listen again and compare with the references. ${task.hint}`);
+  }
   if (task.kind === "rhythm") {
     if (
       draft.length !== task.rows.length ||
@@ -124,8 +154,8 @@ export function evaluateActivity(task: ActivityTask, draft: number[][]): Activit
     return same(notes, task.solution[0]!) ? pass() : fail(task.hint);
   }
   if (task.rule === "line") {
-    if (notes[0] !== 60 || notes.at(-1) !== 60)
-      return fail("Begin and end on C4 to frame the line.");
+    if (notes[0] !== (task.tonic ?? 60) || notes.at(-1) !== (task.tonic ?? 60))
+      return fail("Begin and end on the tonic named in the task to frame the line.");
     const peak = Math.max(...notes);
     if (notes.filter((n) => n === peak).length !== 1)
       return fail("Give the phrase one highest note, heard just once.");
@@ -146,10 +176,11 @@ export function evaluateActivity(task: ActivityTask, draft: number[][]): Activit
     return pass();
   }
   if (task.rule === "dorian") {
-    return notes.includes(65) && notes.includes(71) && notes.at(-1) === 62
+    const tonic = task.tonic ?? 62;
+    return notes.includes(tonic + 3) && notes.includes(tonic + 9) && notes.at(-1) === tonic
       ? pass()
       : fail(
-          "Include F4 and B4, and end on D4. B natural gives this D-minor sound its Dorian sixth.",
+          "Include the minor third and natural sixth named in the task, and finish on its tonic.",
         );
   }
   if (task.rule === "chordTones") {
@@ -242,8 +273,17 @@ export function updateActivity(
   } else if (current.solved) return progress;
   else if (action.type === "edit")
     next = { ...current, draft: copy(action.draft), feedback: undefined };
+  else if (action.type === "hint")
+    next = { ...current, hintLevel: Math.min(2, (current.hintLevel ?? 0) + 1), assisted: true };
   else if (action.type === "reveal")
-    next = { ...current, draft: copy(task.solution), assisted: true, feedback: undefined };
+    next = {
+      ...current,
+      beforeCorrection: current.beforeCorrection ?? copy(current.draft),
+      draft: copy(task.solution),
+      hintLevel: 3,
+      assisted: true,
+      feedback: undefined,
+    };
   else if (action.type === "check") {
     if (current.feedback) return progress; // repeated clicks on an unchanged answer are one check
     const feedback = evaluateActivity(task, current.draft);

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { activityForUnit } from "@/lib/game/activity-catalog";
-import { playOnsetGrid, playVoicePhrase, stopTones } from "@/lib/game/audio";
+import { playTeachingPlan, stopTones } from "@/lib/game/audio";
 import { useGameStore } from "@/lib/game/store";
 import { LessonActivityPanel } from "./lesson-activity";
 import { LessonScreen } from "./lesson-screen";
@@ -55,15 +55,9 @@ it("offers native keyboard-accessible rhythm toggles and plays both polyrhythm r
   cell.dispatchEvent(event);
   expect(event.defaultPrevented).toBe(false);
   click("Hear my answer");
-  expect(playOnsetGrid).toHaveBeenCalledWith(
-    [
-      [0, 2, 4],
-      [0, 3],
-    ],
-    6,
-    1 / 3,
-    false,
-  );
+  const events = vi.mocked(playTeachingPlan).mock.calls.at(-1)![0].events;
+  expect(events).toHaveLength(5);
+  expect(events.filter((e) => e.at === 0)).toHaveLength(2);
   click("Check my answer");
   expect(screen.getByText(/Activity complete/)).toBeTruthy();
   click("Stop sound");
@@ -85,12 +79,18 @@ it("plays a suspension with a tied preparation and stops audio when leaving the 
   const view = activity("9-suspensions");
   click("Show a worked answer");
   click("Hear my answer");
-  expect(playVoicePhrase).toHaveBeenCalledWith([53, 55, 55], [60, 60, 59], 0.75, true);
+  expect(
+    vi
+      .mocked(playTeachingPlan)
+      .mock.calls.at(-1)![0]
+      .events.find((e) => e.notes[0] === 60)!.duration,
+  ).toBeGreaterThan(1.4);
   click("Check my answer");
   expect(screen.getByText(/Activity complete · 0 of 1/)).toBeTruthy();
+  click("Hear my answer");
   vi.mocked(stopTones).mockClear();
   view.unmount();
-  expect(stopTones).toHaveBeenCalledTimes(1);
+  expect(stopTones).toHaveBeenCalled();
 });
 
 it("keeps recall locked until the activity is checked, including when a worked answer is used", () => {

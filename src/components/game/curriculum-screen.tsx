@@ -7,11 +7,15 @@ import { useGameStore } from "@/lib/game/store";
 import { GameShell } from "./shell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { conceptStatus } from "@/lib/game/practical-review";
+import { CHAPTER_CREATIONS } from "@/lib/game/creations";
 
 export function CurriculumScreen() {
   const progress = useGameStore((s) => s.unitProgress);
   const active = useGameStore((s) => s.activeUnitId);
   const legacyRead = useGameStore((s) => s.lessonsRead);
+  const concepts = useGameStore((s) => s.conceptPractice);
+  const revisit = useGameStore((s) => s.revisitUnit);
   const next = nextUnit(progress, active);
   const completed = COURSE_UNITS.filter((u) => progress[u.id]?.completedAt).length;
   return (
@@ -90,9 +94,39 @@ export function CurriculumScreen() {
                         {u.minutes} min
                       </span>
                     </Link>
+                    {concepts[u.id] ? (
+                      <div className="mb-3 ml-9 text-sm text-[var(--color-muted)]">
+                        <p>
+                          {conceptStatus(concepts[u.id])} ·{" "}
+                          {concepts[u.id]!.recent.filter(Boolean).length}/
+                          {concepts[u.id]!.recent.length} recent first checks without help
+                        </p>
+                        {progress[u.id]?.completedAt ? (
+                          <Button asChild variant="ghost" className="mt-1">
+                            <Link
+                              to="/lesson/$level"
+                              params={{ level: String(u.level) }}
+                              search={{ unit: u.id }}
+                              onClick={() => revisit(u.id, true)}
+                            >
+                              Practise a fresh example
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ol>
+              <Button
+                asChild
+                variant="outline"
+                className="mt-4 h-auto min-h-11 whitespace-normal py-3 text-left"
+              >
+                <Link to="/create/$chapter" params={{ chapter: String(level.level) }}>
+                  Create: {CHAPTER_CREATIONS[level.level]!.title}
+                </Link>
+              </Button>
             </li>
           );
         })}

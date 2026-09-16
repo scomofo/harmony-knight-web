@@ -27,7 +27,7 @@ describe("authored interactive activities", () => {
           `${id}/${t.id}`,
         );
         if (t.kind === "voice") assert.equal(t.positions.length, t.solution[0]!.length);
-        if (t.kind !== "rhythm") {
+        if (t.kind !== "rhythm" && t.kind !== "listening") {
           assert.equal(new Set(t.choices.map((c) => c.midi)).size, t.choices.length);
           for (const n of t.initial.flat())
             assert.ok(

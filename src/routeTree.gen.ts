@@ -24,6 +24,7 @@ import { Route as ScaleRouteImport } from './routes/scale'
 import { Route as SensoryRouteImport } from './routes/sensory'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TriadRouteImport } from './routes/triad'
+import { Route as CreateChapterRouteImport } from './routes/create.$chapter'
 import { Route as LessonLevelRouteImport } from './routes/lesson.$level'
 
 const IndexRoute = IndexRouteImport.update({
@@ -101,6 +102,11 @@ const TriadRoute = TriadRouteImport.update({
   path: '/triad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreateChapterRoute = CreateChapterRouteImport.update({
+  id: '/create/$chapter',
+  path: '/create/$chapter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LessonLevelRoute = LessonLevelRouteImport.update({
   id: '/lesson/$level',
   path: '/lesson/$level',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/create/$chapter': typeof CreateChapterRoute
   '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/create/$chapter': typeof CreateChapterRoute
   '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/sensory': typeof SensoryRoute
   '/settings': typeof SettingsRoute
   '/triad': typeof TriadRoute
+  '/create/$chapter': typeof CreateChapterRoute
   '/lesson/$level': typeof LessonLevelRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/sensory'
     | '/settings'
     | '/triad'
+    | '/create/$chapter'
     | '/lesson/$level'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/sensory'
     | '/settings'
     | '/triad'
+    | '/create/$chapter'
     | '/lesson/$level'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/sensory'
     | '/settings'
     | '/triad'
+    | '/create/$chapter'
     | '/lesson/$level'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   SensoryRoute: typeof SensoryRoute
   SettingsRoute: typeof SettingsRoute
   TriadRoute: typeof TriadRoute
+  CreateChapterRoute: typeof CreateChapterRoute
   LessonLevelRoute: typeof LessonLevelRoute
 }
 
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create/$chapter': {
+      id: '/create/$chapter'
+      path: '/create/$chapter'
+      fullPath: '/create/$chapter'
+      preLoaderRoute: typeof CreateChapterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lesson/$level': {
       id: '/lesson/$level'
       path: '/lesson/$level'
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   SensoryRoute: SensoryRoute,
   SettingsRoute: SettingsRoute,
   TriadRoute: TriadRoute,
+  CreateChapterRoute: CreateChapterRoute,
   LessonLevelRoute: LessonLevelRoute,
 }
 export const routeTree = rootRouteImport

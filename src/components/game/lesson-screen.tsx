@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Check, Home, RotateCcw, Volume2, Square } from "lucide-react";
-import {
-  playChord,
-  playMidi,
-  playMidiSequence,
-  playProgression,
-  playTimbre,
-  stopTones,
-} from "@/lib/game/audio";
+import { stopTones } from "@/lib/game/audio";
+import { examplePlan } from "@/lib/game/teaching-playback";
+import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { levelFor } from "@/lib/game/curriculum";
 import { unitsForLevel, type CourseUnit } from "@/lib/game/course";
 import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
 import { activityForUnit } from "@/lib/game/activity-catalog";
+import { reviewActivity } from "@/lib/game/practical-review";
 import { activityComplete } from "@/lib/game/activities";
 import { type LessonExample } from "@/lib/game/lessons";
 import { useGameStore } from "@/lib/game/store";
@@ -43,8 +39,11 @@ export function LessonScreen({ level, unitId }: { level: number; unitId?: string
 function FocusedLesson({ unit }: { unit: CourseUnit }) {
   const saved = useGameStore((s) => s.unitProgress[unit.id]);
   const allProgress = useGameStore((s) => s.unitProgress);
-  const practicalProgress = useGameStore((s) => s.activityProgress[unit.id]);
-  const activity = activityForUnit(unit.id);
+  const learningActivityProgress = useGameStore((s) => s.activityProgress[unit.id]);
+  const review = useGameStore((s) => s.practicalReviews[unit.id]);
+  const practicalProgress = saved?.reviewing && review ? review.progress : learningActivityProgress;
+  const activity =
+    saved?.reviewing && review ? reviewActivity(unit.id, review.round) : activityForUnit(unit.id);
   const open = useGameStore((s) => s.openUnit);
   const answer = useGameStore((s) => s.answerLearningUnit);
   const advance = useGameStore((s) => s.advanceLearningUnit);
@@ -114,7 +113,9 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
             {done
               ? "A good place to pause."
               : p.step === 1
-                ? "Make it musical"
+                ? p.reviewing
+                  ? "Try a fresh example"
+                  : "Make it musical"
                 : p.step >= 2
                   ? `Recall ${questionIndex + 1} of ${unit.checks.length}`
                   : unit.title}
@@ -228,6 +229,17 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
                 : "You can revisit this lesson whenever you like."}{" "}
               Your learning stays with you between visits.
             </p>
+            {units.every((u) => allProgress[u.id]?.completedAt) ? (
+              <Button
+                asChild
+                variant="outline"
+                className="mt-4 h-auto min-h-11 whitespace-normal py-3"
+              >
+                <Link to="/create/$chapter" params={{ chapter: String(unit.level) }}>
+                  Make something with this chapter
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild className="mt-6 w-full">
               <Link to="/">
                 <Home className="size-4" />
@@ -297,89 +309,60 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
 }
 
 function ExampleAudio({ example }: { example: LessonExample }) {
-  const muted = useGameStore((s) => s.settings.muted);
-  const [playing, setPlaying] = useState(false);
-  const [error, setError] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-      stopTones();
-    },
-    [],
-  );
-  const stop = () => {
-    stopTones();
-    setPlaying(false);
-    if (timer.current) clearTimeout(timer.current);
-  };
-  const play = (noteIndex?: number) => {
-    stop();
-    setError(false);
-    try {
-      const notes = example.notes as number[];
-      const gap = example.sequence?.gap ?? (notes.length > 5 ? 0.24 : 0.42);
-      const duration = example.sequence?.duration ?? (notes.length > 5 ? 0.32 : 0.5);
-      if (noteIndex !== undefined)
-        playMidi(notes[noteIndex]!, duration, example.volumes?.[noteIndex] ?? 1);
-      else if (example.mode === "timbre") playTimbre(notes[0] ?? 64, example.timbre ?? "Warm", 1.1);
-      else if (example.mode === "progression")
-        playProgression(example.notes as number[][], 0.85, 0.8);
-      else if (example.mode === "chord") playChord(notes);
-      else playMidiSequence(notes, gap, duration, example.volumes);
-      setPlaying(true);
-      const seconds =
-        noteIndex !== undefined
-          ? duration + 0.05
-          : example.mode === "timbre"
-            ? 1.2
-            : example.mode === "chord"
-              ? 1
-              : example.mode === "progression"
-                ? example.notes.length * 0.85
-                : (notes.length - 1) * gap + duration + 0.05;
-      timer.current = setTimeout(() => setPlaying(false), seconds * 1000);
-    } catch {
-      setError(true);
-    }
+  const player = useTeachingPlayer();
+  const play = (index?: number) => {
+    const sample =
+      index === undefined
+        ? example
+        : {
+            ...example,
+            notes: [(example.notes as number[])[index]!],
+            volumes: [example.volumes?.[index] ?? 1],
+          };
+    player.play(
+      examplePlan(sample),
+      index === undefined
+        ? example.label
+        : `Hear ${example.sequence?.noteLabels?.[index] ?? "note"}`,
+    );
   };
   return (
-    <div className="mt-5">
+    <div className="mt-5 space-y-3">
       <Button
         variant="secondary"
         className="h-auto min-h-11 whitespace-normal py-3 text-left"
-        onClick={playing ? stop : () => play()}
-        disabled={muted && !playing}
+        onClick={player.state ? player.stop : () => play()}
+        disabled={player.muted && !player.state}
       >
-        {playing ? <Square className="size-4 shrink-0" /> : <Volume2 className="size-4 shrink-0" />}
-        {playing ? "Stop example" : example.label}
+        {player.state ? (
+          <Square className="size-4 shrink-0" />
+        ) : (
+          <Volume2 className="size-4 shrink-0" />
+        )}
+        {player.state ? "Stop example" : example.label}
       </Button>
       {example.mode === "sequence" && example.sequence?.noteLabels ? (
-        <div
-          className="mt-3 flex flex-wrap gap-3"
-          role="group"
-          aria-label="Hear each note separately"
-        >
+        <div className="flex flex-wrap gap-3" role="group" aria-label="Hear each note separately">
           {example.sequence.noteLabels.map((label, index) => (
-            <Button key={label} variant="outline" disabled={muted} onClick={() => play(index)}>
-              <Volume2 className="size-4 shrink-0" />
-              Hear {label}
+            <Button
+              key={label}
+              variant="outline"
+              disabled={player.muted}
+              onClick={() => play(index)}
+            >
+              <Volume2 className="size-4 shrink-0" /> Hear {label}
             </Button>
           ))}
         </div>
       ) : null}
-      {muted ? (
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
+      <PlaybackOptions player={player} />
+      {player.muted ? (
+        <p className="text-sm text-[var(--color-muted)]">
           Sound is muted.{" "}
           <Link to="/settings" className="underline">
             Change sound settings
           </Link>
           , or use the written example.
-        </p>
-      ) : null}
-      {error ? (
-        <p role="status" className="mt-2 text-sm">
-          Audio isn’t available here. The written example still works.
         </p>
       ) : null}
     </div>
