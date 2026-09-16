@@ -10,6 +10,8 @@ export type LessonExample = {
   timbre?: "Warm" | "Hollow" | "Bright" | "Reed";
   /** Relative loudness for each note in a sequence. */
   volumes?: number[];
+  /** Optional sequence timing in seconds, with labels for individual replay buttons. */
+  sequence?: { gap: number; duration: number; noteLabels?: string[] };
 };
 
 export type LessonSection = {
@@ -47,8 +49,13 @@ export const LESSONS: Lesson[] = [
     sections: [
       {
         heading: "Pitch: high and low",
-        body: "Pitch describes how high or low a sound is. Faster vibration produces a higher pitch; slower vibration produces a lower pitch. Try comparing two sounds before learning their names. Listening more than once is part of practice.",
-        example: { label: "Low, then high", notes: [48, 72], mode: "sequence" },
+        body: "Pitch describes how high or low a sound is. Faster vibration produces a higher pitch; slower vibration produces a lower pitch. The example plays a lower note, pauses, then plays a higher note with the same sound and volume setting. You can also hear each note separately. Listening more than once is part of practice.",
+        example: {
+          label: "Compare lower, then higher",
+          notes: [60, 72],
+          mode: "sequence",
+          sequence: { gap: 1.05, duration: 0.75, noteLabels: ["lower", "higher"] },
+        },
       },
       {
         heading: "Dynamics: loud and soft",
