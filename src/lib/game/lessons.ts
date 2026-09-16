@@ -32,15 +32,31 @@ export const RHYTHM_BEATS: Record<RhythmValue, number> = {
  * words describe before hearing it. Every kind carries a caption shown under
  * the picture and an alt text spoken by screen readers.
  */
+/** One note or rest in a bar of a "measures" picture. */
+export type RhythmEvent = {
+  value: RhythmValue;
+  rest?: boolean;
+  /** Tied to the next event: one held sound, no second attack. */
+  tie?: boolean;
+  accent?: boolean;
+  /** What to say while counting it, e.g. "1", "&", "ONE". */
+  count?: string;
+};
+
 export type LessonVisual = { caption: string; alt: string } & (
   | {
       /** Notes at their staff positions, in Figurenotes colour, letter names underneath. */
       kind: "staff";
       /** "grand" draws treble and bass staves with middle C on its own ledger line between them. */
       clef: "treble" | "bass" | "grand";
-      notes: number[];
-      /** Marks drawn between neighbouring notes, e.g. "W" and "H" for whole and half steps. */
+      /** A number is one note; an array is a chord stacked in one column. */
+      notes: (number | number[])[];
+      /** Text under each column instead of the letter name, e.g. Roman numerals or chord symbols. */
+      labels?: string[];
+      /** Marks drawn between neighbouring columns, e.g. "W" and "H" for whole and half steps. */
       gaps?: string[];
+      /** Spell black keys as flats (Eb) instead of sharps (D#). */
+      spell?: "sharp" | "flat";
     }
   | {
       /** One octave or more of piano keys, with some keys lit. */
@@ -53,6 +69,22 @@ export type LessonVisual = { caption: string; alt: string } & (
       /** Note values drawn on one line with their beat counts. */
       kind: "rhythm";
       values: RhythmValue[];
+    }
+  | {
+      /** Bars of notes and rests with bar lines, a meter, ties, accents and counting. */
+      kind: "measures";
+      bars: { meter?: string; events: RhythmEvent[] }[];
+    }
+  | {
+      /** Rows of attacks on a shared grid of subdivisions, for polyrhythm. */
+      kind: "grid";
+      columns: number;
+      rows: { label: string; hits: number[] }[];
+    }
+  | {
+      /** The circle of fifths, with some keys lit. */
+      kind: "circle";
+      highlight: string[];
     }
   | {
       /** A treble staff with a major key's sharps or flats. */
@@ -250,6 +282,42 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Time signatures",
         body: "In simple meters such as 4/4, 3/4 and 2/4, the top number counts beats per bar and the bottom names the beat unit. 4/4 has four quarter-note beats; 3/4 has three. Compound meter works differently: 6/8 contains six eighth notes, usually felt as TWO dotted-quarter beats, each divided into three.",
+        visual: {
+          kind: "measures",
+          bars: [
+            {
+              meter: "4/4",
+              events: [
+                { value: "quarter", count: "1", accent: true },
+                { value: "quarter", count: "2" },
+                { value: "quarter", count: "3" },
+                { value: "quarter", count: "4" },
+              ],
+            },
+            {
+              meter: "3/4",
+              events: [
+                { value: "quarter", count: "1", accent: true },
+                { value: "quarter", count: "2" },
+                { value: "quarter", count: "3" },
+              ],
+            },
+            {
+              meter: "6/8",
+              events: [
+                { value: "eighth", count: "1", accent: true },
+                { value: "eighth", count: "2" },
+                { value: "eighth", count: "3" },
+                { value: "eighth", count: "4", accent: true },
+                { value: "eighth", count: "5" },
+                { value: "eighth", count: "6" },
+              ],
+            },
+          ],
+          caption:
+            "Three bars, three meters. 4/4 has four quarter-note beats and 3/4 has three. 6/8 holds six eighth notes felt as two accented groups of three.",
+          alt: "Three bars of rhythm. A 4/4 bar with four quarter notes counted 1 2 3 4, a 3/4 bar with three quarter notes counted 1 2 3, and a 6/8 bar with six eighth notes where beats 1 and 4 are accented.",
+        },
       },
       {
         heading: "The dot",
@@ -327,6 +395,13 @@ export const LESSONS: Lesson[] = [
       {
         heading: "The circle of fifths",
         body: "Step clockwise from C and each key gains a sharp: G, D, A, E. Step counter-clockwise and each gains a flat: F, Bb, Eb, Ab. Neighbours on the circle share almost all their notes — they are the closest keys to travel between.",
+        visual: {
+          kind: "circle",
+          highlight: ["F", "C", "G"],
+          caption:
+            "C at the top. Each step clockwise adds a sharp (G, D, A, E); each step anticlockwise adds a flat (F, Bb, Eb, Ab). C's neighbours, G and F, are lit.",
+          alt: "The twelve major keys arranged in a ring in fifths, C at the top, with C and its two neighbours G and F highlighted.",
+        },
       },
     ],
     check: [
@@ -386,6 +461,23 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Consonance and dissonance",
         body: "Thirds, sixths, fifths and octaves blend — they are consonant. Seconds, sevenths and the tritone rub — they are dissonant and want to move. Neither is good or bad; music needs both.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64],
+            [60, 69],
+            [60, 67],
+            [60, 62],
+            [60, 71],
+            [60, 66],
+          ],
+          labels: ["3rd", "6th", "5th", "2nd", "7th", "tritone"],
+          gaps: ["consonant", "", "", "dissonant", ""],
+          caption:
+            "Consonant pairs blend: a third, a sixth, a fifth. Dissonant pairs rub and want to move: a second, a seventh, the tritone.",
+          alt: "Six two-note chords above middle C: C with E, C with A, C with G, then C with D, C with B, and C with F sharp.",
+        },
         example: {
           label: "A blend, then a clash",
           notes: [
@@ -398,6 +490,21 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Four triads",
         body: "Major: major 3rd + minor 3rd — bright. Minor: minor 3rd + major 3rd — darker. Diminished: two minor 3rds — squeezed and tense. Augmented: two major 3rds — stretched and floating.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64, 67],
+            [60, 63, 67],
+            [60, 63, 66],
+            [60, 64, 68],
+          ],
+          labels: ["major", "minor", "dim", "aug"],
+          spell: "flat",
+          caption:
+            "Four triads on C. Only the changed note moves each time: Eb makes it minor, Gb as well makes it diminished, and G# on the major triad makes it augmented.",
+          alt: "Four three-note chords on C: C E G major, C E flat G minor, C E flat G flat diminished, and C E G sharp augmented.",
+        },
         example: {
           label: "Major, minor, diminished, augmented on C",
           notes: [
@@ -449,16 +556,60 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Roman numerals in a major key",
         body: "I, IV and V are major. ii, iii and vi are minor. vii° is diminished. I is home, V pulls back to home hardest because it holds the leading tone, and IV lifts gently away.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64, 67],
+            [65, 69, 72],
+            [67, 71, 74],
+            [60, 64, 67],
+          ],
+          labels: ["I", "IV", "V", "I"],
+          caption:
+            "I, IV and V in C major, each a triad built on that scale degree. Capital numerals are major chords.",
+          alt: "Four chords on a treble staff: C E G, F A C, G B D, then C E G again, labelled I, IV, V, I.",
+        },
         example: { label: "I — IV — V — I in C", notes: [I, IV, V, I], mode: "progression" },
       },
       {
         heading: "Perfect and plagal",
         body: "At a phrase ending, V to I is an authentic cadence (often called perfect in UK terminology). A perfect authentic cadence specifically requires both chords in root position and the tonic in the top voice of I; other V–I endings are imperfect authentic. IV to I is plagal. These describe musical context, not just any two adjacent chords.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [67, 71, 74],
+            [60, 64, 67],
+            [65, 69, 72],
+            [60, 64, 67],
+          ],
+          labels: ["V", "I", "IV", "I"],
+          gaps: ["authentic", "", "plagal"],
+          caption:
+            "Two endings. V to I is the authentic cadence, the strongest close. IV to I is plagal, the 'amen' ending.",
+          alt: "Two chord pairs: G B D moving to C E G, labelled V to I, and F A C moving to C E G, labelled IV to I.",
+        },
         example: { label: "Perfect: V to I", notes: [V, I], mode: "progression" },
       },
       {
         heading: "Half and deceptive",
         body: "Stopping on V is a half cadence — a comma; the phrase is not finished. V to vi is the deceptive cadence — you expect home and get the relative minor instead.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64, 67],
+            [67, 71, 74],
+            [67, 71, 74],
+            [57, 60, 64],
+          ],
+          labels: ["I", "V", "V", "vi"],
+          gaps: ["half", "", "deceptive"],
+          caption:
+            "Stopping on V is a half cadence, a comma. V moving to vi instead of I is the deceptive cadence: the bass rises one step to A and the chord turns minor.",
+          alt: "Two chord pairs: C E G to G B D, labelled I to V, a half cadence; and G B D to A C E, labelled V to vi, a deceptive cadence.",
+        },
         example: { label: "Deceptive: V to vi", notes: [V, vi], mode: "progression" },
       },
     ],
@@ -496,6 +647,19 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Consonance on every beat",
         body: "In first species every pair of notes must blend: a third, sixth, fifth, octave or unison. Prefer thirds and sixths — imperfect consonances keep the line moving. Fifths and octaves are for the start and the end.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64],
+            [62, 65],
+            [64, 67],
+          ],
+          labels: ["3rd", "3rd", "3rd"],
+          caption:
+            "Bass C D E with E F G above: three thirds in a row. Every pair blends, and thirds keep the lines moving.",
+          alt: "Three two-note pairs rising by step: C with E, D with F, E with G, each labelled a third.",
+        },
         example: {
           label: "Thirds and sixths above C",
           notes: [
@@ -509,6 +673,21 @@ export const LESSONS: Lesson[] = [
       {
         heading: "No parallel fifths or octaves",
         body: "Parallel fifths or octaves occur when both voices move in the same direction from one perfect fifth to another, or one octave to another. Traditional part-writing avoids them to preserve independent lines. Repeating the same pair of notes without moving is not parallel motion. Other musical styles use parallel motion deliberately.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 67],
+            [62, 69],
+            [60, 67],
+            [62, 65],
+          ],
+          labels: ["5th", "5th", "5th", "3rd"],
+          gaps: ["parallel ✗", "", "fixed ✓"],
+          caption:
+            "Left: C–G to D–A, both voices rise and both pairs are fifths, a parallel fifth. Right: change the upper note to F and the fifth moves to a third.",
+          alt: "Two pairs of chords. First C with G then D with A, both fifths, marked as parallel. Then C with G then D with F, a fifth moving to a third.",
+        },
         example: {
           label: "Parallel fifths — avoid",
           notes: [
@@ -557,6 +736,13 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Closely related keys",
         body: "Closely related keys have the same key signature or differ by one sharp or flat. From C major they are G major, F major, A minor, E minor and D minor. A minor shares all seven notes with C major; the other four share six. The tonic, or home note, changes even when the note collection stays the same.",
+        visual: {
+          kind: "circle",
+          highlight: ["F", "C", "G"],
+          caption:
+            "C major with its neighbours G and F: the same signature or one sharp or flat away. Each of these three majors also brings its relative minor: A minor, E minor and D minor.",
+          alt: "The circle of fifths with C at the top and its two neighbours, G and F, highlighted.",
+        },
         example: {
           label: "C major, then G major",
           notes: [
@@ -569,6 +755,20 @@ export const LESSONS: Lesson[] = [
       {
         heading: "The pivot chord",
         body: "Find a chord that exists in both keys. A minor is vi in C major and ii in G major. Land on it as vi, leave it as ii, then cadence in G — the ear follows without a jolt.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [60, 64, 67],
+            [57, 60, 64],
+            [62, 66, 69],
+            [67, 71, 74],
+          ],
+          labels: ["I (C)", "vi = ii", "V (G)", "I (G)"],
+          caption:
+            "A minor is vi in C major and ii in G major. Arrive on it as vi, leave it as ii, and the D major chord with F# confirms the new key.",
+          alt: "Four chords: C E G labelled I in C, A C E labelled vi in C and ii in G, D F sharp A labelled V in G, and G B D labelled I in G.",
+        },
         example: {
           label: "C — Am (pivot) — D — G",
           notes: [
@@ -640,6 +840,36 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Odd meters",
         body: "5/4 groups as 3 + 2 or 2 + 3. 7/8 as 2 + 2 + 3. Feel the long group as a stretched beat and the pulse stays steady even when the bars are uneven.",
+        visual: {
+          kind: "measures",
+          bars: [
+            {
+              meter: "5/4",
+              events: [
+                { value: "quarter", count: "1", accent: true },
+                { value: "quarter", count: "2" },
+                { value: "quarter", count: "3" },
+                { value: "quarter", count: "1", accent: true },
+                { value: "quarter", count: "2" },
+              ],
+            },
+            {
+              meter: "7/8",
+              events: [
+                { value: "eighth", count: "1", accent: true },
+                { value: "eighth", count: "2" },
+                { value: "eighth", count: "1", accent: true },
+                { value: "eighth", count: "2" },
+                { value: "eighth", count: "1", accent: true },
+                { value: "eighth", count: "2" },
+                { value: "eighth", count: "3" },
+              ],
+            },
+          ],
+          caption:
+            "5/4 counted as 3 + 2 and 7/8 as 2 + 2 + 3. The notes stay evenly spaced; only the accents move.",
+          alt: "A 5/4 bar of five quarter notes accented on the first and fourth, then a 7/8 bar of seven eighth notes accented on the first, third and fifth.",
+        },
       },
     ],
     check: [
@@ -688,6 +918,19 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Begin and end on perfect consonances",
         body: "Open on a unison, fifth or octave. Close on a unison or octave, approaching from a sixth or a third so the last two notes converge.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [
+            [62, 71],
+            [60, 72],
+          ],
+          labels: ["6th", "octave"],
+          gaps: ["contrary"],
+          caption:
+            "A major sixth, D up to B, opens out to an octave, C to C. The lower voice steps down and the upper steps up: contrary motion into the close.",
+          alt: "Two two-note chords: D with B labelled a sixth, then C with the C an octave above, labelled octave.",
+        },
         example: {
           label: "Sixth to octave close",
           notes: [
@@ -753,6 +996,16 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Post-tonal patterns",
         body: "Some music organises around interval patterns rather than a major or minor key. A whole-tone collection divides the octave into six whole steps. A twelve-tone row orders all twelve pitch classes once before the row repeats; a pitch class groups octave-equivalent notes, such as every C. These are different techniques, not rules for all modern music.",
+        visual: {
+          kind: "staff",
+          clef: "treble",
+          notes: [60, 62, 64, 66, 68, 70, 72],
+          labels: ["0", "2", "4", "6", "8", "10", "0"],
+          gaps: ["W", "W", "W", "W", "W", "W"],
+          caption:
+            "The whole-tone collection: six equal whole steps divide the octave, so no note is home. Numbers are pitch classes with C = 0.",
+          alt: "Treble staff with C, D, E, F sharp, G sharp, A sharp and C rising by whole steps, numbered 0 2 4 6 8 10 0.",
+        },
         example: {
           label: "Whole-tone scale",
           notes: [60, 62, 64, 66, 68, 70, 72],

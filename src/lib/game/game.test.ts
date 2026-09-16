@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   CADENCES,
+  CIRCLE_OF_FIFTHS,
   KEYS,
   TONIC_MIDI,
   closelyRelatedKeys,
@@ -32,7 +33,7 @@ import {
   studiesFor,
   topicCountsForGrade,
 } from "./curriculum.ts";
-import { LESSONS, lessonFor } from "./lessons.ts";
+import { LESSONS, lessonFor, RHYTHM_BEATS } from "./lessons.ts";
 import { buildNotePool, PracticeQuestionEngine } from "./practice.ts";
 import { noteReviewPlan, recordNoteAttempt, weakNotesFor } from "./review.ts";
 import { newSRItem, type SRItem } from "./sr.ts";
@@ -88,46 +89,38 @@ describe("focused curriculum and saved learning", () => {
     }
   });
 
-  it("draws a picture wherever the text describes staff positions, keys, note values or a key signature", () => {
-    const illustrated = [
-      "1-alphabet",
-      "1-staff",
-      "1-landmarks",
-      "1-steps",
-      "2-duration",
-      "2-dots",
-      "3-major",
-      "3-signatures",
-      "3-minor",
-      "4-intervals",
-      "9-line",
-      "10-fugue",
-      "10-modes",
-    ];
-    for (const id of illustrated) assert.ok(unitById(id)!.visual, id);
+  it("draws a picture for every unit, faithful to the audio and well-formed", () => {
     for (const u of COURSE_UNITS) {
       const v = u.visual;
-      if (!v) continue;
+      // Chapter 1 trains the ear before the eye: no pictures there by design.
+      if (u.level === 0) {
+        assert.equal(v, undefined, u.id);
+        continue;
+      }
+      assert.ok(v, u.id);
       assert.ok(v.caption.length > 40 && v.alt.length > 40, u.id);
       if (v.kind === "staff") {
-        assert.ok(v.notes.length > 0, u.id);
+        const columns = v.notes.map((n) => (Array.isArray(n) ? n : [n]));
+        const flat = columns.flat();
+        assert.ok(flat.length > 0, u.id);
         assert.ok(
-          v.notes.every((n) => Number.isInteger(n) && n >= 0 && n <= 127),
+          flat.every((n) => Number.isInteger(n) && n >= 0 && n <= 127),
           u.id,
         );
-        if (v.gaps) assert.equal(v.gaps.length, v.notes.length - 1, u.id);
+        if (v.labels) assert.equal(v.labels.length, columns.length, u.id);
+        if (v.gaps) assert.equal(v.gaps.length, columns.length - 1, u.id);
         if (v.clef === "treble")
           assert.ok(
-            v.notes.every((n) => n >= 57),
+            flat.every((n) => n >= 55),
             u.id,
           );
         if (v.clef === "bass")
           assert.ok(
-            v.notes.every((n) => n <= 64),
+            flat.every((n) => n <= 64),
             u.id,
           );
-        // The picture shows the same notes the audio plays, in order.
-        if (u.example?.mode === "sequence") {
+        // A picture of a melody shows the same notes the audio plays, in order.
+        if (u.example?.mode === "sequence" && v.notes.every((n) => !Array.isArray(n))) {
           const heard = u.example.notes.flat();
           assert.deepEqual(v.notes, heard.slice(0, v.notes.length), u.id);
         }
@@ -140,6 +133,29 @@ describe("focused curriculum and saved learning", () => {
       } else if (v.kind === "key-signature") {
         assert.ok(
           KEYS.some((k) => k.tonic === v.tonic && k.isMajor),
+          u.id,
+        );
+      } else if (v.kind === "measures") {
+        for (const bar of v.bars) {
+          assert.ok(bar.events.length > 0, u.id);
+          if (bar.meter) {
+            // The events fill the bar exactly: 4/4 holds four quarter-note beats, 6/8 six eighths.
+            const [top, bottom] = bar.meter.split("/").map(Number) as [number, number];
+            const beats = bar.events.reduce((sum, e) => sum + RHYTHM_BEATS[e.value], 0);
+            assert.equal(beats, (top * 4) / bottom, `${u.id} ${bar.meter}`);
+          }
+          assert.ok(!bar.events.at(-1)!.tie, u.id);
+        }
+      } else if (v.kind === "grid") {
+        assert.ok(v.rows.length >= 2, u.id);
+        for (const row of v.rows)
+          assert.ok(
+            row.hits.every((h) => h >= 1 && h <= v.columns),
+            u.id,
+          );
+      } else if (v.kind === "circle") {
+        assert.ok(
+          v.highlight.every((k) => CIRCLE_OF_FIFTHS.includes(k)),
           u.id,
         );
       } else {

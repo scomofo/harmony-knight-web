@@ -138,7 +138,10 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
         {p.step === 1 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             {activity ? (
-              <LessonActivityPanel unitId={unit.id} activity={activity} />
+              <>
+                {unit.visual ? <LessonFigure visual={unit.visual} className="mb-6" /> : null}
+                <LessonActivityPanel unitId={unit.id} activity={activity} />
+              </>
             ) : (
               <>
                 <p className="text-base leading-8">{unit.tryIt}</p>
@@ -293,6 +296,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           >
             <summary className="cursor-pointer text-sm">Need the idea again?</summary>
             <p className="mt-3 text-base leading-8">{unit.body}</p>
+            {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             <p className="mt-3 text-sm text-[var(--color-muted)]">
               Reading this is welcome. Use the next scheduled recall to try without help.
             </p>
