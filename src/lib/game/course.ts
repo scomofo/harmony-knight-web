@@ -278,6 +278,24 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Rests, ties and syncopation",
       body: "Rests reserve silence for a written duration; keep the beat moving underneath. A tie joins two notes of the same pitch into one held sound, so you do not attack the second note. Syncopation shifts emphasis away from expected strong beats, often by starting on an offbeat and holding across the next beat. A tie changes duration, not pitch; a slur groups different notes into a smooth phrase.",
+      visual: {
+        kind: "measures",
+        bars: [
+          {
+            meter: "4/4",
+            events: [
+              { value: "quarter", rest: true, count: "1" },
+              { value: "eighth", rest: true, count: "2" },
+              { value: "eighth", count: "&", tie: true, accent: true },
+              { value: "quarter", count: "(3)" },
+              { value: "quarter", count: "4" },
+            ],
+          },
+        ],
+        caption:
+          "Silence on 1 and 2, then a sound on the 'and' after 2 that is tied across beat 3. The tie joins the two notes into one held sound: that is the syncopation.",
+        alt: "One bar of 4/4: a quarter rest on beat 1, an eighth rest on beat 2, an accented eighth note on the 'and' tied with a curved line to a quarter note on beat 3, then a quarter note on beat 4.",
+      },
     },
     "Keep time through rests and an offbeat entry.",
     "Count 1-and-2-and-3-and-4-and. Say 'da' only on the 'and' after 2 and hold it across 3. Tap the numbered beats quietly. If that feels busy, do the counting first and add the sound on a second pass.",
@@ -434,6 +452,19 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Chord inversions and slash symbols",
       body: "The root names the chord; the bass is the lowest sounding note. They need not match. C major is C E G in any order. With C lowest it is root position; with E lowest, first inversion; with G lowest, second inversion. C/E means a C chord with E in the bass, not an E chord. In classical analysis the triad figures are 5/3 (often omitted), 6 or 6/3, and 6/4. Choose inversions to give the bass a smoother line.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64, 67],
+          [64, 67, 72],
+          [67, 72, 76],
+        ],
+        labels: ["C (root)", "C/E (1st)", "C/G (2nd)"],
+        caption:
+          "The same three notes, C E G, with a different note at the bottom. Root position, then E in the bass (C/E), then G in the bass (C/G).",
+        alt: "Three voicings of C major: C E G with C lowest, E G C with E lowest, and G C E with G lowest.",
+      },
       example: {
         label: "C major: root position, first, second inversion",
         notes: [
@@ -516,6 +547,21 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Turn a progression into a phrase",
       body: "A melody can target chord tones on important beats and connect them with other scale notes. Over C–Am–F–G, try E–E–F–D: each note belongs to the chord underneath it. A motif is a small recognisable idea; repeating or varying its rhythm helps a phrase feel connected. To create a response, repeat your opening rhythm and change the final note. Chord tones are useful anchors, not the only allowed notes.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64, 67, 76],
+          [57, 60, 64, 76],
+          [60, 65, 69, 77],
+          [59, 62, 67, 74],
+          [60, 64, 67, 72],
+        ],
+        labels: ["C", "Am", "F", "G", "C"],
+        caption:
+          "The melody E E F D C rides on top of C, Am, F, G, C. Every melody note belongs to the chord underneath it.",
+        alt: "Five chords with a melody note on top: C major with E, A minor with E, F major with F, G major with D, and C major with C.",
+      },
       example: {
         label: "C–Am–F–G: a progression to sing over",
         notes: [
@@ -583,6 +629,23 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Motion and four-part writing",
       body: "Contrary motion means two voices travel in opposite directions. Oblique motion means one stays while the other moves. Similar motion means both move the same way; parallel motion also preserves interval size. SATB names soprano, alto, tenor and bass. In traditional chorale writing, keep each part in a comfortable range, retain useful common tones, and move the inner voices smoothly. Check each pair for unwanted parallels. These constraints describe a style; the game's duel practises only two voices.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 67],
+          [62, 65],
+          [60, 67],
+          [60, 69],
+          [60, 67],
+          [62, 69],
+        ],
+        labels: ["C–G", "D–F", "C–G", "C–A", "C–G", "D–A"],
+        gaps: ["contrary", "", "oblique", "", "parallel"],
+        caption:
+          "Three kinds of motion between two voices. Contrary: bass rises C to D while G falls to F. Oblique: C stays while G rises to A. Parallel: both rise and the fifth stays a fifth.",
+        alt: "Three pairs of two-note chords. C with G to D with F, labelled contrary. C with G to C with A, labelled oblique. C with G to D with A, labelled parallel.",
+      },
       example: {
         label: "Contrary motion: C–G to D–F",
         notes: [
@@ -615,6 +678,15 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Passing notes, neighbours and suspensions",
       body: "A passing note connects two chord tones by step, usually in the same direction: C–D–E over C major uses D as a passing note. A neighbour leaves a chord tone by step and returns: E–F–E. A suspension holds a prepared note while the harmony changes, creating tension that usually resolves down by step. Label a non-chord tone by its preparation, beat position and resolution, not just by its pitch name.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [64, 65, 64, 60, 62, 64],
+        labels: ["E", "F (nb)", "E", "C", "D (pass)", "E"],
+        caption:
+          "Over a held C chord: E F E, where F is a neighbour that leaves and returns by step; then C D E, where D is a passing note between two chord tones.",
+        alt: "Six notes on a treble staff: E, F, E, then C, D, E. F is labelled neighbour and D is labelled passing.",
+      },
     },
     "Explain how a melody uses notes outside its chord.",
     "Over a held C chord, sing or write E F E, then C D E. Circle F in the first and D in the second. Call F a neighbour and D a passing note. Both use stepwise movement for different jobs.",
@@ -664,6 +736,20 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "A visit or a new home?",
       body: "Tonicization briefly makes a chord sound like a local tonic. Modulation establishes a new key over a passage. One unusual chord is not enough evidence by itself: listen for a cadence and continued emphasis in the destination key. C–Am–D7–G can lead into G major; D7–G followed immediately by a strong return to C may instead be a brief tonicization. Context decides the analysis.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64, 67],
+          [57, 60, 64],
+          [62, 66, 69, 72],
+          [67, 71, 74],
+        ],
+        labels: ["C", "Am", "D7", "G ?"],
+        caption:
+          "C, Am, D7, G. D7's F# points at G. Whether G becomes a new home or is only a brief visit depends on what follows: a cadence and continued emphasis in G, or a quick return to C.",
+        alt: "Four chords: C E G, A C E, D F sharp A C, and G B D, with the final G chord labelled 'new home or visit?'.",
+      },
       example: {
         label: "C–Am–D7–G–G",
         notes: [
@@ -699,6 +785,19 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Secondary dominants",
       body: "A secondary dominant temporarily aims at a chord other than the main tonic. V/V means 'five of five'. In C, V is G; G's dominant is D major or D7, so D7 is V7/V. Its F# pulls upward to G, while the seventh C tends downward to B. Follow the slash right to left: first find the target, then its dominant. A secondary dominant need not cause a full modulation.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [62, 66, 69, 72],
+          [67, 71, 74],
+          [60, 64, 67],
+        ],
+        labels: ["V7/V", "V", "I"],
+        caption:
+          "D7 is the dominant of G, so in C major it is V7/V. Its F# pulls up to G and its seventh, C, falls to B.",
+        alt: "Three chords: D F sharp A C labelled V7 of V, G B D labelled V, and C E G labelled I.",
+      },
       example: {
         label: "D7–G–C: V7/V–V–I",
         notes: [
@@ -733,6 +832,21 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Seventh chords and extensions",
       body: "A seventh chord stacks one more third above a triad. On C, Cmaj7 is C E G B (0,4,7,11 semitones); C7 is C E G Bb (0,4,7,10); Cm7 is C Eb G Bb (0,3,7,10); Cm7b5 is C Eb Gb Bb (0,3,6,10). The symbol '7' alone means a major triad plus a minor seventh, not a major seventh. Ninths, elevenths and thirteenths extend the stack; voicings often omit some members. In tonal V7–I, the chordal seventh normally resolves down by step.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64, 67, 71],
+          [60, 64, 67, 70],
+          [60, 63, 67, 70],
+          [60, 63, 66, 70],
+        ],
+        labels: ["Cmaj7", "C7", "Cm7", "Cm7b5"],
+        spell: "flat",
+        caption:
+          "Four sevenths on C. Lower B to Bb for C7, lower E to Eb as well for Cm7, then lower G to Gb for Cm7b5. Each step changes one note.",
+        alt: "Four four-note chords: C E G B, C E G B flat, C E flat G B flat, and C E flat G flat B flat.",
+      },
       example: {
         label: "Cmaj7, C7, Cm7, Cm7b5",
         notes: [
@@ -762,6 +876,20 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Borrowed chords and chromatic colour",
       body: "Modal mixture borrows from the parallel key: C major can borrow iv, F minor (F Ab C), from C minor. The tonic stays C; borrowing does not automatically mean modulation. The Neapolitan is a major triad on the flattened second degree: Db F Ab in C, often in first inversion with F in the bass and used before V. Name the altered notes and their destination before trying to label a whole passage.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [65, 69, 72],
+          [65, 68, 72],
+          [61, 65, 68],
+        ],
+        labels: ["IV", "iv", "♭II"],
+        spell: "flat",
+        caption:
+          "IV borrowed from C minor: F A C becomes F Ab C. The Neapolitan is a major triad on the flattened second, Db F Ab, often placed before V.",
+        alt: "Three chords: F A C labelled IV, F A flat C labelled iv borrowed, and D flat F A flat labelled flat II, the Neapolitan.",
+      },
       example: {
         label: "C–Fm–C: hear the borrowed Ab",
         notes: [
@@ -806,6 +934,17 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Three against two",
       body: "A 3:2 polyrhythm fits three evenly spaced attacks in one part against two in another, over the same time span. Use six small subdivisions as a shared grid: the three-part attacks on 1, 3, 5; the two-part attacks on 1, 4. Both restart together on the next 1. This differs from changing meter or merely alternating groups. Start slowly and learn each part separately before combining them.",
+      visual: {
+        kind: "grid",
+        columns: 6,
+        rows: [
+          { label: "three", hits: [1, 3, 5] },
+          { label: "two", hits: [1, 4] },
+        ],
+        caption:
+          "Six subdivisions shared by both hands. The three-part strikes on 1, 3 and 5; the two-part on 1 and 4. They meet again on the next 1.",
+        alt: "A grid of six columns with two rows. The row labelled three has dots in columns 1, 3 and 5; the row labelled two has dots in columns 1 and 4.",
+      },
     },
     "Locate both parts of a 3:2 pattern on one grid.",
     "Write 1 2 3 4 5 6. Circle 1,3,5 for one hand; underline 1,4 for the other. Tap each alone, then combine only if comfortable. The grid is your reference; no speed target is required.",
@@ -855,6 +994,19 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Second and third species",
       body: "Second species places two notes against each cantus note; third species normally places four. In a basic second-species exercise, the strong beat is consonant. A weak-beat dissonance can be a passing note approached and left by step in the same direction. Third species allows more melodic activity, with specific controlled dissonances. More notes do not remove the need for a singable line or careful vertical intervals. The duel remains a first-species exercise; these written tasks extend beyond it.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64],
+          [60, 65],
+          [60, 67],
+        ],
+        labels: ["3rd", "4th (pass)", "5th"],
+        caption:
+          "Two notes against one held C. E and G are consonant with the bass; F between them is a passing fourth, allowed on the weak subdivision because it is approached and left by step.",
+        alt: "Three chords over a held middle C: C with E labelled a third, C with F labelled a passing fourth, and C with G labelled a fifth.",
+      },
     },
     "Control a passing dissonance instead of avoiding all tension.",
     "Over a held C, write upper E–F–G. E and G are consonant with C; F is a passing fourth above the bass. Put F on a weak subdivision, approach from E by step and leave to G by step.",
@@ -879,6 +1031,20 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Fourth and fifth species",
       body: "Fourth species focuses on syncopation and prepared suspensions. For a 4–3 suspension, prepare an upper note as a consonance, hold it as the bass changes so it becomes a fourth, then resolve down by step to a third. The numbers describe intervals above the bass. Fifth species, or florid counterpoint, combines the earlier rhythmic types. It still controls dissonance through preparation and resolution; it is not a free-for-all.",
+      visual: {
+        kind: "staff",
+        clef: "grand",
+        notes: [
+          [53, 72],
+          [55, 72],
+          [55, 71],
+        ],
+        labels: ["5th", "4th (sus)", "3rd"],
+        gaps: ["hold", "resolve"],
+        caption:
+          "A 4–3 suspension. C is prepared as a fifth above F, held while the bass moves to G so it becomes a fourth, then resolves down by step to B, a third.",
+        alt: "Grand staff with bass F then G then G, and an upper C held across the first two chords then falling to B. Labels read fifth, fourth suspension, third.",
+      },
       example: {
         label: "Preparation, 4th, resolution to 3rd",
         notes: [
@@ -929,6 +1095,17 @@ export const COURSE_UNITS: CourseUnit[] = [
     {
       heading: "Develop a subject and hear form",
       body: "After the opening entries of a fugue, episodes often develop fragments and move between keys. Stretto overlaps subject entries: a new one begins before the previous one finishes. Melodic inversion reverses interval direction; augmentation lengthens note values; diminution shortens them. Outside fugue, label returning sections to hear form: ABA returns to its opening after contrast; verse–chorus songs organise returns differently. Analyse audible recurrence before choosing a formal label.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [60, 62, 64, 60, 60, 58, 56, 60],
+        labels: ["C", "D", "E", "C", "C", "Bb", "Ab", "C"],
+        gaps: ["subject", "", "", "", "inversion", "", ""],
+        spell: "flat",
+        caption:
+          "The subject C D E C, then its melodic inversion C Bb Ab C: every interval keeps its size but flips direction.",
+        alt: "Eight notes: the subject C D E C, then C B flat A flat C, the same shape upside down.",
+      },
     },
     "Recognise a musical idea after transformation.",
     "Write C D E C. Reverse the directions of its exact intervals around C to get C Bb Ab C. That is melodic inversion, unlike a chord inversion which changes the bass. Then double every duration for augmentation.",

@@ -1,8 +1,14 @@
-import { RHYTHM_BEATS, type LessonVisual, type RhythmValue } from "@/lib/game/lessons";
 import {
+  RHYTHM_BEATS,
+  type LessonVisual,
+  type RhythmEvent,
+  type RhythmValue,
+} from "@/lib/game/lessons";
+import {
+  CIRCLE_OF_FIFTHS,
+  NOTE_NAMES,
   figureNoteColor,
   figureNoteShape,
-  noteLetter,
   pitchClass,
   staffStepsFromC4,
 } from "@/lib/game/music";
@@ -11,6 +17,8 @@ import { KeySignature } from "./key-signature";
 
 const PARCHMENT = "var(--color-parchment)";
 const MUTED = "var(--color-muted)";
+const HARMONY = "var(--color-harmony)";
+const SVG_CLASS = "mx-auto block h-auto w-full max-w-[420px]";
 
 /** A still picture for lesson text. Picks the drawing by the visual's kind. */
 export function LessonFigure({ visual }: { visual: LessonVisual }) {
@@ -23,6 +31,12 @@ export function LessonFigure({ visual }: { visual: LessonVisual }) {
           <KeyboardDiagram visual={visual} />
         ) : visual.kind === "rhythm" ? (
           <RhythmDiagram visual={visual} />
+        ) : visual.kind === "measures" ? (
+          <MeasuresDiagram visual={visual} />
+        ) : visual.kind === "grid" ? (
+          <GridDiagram visual={visual} />
+        ) : visual.kind === "circle" ? (
+          <CircleDiagram visual={visual} />
         ) : (
           <div role="img" aria-label={visual.alt}>
             <KeySignature tonic={visual.tonic} showName />
@@ -36,16 +50,20 @@ export function LessonFigure({ visual }: { visual: LessonVisual }) {
   );
 }
 
+/* ----------------------------- staff ----------------------------- */
+
 const LINE_GAP = 14;
 const HALF = LINE_GAP / 2;
 const LEFT = 24;
 const NOTE_START = 84;
 const GLYPH = 24;
+const CHORD_GLYPH = 16;
 /** Staff steps from C4 of each staff's bottom line: E4 for treble, G2 for bass. */
 const BOTTOM_STEP = { treble: 2, bass: -10 } as const;
 
 type StaffKind = "treble" | "bass";
 type StaffVisual = Extract<LessonVisual, { kind: "staff" }>;
+type Spell = "sharp" | "flat";
 
 function ledgerSteps(steps: number, bottom: number): number[] {
   const lines: number[] = [];
@@ -54,9 +72,20 @@ function ledgerSteps(steps: number, bottom: number): number[] {
   return lines;
 }
 
-const isSharp = (midi: number) => [1, 3, 6, 8, 10].includes(pitchClass(midi));
+const isBlack = (midi: number) => [1, 3, 6, 8, 10].includes(pitchClass(midi));
+
+/** A flat sits on the staff position of the natural above it; a sharp on the one below. */
+const stepsFor = (midi: number, spell: Spell) =>
+  spell === "flat" && isBlack(midi) ? staffStepsFromC4(midi + 1) : staffStepsFromC4(midi);
+
+const letterFor = (midi: number, spell: Spell) =>
+  spell === "flat" && isBlack(midi)
+    ? `${NOTE_NAMES[pitchClass(midi + 1)]}b`
+    : NOTE_NAMES[pitchClass(midi)];
 
 export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; width?: number }) {
+  const spell: Spell = visual.spell ?? "sharp";
+  const columns = visual.notes.map((n) => (Array.isArray(n) ? n : [n]));
   const staves: StaffKind[] = visual.clef === "grand" ? ["treble", "bass"] : [visual.clef];
   const staffTop = 30;
   // Grand staff: leave room between the staves so middle C's ledger line sits alone.
@@ -69,22 +98,24 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
     visual.clef === "grand" ? (midi >= 60 ? "treble" : "bass") : visual.clef;
   const yFor = (midi: number) => {
     const kind = staffFor(midi);
-    return bottomOf(kind) - (staffStepsFromC4(midi) - BOTTOM_STEP[kind]) * HALF;
+    return bottomOf(kind) - (stepsFor(midi, spell) - BOTTOM_STEP[kind]) * HALF;
   };
   // Letters go under the lowest note, so ledger-line notes never sit on top of them.
-  const lowestY = Math.max(lastBottom, ...visual.notes.map(yFor));
+  const lowestY = Math.max(lastBottom, ...columns.flat().map(yFor));
   const labelY = Math.max(lastBottom + 2 * LINE_GAP, lowestY + GLYPH);
   const height = labelY + (visual.gaps ? LINE_GAP : 0) + 8;
-  const span = width - LEFT - NOTE_START;
+  // Leave room under the last column for a longer label such as a chord symbol.
+  const right = visual.labels ? LEFT + 16 : LEFT;
+  const span = width - right - NOTE_START;
   const xFor = (index: number) =>
-    visual.notes.length === 1
+    columns.length === 1
       ? NOTE_START + span / 2
-      : NOTE_START + (span * index) / (visual.notes.length - 1);
+      : NOTE_START + (span * index) / (columns.length - 1);
 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="mx-auto block h-auto w-full max-w-[420px]"
+      className={SVG_CLASS}
       role="img"
       aria-label={visual.alt}
     >
@@ -114,58 +145,71 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
           </text>
         </g>
       ))}
-      {visual.notes.map((midi, index) => {
-        const kind = staffFor(midi);
+      {columns.map((chord, index) => {
         const x = xFor(index);
-        const y = yFor(midi);
-        const sharp = isSharp(midi);
+        const glyph = chord.length > 1 ? CHORD_GLYPH : GLYPH;
+        const sorted = [...chord].sort((a, b) => a - b);
+        const label = visual.labels?.[index] ?? sorted.map((m) => letterFor(m, spell)).join(" ");
         return (
-          <g key={`${midi}-${index}`}>
-            {ledgerSteps(staffStepsFromC4(midi), BOTTOM_STEP[kind]).map((s) => {
-              const ly = bottomOf(kind) - (s - BOTTOM_STEP[kind]) * HALF;
+          <g key={index}>
+            {sorted.map((midi, i) => {
+              const kind = staffFor(midi);
+              const y = yFor(midi);
+              // A note a step above its neighbour is written to the right, as in print.
+              const crowded =
+                i > 0 && stepsFor(midi, spell) - stepsFor(sorted[i - 1]!, spell) === 1;
+              const nx = crowded ? x + glyph * 0.8 : x;
+              const accidental = isBlack(midi) ? (spell === "flat" ? "♭" : "♯") : null;
               return (
-                <line
-                  key={s}
-                  x1={x - 18}
-                  x2={x + 18}
-                  y1={ly}
-                  y2={ly}
-                  stroke={PARCHMENT}
-                  strokeOpacity={0.8}
-                  strokeWidth={1.2}
-                />
+                <g key={`${midi}-${i}`}>
+                  {ledgerSteps(stepsFor(midi, spell), BOTTOM_STEP[kind]).map((s) => {
+                    const ly = bottomOf(kind) - (s - BOTTOM_STEP[kind]) * HALF;
+                    return (
+                      <line
+                        key={s}
+                        x1={x - 18}
+                        x2={x + 18 + (crowded ? glyph * 0.8 : 0)}
+                        y1={ly}
+                        y2={ly}
+                        stroke={PARCHMENT}
+                        strokeOpacity={0.8}
+                        strokeWidth={1.2}
+                      />
+                    );
+                  })}
+                  {accidental ? (
+                    <text
+                      x={nx - glyph / 2 - 3}
+                      y={y + 6}
+                      textAnchor="end"
+                      fill={PARCHMENT}
+                      fontSize="18"
+                      fontFamily="Georgia, serif"
+                    >
+                      {accidental}
+                    </text>
+                  ) : null}
+                  <foreignObject x={nx - glyph / 2} y={y - glyph / 2} width={glyph} height={glyph}>
+                    <FigureNoteGlyph
+                      shape={figureNoteShape(midi)}
+                      color={figureNoteColor(midi)}
+                      size={glyph}
+                    />
+                  </foreignObject>
+                </g>
               );
             })}
-            {sharp ? (
-              <text
-                x={x - GLYPH / 2 - 4}
-                y={y + 6}
-                textAnchor="end"
-                fill={PARCHMENT}
-                fontSize="18"
-                fontFamily="Georgia, serif"
-              >
-                ♯
-              </text>
-            ) : null}
-            <foreignObject x={x - GLYPH / 2} y={y - GLYPH / 2} width={GLYPH} height={GLYPH}>
-              <FigureNoteGlyph
-                shape={figureNoteShape(midi)}
-                color={figureNoteColor(midi)}
-                size={GLYPH}
-              />
-            </foreignObject>
             <text
               x={x}
               y={labelY}
               textAnchor="middle"
               fill={PARCHMENT}
-              fontSize="13"
+              fontSize={label.length > 6 ? 10 : 13}
               fontFamily="var(--font-mono)"
             >
-              {noteLetter(midi)}
+              {label}
             </text>
-            {visual.gaps?.[index] && index < visual.notes.length - 1 ? (
+            {visual.gaps?.[index] && index < columns.length - 1 ? (
               <text
                 x={(x + xFor(index + 1)) / 2}
                 y={labelY + LINE_GAP}
@@ -184,6 +228,8 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
   );
 }
 
+/* ---------------------------- keyboard --------------------------- */
+
 type KeyboardVisual = Extract<LessonVisual, { kind: "keyboard" }>;
 
 const WHITE_W = 30;
@@ -193,8 +239,8 @@ const BLACK_H = 58;
 
 export function KeyboardDiagram({ visual }: { visual: KeyboardVisual }) {
   const midis = Array.from({ length: visual.to - visual.from + 1 }, (_, i) => visual.from + i);
-  const whites = midis.filter((m) => !isSharp(m));
-  const blacks = midis.filter(isSharp);
+  const whites = midis.filter((m) => !isBlack(m));
+  const blacks = midis.filter(isBlack);
   const lit = new Set(visual.highlight);
   const width = whites.length * WHITE_W + 2;
   const height = WHITE_H + 22;
@@ -205,7 +251,7 @@ export function KeyboardDiagram({ visual }: { visual: KeyboardVisual }) {
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="mx-auto block h-auto w-full max-w-[420px]"
+      className={SVG_CLASS}
       role="img"
       aria-label={visual.alt}
     >
@@ -230,7 +276,7 @@ export function KeyboardDiagram({ visual }: { visual: KeyboardVisual }) {
             fontSize="12"
             fontFamily="var(--font-mono)"
           >
-            {noteLetter(midi)}
+            {NOTE_NAMES[pitchClass(midi)]}
           </text>
         </g>
       ))}
@@ -256,7 +302,7 @@ export function KeyboardDiagram({ visual }: { visual: KeyboardVisual }) {
               fontSize="10"
               fontFamily="var(--font-mono)"
             >
-              {noteLetter(midi)}
+              {NOTE_NAMES[pitchClass(midi)]}
             </text>
           ) : null}
         </g>
@@ -265,7 +311,10 @@ export function KeyboardDiagram({ visual }: { visual: KeyboardVisual }) {
   );
 }
 
+/* ----------------------------- rhythm ---------------------------- */
+
 type RhythmVisual = Extract<LessonVisual, { kind: "rhythm" }>;
+type MeasuresVisual = Extract<LessonVisual, { kind: "measures" }>;
 
 const RHYTHM_NAMES: Record<RhythmValue, string> = {
   whole: "whole",
@@ -279,8 +328,11 @@ const RHYTHM_NAMES: Record<RhythmValue, string> = {
 const beatsLabel = (beats: number) =>
   `${beats === 0.5 ? "½" : beats % 1 === 0.5 ? `${Math.floor(beats)}½` : beats} ${beats === 1 ? "beat" : "beats"}`;
 
+type BaseValue = "whole" | "half" | "quarter" | "eighth";
+const baseOf = (value: RhythmValue) => value.replace("dotted-", "") as BaseValue;
+
 function NoteGlyph({ value, x, y }: { value: RhythmValue; x: number; y: number }) {
-  const base = value.replace("dotted-", "") as "whole" | "half" | "quarter" | "eighth";
+  const base = baseOf(value);
   const hollow = base === "whole" || base === "half";
   const stem = base !== "whole";
   const dotted = value.startsWith("dotted");
@@ -308,17 +360,39 @@ function NoteGlyph({ value, x, y }: { value: RhythmValue; x: number; y: number }
   );
 }
 
+/** Rest glyphs: a block hanging below or sitting on the line, a zigzag, or a flagged stroke. */
+function RestGlyph({ value, x, y }: { value: RhythmValue; x: number; y: number }) {
+  const base = baseOf(value);
+  const dotted = value.startsWith("dotted");
+  return (
+    <g transform={`translate(${x}, ${y})`} data-rest={base}>
+      {base === "whole" ? (
+        <rect x={-9} y={0} width={18} height={6} fill={PARCHMENT} />
+      ) : base === "half" ? (
+        <rect x={-9} y={-6} width={18} height={6} fill={PARCHMENT} />
+      ) : base === "quarter" ? (
+        <path
+          d="M-3 -20 L5 -10 L-2 -3 L5 6 C-2 4 -6 8 -1 14 C-8 10 -8 2 -2 2 L-6 -8 L2 -16 Z"
+          fill={PARCHMENT}
+        />
+      ) : (
+        <g>
+          <path d="M4 -14 L-3 10" stroke={PARCHMENT} strokeWidth={2} />
+          <circle cx={-3} cy={-12} r={3} fill={PARCHMENT} />
+          <path d="M-3 -12 C 0 -7, 3 -8, 4 -14" stroke={PARCHMENT} strokeWidth={2} fill="none" />
+        </g>
+      )}
+      {dotted ? <circle cx={13} cy={-2} r={2.4} fill={PARCHMENT} /> : null}
+    </g>
+  );
+}
+
 export function RhythmDiagram({ visual }: { visual: RhythmVisual }) {
   const slot = 104;
   const width = visual.values.length * slot + 16;
   const lineY = 58;
   return (
-    <svg
-      viewBox={`0 0 ${width} 112`}
-      className="mx-auto block h-auto w-full max-w-[420px]"
-      role="img"
-      aria-label={visual.alt}
-    >
+    <svg viewBox={`0 0 ${width} 112`} className={SVG_CLASS} role="img" aria-label={visual.alt}>
       <line
         x1={8}
         x2={width - 8}
@@ -356,6 +430,292 @@ export function RhythmDiagram({ visual }: { visual: RhythmVisual }) {
           </g>
         );
       })}
+    </svg>
+  );
+}
+
+/** Bars laid out so that each event takes width in proportion to its length. */
+export function MeasuresDiagram({ visual }: { visual: MeasuresVisual }) {
+  const perBeat = 40;
+  const meterW = 30;
+  const pad = 12;
+  const lineY = 56;
+  const height = 104;
+  // Each event takes width in proportion to its length, but never less than a glyph needs.
+  const eventW = (e: RhythmEvent) => Math.max(RHYTHM_BEATS[e.value] * perBeat, 26);
+  const barWidth = (events: RhythmEvent[], meter?: string) =>
+    (meter ? meterW : 0) + pad + events.reduce((sum, e) => sum + eventW(e), 0);
+  // A short single bar is padded rather than stretched to the figure's full width.
+  const width = Math.max(
+    visual.bars.reduce((sum, b) => sum + barWidth(b.events, b.meter), 0) + 12,
+    320,
+  );
+
+  let cursor = 6;
+  const bars = visual.bars.map((bar) => {
+    const start = cursor;
+    let x = start + (bar.meter ? meterW : 0) + pad / 2;
+    const events = bar.events.map((event) => {
+      const w = eventW(event);
+      const cx = x + Math.min(w / 2, perBeat / 2);
+      x += w;
+      return { event, cx };
+    });
+    cursor += barWidth(bar.events, bar.meter);
+    return { bar, start, end: cursor, events };
+  });
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className={SVG_CLASS}
+      role="img"
+      aria-label={visual.alt}
+    >
+      <line
+        x1={6}
+        x2={width - 6}
+        y1={lineY}
+        y2={lineY}
+        stroke={PARCHMENT}
+        strokeOpacity={0.5}
+        strokeWidth={1.2}
+      />
+      {bars.map(({ bar, start, end, events }, b) => (
+        <g key={b}>
+          <line
+            x1={start}
+            x2={start}
+            y1={lineY - 22}
+            y2={lineY + 22}
+            stroke={PARCHMENT}
+            strokeWidth={1.5}
+          />
+          {b === bars.length - 1 ? (
+            <line
+              x1={end}
+              x2={end}
+              y1={lineY - 22}
+              y2={lineY + 22}
+              stroke={PARCHMENT}
+              strokeWidth={3}
+            />
+          ) : null}
+          {bar.meter ? (
+            <text
+              x={start + 4 + meterW / 2}
+              y={lineY + 5}
+              textAnchor="middle"
+              fill={PARCHMENT}
+              fontSize="15"
+              fontFamily="var(--font-mono)"
+              fontWeight="bold"
+            >
+              {bar.meter}
+            </text>
+          ) : null}
+          {events.map(({ event, cx }, i) => (
+            <g key={i}>
+              {event.rest ? (
+                <RestGlyph value={event.value} x={cx} y={lineY} />
+              ) : (
+                <NoteGlyph value={event.value} x={cx} y={lineY} />
+              )}
+              {event.tie && i < events.length - 1 ? (
+                <path
+                  d={`M${cx + 4} ${lineY + 9} Q ${(cx + events[i + 1]!.cx) / 2} ${lineY + 24}, ${events[i + 1]!.cx - 4} ${lineY + 9}`}
+                  stroke={HARMONY}
+                  strokeWidth={2}
+                  fill="none"
+                  data-tie=""
+                />
+              ) : null}
+              {event.accent ? (
+                <text
+                  x={cx}
+                  y={lineY - 40}
+                  textAnchor="middle"
+                  fill={HARMONY}
+                  fontSize="16"
+                  fontWeight="bold"
+                  data-accent=""
+                >
+                  &gt;
+                </text>
+              ) : null}
+              {event.count ? (
+                <text
+                  x={cx}
+                  y={lineY + 40}
+                  textAnchor="middle"
+                  fill={event.rest ? MUTED : PARCHMENT}
+                  fontSize="12"
+                  fontFamily="var(--font-mono)"
+                >
+                  {event.count}
+                </text>
+              ) : null}
+            </g>
+          ))}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/* ------------------------------ grid ----------------------------- */
+
+type GridVisual = Extract<LessonVisual, { kind: "grid" }>;
+
+export function GridDiagram({ visual }: { visual: GridVisual }) {
+  const cell = 40;
+  const labelW = 70;
+  const rowH = 40;
+  const width = labelW + visual.columns * cell + 8;
+  const height = 24 + visual.rows.length * rowH;
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className={SVG_CLASS}
+      role="img"
+      aria-label={visual.alt}
+    >
+      {Array.from({ length: visual.columns }, (_, c) => (
+        <text
+          key={c}
+          x={labelW + c * cell + cell / 2}
+          y={14}
+          textAnchor="middle"
+          fill={MUTED}
+          fontSize="11"
+          fontFamily="var(--font-mono)"
+        >
+          {c + 1}
+        </text>
+      ))}
+      {visual.rows.map((row, r) => {
+        const y = 24 + r * rowH + rowH / 2;
+        return (
+          <g key={row.label}>
+            <text
+              x={labelW - 8}
+              y={y + 4}
+              textAnchor="end"
+              fill={PARCHMENT}
+              fontSize="12"
+              fontFamily="var(--font-mono)"
+            >
+              {row.label}
+            </text>
+            {Array.from({ length: visual.columns }, (_, c) => {
+              const hit = row.hits.includes(c + 1);
+              return (
+                <g key={c}>
+                  <rect
+                    x={labelW + c * cell + 2}
+                    y={y - rowH / 2 + 2}
+                    width={cell - 4}
+                    height={rowH - 4}
+                    rx={4}
+                    fill={PARCHMENT}
+                    fillOpacity={0.06}
+                    stroke={PARCHMENT}
+                    strokeOpacity={0.2}
+                  />
+                  {hit ? (
+                    <circle
+                      cx={labelW + c * cell + cell / 2}
+                      cy={y}
+                      r={9}
+                      fill={HARMONY}
+                      data-hit=""
+                    />
+                  ) : null}
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ----------------------------- circle ---------------------------- */
+
+type CircleVisual = Extract<LessonVisual, { kind: "circle" }>;
+
+export function CircleDiagram({ visual }: { visual: CircleVisual }) {
+  const size = 260;
+  const c = size / 2;
+  const r = 100;
+  const lit = new Set(visual.highlight);
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      className="mx-auto block h-auto w-full max-w-[280px]"
+      role="img"
+      aria-label={visual.alt}
+    >
+      <circle
+        cx={c}
+        cy={c}
+        r={r}
+        fill="none"
+        stroke={PARCHMENT}
+        strokeOpacity={0.35}
+        strokeWidth={1.2}
+      />
+      {CIRCLE_OF_FIFTHS.map((tonic, i) => {
+        const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        const x = c + Math.cos(angle) * r;
+        const y = c + Math.sin(angle) * r;
+        const on = lit.has(tonic);
+        return (
+          <g key={tonic} data-key={tonic} data-lit={on ? "" : undefined}>
+            <circle
+              cx={x}
+              cy={y}
+              r={17}
+              fill={on ? HARMONY : "var(--color-ink)"}
+              stroke={on ? HARMONY : PARCHMENT}
+              strokeOpacity={on ? 1 : 0.5}
+              strokeWidth={1.5}
+            />
+            <text
+              x={x}
+              y={y + 5}
+              textAnchor="middle"
+              fill={on ? "var(--color-ink)" : PARCHMENT}
+              fontSize="14"
+              fontWeight={on ? "bold" : "normal"}
+              fontFamily="var(--font-mono)"
+            >
+              {tonic}
+            </text>
+          </g>
+        );
+      })}
+      <text
+        x={c}
+        y={c - 6}
+        textAnchor="middle"
+        fill={MUTED}
+        fontSize="11"
+        fontFamily="var(--font-mono)"
+      >
+        clockwise: + sharp
+      </text>
+      <text
+        x={c}
+        y={c + 12}
+        textAnchor="middle"
+        fill={MUTED}
+        fontSize="11"
+        fontFamily="var(--font-mono)"
+      >
+        anticlockwise: + flat
+      </text>
     </svg>
   );
 }
