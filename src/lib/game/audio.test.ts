@@ -57,6 +57,7 @@ it("separates the pitch comparison, cancels scheduled audio, and holds a suspens
   try {
     const {
       playMidiSequence,
+      playTeachingPlan,
       playRhythmPattern,
       playClick,
       playOnsetGrid,
@@ -80,6 +81,30 @@ it("separates the pitch comparison, cancels scheduled audio, and holds a suspens
     );
     stopTones();
     assert.ok(oscillators.every((osc) => osc.stops.at(-1) === 0));
+    oscillators.length = 0;
+
+    const slowed = playTeachingPlan(
+      {
+        events: [
+          { at: 0, duration: 0.75, notes: [60] },
+          { at: 1.05, duration: 0.75, notes: [72] },
+        ],
+        steps: [],
+        duration: 1.83,
+      },
+      0.5,
+    );
+    const slowNotes = oscillators.filter((osc) => osc.type === "triangle");
+    assert.ok(
+      Math.abs(slowNotes[1]!.startAt - slowNotes[0]!.startAt - 2.1) < 0.001,
+      "half speed doubles spacing without shifting pitch",
+    );
+    assert.ok(Math.abs(slowNotes[0]!.frequency.value - 261.625565) < 0.001);
+    slowed.stop();
+    assert.ok(
+      oscillators.every((osc) => osc.stops.at(-1) === 0),
+      "the teaching player cancels future notes",
+    );
     oscillators.length = 0;
 
     playRhythmPattern([1, 1, 1]);

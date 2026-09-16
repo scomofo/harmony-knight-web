@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, RotateCcw, Square, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,38 +7,12 @@ import {
   type ActivityTask,
   type LessonActivity,
 } from "@/lib/game/activities";
-import {
-  playChord,
-  playMidiSequence,
-  playOnsetGrid,
-  playProgression,
-  playVoicePhrase,
-  stopTones,
-} from "@/lib/game/audio";
+import { activityPlan, soundPlan, type PlaybackPart } from "@/lib/game/teaching-playback";
+import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { noteName } from "@/lib/game/music";
 import { useGameStore } from "@/lib/game/store";
 import { cn } from "@/lib/utils";
-
-function hear(task: ActivityTask, draft: number[][]) {
-  stopTones();
-  if (task.kind === "rhythm") {
-    playOnsetGrid(draft, task.labels.length, task.stepBeats, task.subdivisionPulse);
-  } else if (task.kind === "chord") {
-    if (task.context) playProgression([...task.context, draft[0]!]);
-    else playChord(draft[0]!);
-  } else if (task.rule === "exact" || task.rule === "line") {
-    playMidiSequence(draft[0]!, 0.55, 0.5);
-  } else if (task.chords) {
-    playProgression(task.chords.map((chord, i) => [...chord, draft[0]![i]!]));
-  } else {
-    playVoicePhrase(
-      task.bass,
-      draft[0]!,
-      task.rule === "passing" ? 0.4 : 0.75,
-      task.rule === "suspension",
-    );
-  }
-}
+import { activityHint } from "@/lib/game/activity-hints";
 
 export function LessonActivityPanel({
   unitId,
@@ -47,7 +21,11 @@ export function LessonActivityPanel({
   unitId: string;
   activity: LessonActivity;
 }) {
-  const saved = useGameStore((s) => s.activityProgress[unitId]);
+  const saved = useGameStore((s) =>
+    s.unitProgress[unitId]?.reviewing && s.practicalReviews[unitId]
+      ? s.practicalReviews[unitId]!.progress
+      : s.activityProgress[unitId],
+  );
   const update = useGameStore((s) => s.updateLearningActivity);
   const muted = useGameStore((s) => s.settings.muted);
   const index = saved?.index ?? 0;
@@ -57,17 +35,28 @@ export function LessonActivityPanel({
   const id = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const selected = progress.draft[0]!;
+  const player = useTeachingPlayer();
+  const [part, setPart] = useState<PlaybackPart>("together");
+  const playingNotes = player.state?.plan.steps[player.state.index]?.notes ?? [];
+  const hear = (draft: number[][], label: string) =>
+    player.play(activityPlan(task, draft, part), label);
   const hasNotes = progress.draft.some((row) => row.length > 0);
+  const hint = activityHint(task, progress.draft, progress.hintLevel ?? 0);
+  const focused = (row: number, index?: number, midi?: number) =>
+    (progress.hintLevel ?? 0) >= 2 &&
+    hint.focus.some(
+      (f) => f.row === row && (index !== undefined ? f.index === index : f.midi === midi),
+    );
   const solvedCount = activity.tasks.filter((t) => saved?.tasks[t.id]?.solved).length;
   const firstCorrect = activity.tasks.filter((t) => saved?.tasks[t.id]?.firstCorrect).length;
 
   useEffect(() => {
     heading.current?.focus();
-    return () => stopTones();
-  }, [index, unitId]);
+    return () => player.stop();
+  }, [index, unitId, player.stop]);
 
   const edit = (draft: number[][]) => {
-    stopTones();
+    player.stop();
     update(unitId, { type: "edit", draft });
   };
 
@@ -83,6 +72,55 @@ export function LessonActivityPanel({
         <p className="mt-3 text-base leading-relaxed">{task.instruction}</p>
       </div>
 
+      {task.kind === "listening" ? (
+        <div className="space-y-4">
+          <Button
+            variant="secondary"
+            disabled={muted}
+            onClick={() => hear(progress.draft, "The sounds")}
+          >
+            <Volume2 className="size-4" /> Hear the sounds
+          </Button>
+          {task.references ? (
+            <div role="group" aria-label="Sound colour references" className="flex flex-wrap gap-2">
+              {task.references.map(({ label, sound }) => (
+                <Button
+                  key={label}
+                  variant="outline"
+                  disabled={muted}
+                  onClick={() => {
+                    player.play(soundPlan([sound]), `${label} reference`);
+                  }}
+                >
+                  Hear {label}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          <fieldset disabled={progress.solved} className="flex flex-wrap gap-3">
+            <legend className="mb-2 text-sm">Your answer</legend>
+            {task.options.map((option, i) => (
+              <Button
+                key={option}
+                variant={selected[0] === i ? "default" : "outline"}
+                aria-pressed={selected[0] === i}
+                onClick={() => edit([[i]])}
+              >
+                {option}
+              </Button>
+            ))}
+          </fieldset>
+          <Button
+            variant="ghost"
+            disabled={progress.solved}
+            onClick={() => update(unitId, { type: "reveal" })}
+          >
+            Use a written clue (guided)
+          </Button>
+          {progress.assisted ? <p className="text-sm">{task.writtenClue}</p> : null}
+        </div>
+      ) : null}
+
       {task.kind === "chord" ? (
         <fieldset disabled={progress.solved} className="space-y-3">
           <legend className="mb-3 text-sm text-[var(--color-muted)]">
@@ -94,6 +132,8 @@ export function LessonActivityPanel({
                 key={choice.midi}
                 type="button"
                 aria-pressed={selected.includes(choice.midi)}
+                aria-current={playingNotes.includes(choice.midi) ? "true" : undefined}
+                aria-describedby={focused(0, undefined, choice.midi) ? `${id}-hint` : undefined}
                 onClick={() =>
                   edit([
                     selected.includes(choice.midi)
@@ -102,6 +142,9 @@ export function LessonActivityPanel({
                   ])
                 }
                 className={cn(
+                  playingNotes.includes(choice.midi) && "ring-2 ring-[var(--color-harmony)]",
+                  focused(0, undefined, choice.midi) &&
+                    "border-[var(--color-ember)] ring-2 ring-[var(--color-ember)]",
                   "min-h-12 min-w-14 rounded-[var(--radius-md)] border px-3 text-base",
                   selected.includes(choice.midi)
                     ? "border-[var(--color-harmony)] bg-[var(--color-ink-3)]"
@@ -150,6 +193,8 @@ export function LessonActivityPanel({
                         type="button"
                         aria-label={`${row}, ${label}`}
                         aria-pressed={active}
+                        aria-current={player.state?.index === column ? "step" : undefined}
+                        aria-describedby={focused(r, column) ? `${id}-hint` : undefined}
                         onClick={() =>
                           edit(
                             progress.draft.map((attacks, at) =>
@@ -162,6 +207,9 @@ export function LessonActivityPanel({
                           )
                         }
                         className={cn(
+                          player.state?.index === column && "ring-2 ring-[var(--color-harmony)]",
+                          focused(r, column) &&
+                            "border-[var(--color-ember)] ring-2 ring-[var(--color-ember)]",
                           "min-h-16 rounded-[var(--radius-md)] border text-sm",
                           active
                             ? "border-[var(--color-harmony)] bg-[var(--color-ink-3)]"
@@ -191,7 +239,12 @@ export function LessonActivityPanel({
             {task.positions.map((position, i) => (
               <div
                 key={i}
-                className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"
+                aria-current={player.state?.index === i ? "step" : undefined}
+                className={cn(
+                  "rounded-[var(--radius-md)] border border-[var(--color-border)] p-3",
+                  player.state?.index === i && "ring-2 ring-[var(--color-harmony)]",
+                  focused(0, i) && "ring-2 ring-[var(--color-ember)]",
+                )}
               >
                 <label htmlFor={`${id}-${i}`} className="block min-h-10 text-sm">
                   {i + 1}. {position}
@@ -199,6 +252,7 @@ export function LessonActivityPanel({
                 <select
                   id={`${id}-${i}`}
                   aria-label={`Upper note ${i + 1}: ${position}`}
+                  aria-describedby={focused(0, i) ? `${id}-hint` : undefined}
                   value={selected[i]}
                   onChange={(e) =>
                     edit([selected.map((n, at) => (at === i ? Number(e.target.value) : n))])
@@ -228,26 +282,47 @@ export function LessonActivityPanel({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="secondary"
-          disabled={muted || !hasNotes}
-          onClick={() => hear(task, progress.draft)}
-        >
-          <Volume2 className="size-4" />
-          Hear my answer
-        </Button>
-        <Button variant="ghost" disabled={muted} onClick={() => hear(task, task.solution)}>
-          <Volume2 className="size-4" />
-          Hear an example
-        </Button>
-        <Button variant="ghost" onClick={stopTones}>
-          <Square className="size-4" />
-          Stop sound
-        </Button>
+        {task.kind !== "listening" ? (
+          <>
+            <Button
+              variant="secondary"
+              disabled={muted || !hasNotes}
+              onClick={() => hear(progress.draft, "Your answer")}
+            >
+              <Volume2 className="size-4" />
+              Hear my answer
+            </Button>
+            <Button variant="ghost" disabled={muted} onClick={() => hear(task.solution, "Example")}>
+              <Volume2 className="size-4" />
+              Hear an example
+            </Button>
+          </>
+        ) : null}
       </div>
+      {task.kind === "voice" && !["line", "exact"].includes(task.rule) ? (
+        <label className="block text-sm">
+          Hear parts separately{" "}
+          <select
+            aria-label="Playback part"
+            value={part}
+            onChange={(e) => {
+              player.stop();
+              setPart(e.target.value as PlaybackPart);
+            }}
+            className="min-h-11 rounded border border-[var(--color-border-strong)] bg-[var(--color-ink-2)] px-2"
+          >
+            <option value="together">Together</option>
+            <option value="upper">Upper voice</option>
+            <option value="bass">Bass / accompaniment</option>
+          </select>
+        </label>
+      ) : null}
+      <PlaybackOptions player={player} hideNotes={task.kind === "listening"} />
       {muted ? (
         <p className="text-sm text-[var(--color-muted)]">
-          Sound is muted in settings. All checks work without audio.
+          {task.kind === "listening"
+            ? "Sound is muted. Use a written clue to continue as guided practice."
+            : "Sound is muted in settings. All checks work without audio."}
         </p>
       ) : null}
 
@@ -269,17 +344,51 @@ export function LessonActivityPanel({
       ) : null}
       {progress.assisted ? (
         <p className="text-sm text-[var(--color-muted)]">
-          A worked answer has been shown. Check it and listen for the connection; this is guided
-          practice.
+          Help was used. This attempt is guided practice; a fresh review can check independent
+          recall.
         </p>
+      ) : null}
+      {(progress.hintLevel ?? 0) > 0 ? (
+        <p
+          id={`${id}-hint`}
+          role="status"
+          className="rounded border border-[var(--color-ember)] p-3 text-sm"
+        >
+          {(progress.hintLevel ?? 0) >= 3 ? `One worked answer: ${task.explanation}` : hint.text}
+        </p>
+      ) : null}
+      {progress.beforeCorrection?.some((r) => r.length > 0) && task.kind !== "listening" ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={muted}
+            onClick={() => hear(progress.beforeCorrection!, "Before the correction")}
+          >
+            Hear before correction
+          </Button>
+          <Button
+            variant="outline"
+            disabled={muted}
+            onClick={() => hear(task.solution, "Worked correction")}
+          >
+            Hear the correction
+          </Button>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
         {!progress.solved ? (
           <>
             <Button
+              variant="outline"
+              disabled={(progress.hintLevel ?? 0) >= 2}
+              onClick={() => update(unitId, { type: "hint" })}
+            >
+              {(progress.hintLevel ?? 0) === 0 ? "Give me a clue" : "Show where to look"}
+            </Button>
+            <Button
               onClick={() => {
-                stopTones();
+                player.stop();
                 update(unitId, { type: "check" });
               }}
               disabled={Boolean(progress.feedback)}
@@ -289,7 +398,7 @@ export function LessonActivityPanel({
             <Button
               variant="ghost"
               onClick={() => {
-                stopTones();
+                player.stop();
                 update(unitId, { type: "reveal" });
               }}
             >
@@ -300,7 +409,7 @@ export function LessonActivityPanel({
           <Button
             variant="ghost"
             onClick={() => {
-              stopTones();
+              player.stop();
               update(unitId, { type: "retry" });
             }}
           >

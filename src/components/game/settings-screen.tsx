@@ -2,6 +2,7 @@ import { setMasterGain } from "@/lib/game/audio";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
+import { ProgressBackupPanel } from "./progress-backup";
 
 export function SettingsScreen() {
   const settings = useGameStore((s) => s.settings);
@@ -66,6 +67,7 @@ export function SettingsScreen() {
           />
         </label>
         <p className="text-sm text-[var(--color-muted)]">Current grade: {grade}</p>
+        <ProgressBackupPanel />
         <Button
           variant="outline"
           onClick={() => {

@@ -38,6 +38,8 @@ import { noteReviewPlan, recordNoteAttempt, weakNotesFor } from "./review.ts";
 import { newSRItem, type SRItem } from "./sr.ts";
 import { gradeProgress, useGameStore } from "./store.ts";
 import { playMidiSequence, setMasterGain, stopTones, unlockAudio } from "./audio.ts";
+import { activityForUnit } from "./activity-catalog.ts";
+import { reviewActivity } from "./practical-review.ts";
 import { COURSE_UNITS, unitById, unitsForLevel } from "./course.ts";
 import {
   advanceUnit,
@@ -179,6 +181,11 @@ describe("focused curriculum and saved learning", () => {
     const s = useGameStore.getState();
     s.openUnit(unit.id);
     s.advanceLearningUnit(unit.id);
+    for (const task of activityForUnit(unit.id)!.tasks) {
+      s.updateLearningActivity(unit.id, { type: "edit", draft: task.solution });
+      s.updateLearningActivity(unit.id, { type: "check" });
+      s.updateLearningActivity(unit.id, { type: "next" });
+    }
     s.advanceLearningUnit(unit.id);
     s.answerLearningUnit(unit.id, unit.checks[0]!.answer);
     s.openUnit(unit.id);
@@ -189,6 +196,12 @@ describe("focused curriculum and saved learning", () => {
     s.advanceLearningUnit(unit.id);
     assert.equal(useGameStore.getState().harmonyPoints, 25);
     s.revisitUnit(unit.id, true);
+    s.updateLearningActivity(unit.id, {
+      type: "edit",
+      draft: reviewActivity(unit.id, 0)!.tasks[0]!.solution,
+    });
+    s.updateLearningActivity(unit.id, { type: "check" });
+    s.advanceLearningUnit(unit.id);
     for (const q of unit.checks) {
       s.answerLearningUnit(unit.id, q.answer);
       s.advanceLearningUnit(unit.id);

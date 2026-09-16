@@ -1,4 +1,5 @@
 import { midiToFreq } from "./music.ts";
+import type { TeachingPlan } from "./teaching-playback.ts";
 
 type Bus = {
   ctx: AudioContext;
@@ -184,9 +185,19 @@ export type Timbre = "Warm" | "Hollow" | "Bright" | "Reed";
  */
 export function playTimbre(midi: number, timbre: Timbre, duration = 0.9, volume = 1) {
   const b = unlockAudio();
+  timbreAt(b, midi, timbre, duration, volume, b.ctx.currentTime);
+}
+
+function timbreAt(
+  b: Bus,
+  midi: number,
+  timbre: Timbre,
+  duration: number,
+  volume: number,
+  t: number,
+) {
   const { ctx, sfx } = b;
   const freq = midiToFreq(midi);
-  const t = ctx.currentTime;
   const voice = (
     type: OscillatorType,
     detune: number,
@@ -238,6 +249,31 @@ export function playTimbre(midi: number, timbre: Timbre, duration = 0.9, volume 
       voice("sine", 0, freq * 2, 0.04, 3);
       break;
   }
+}
+
+/** Schedule sound once on the audio clock; the UI reads that same clock for highlights. */
+export function playTeachingPlan(plan: TeachingPlan, speed = 1) {
+  const rate = Math.max(0.5, Math.min(1, speed));
+  stopTones();
+  const b = unlockAudio();
+  const start = b.ctx.currentTime + 0.04;
+  for (const event of plan.events) {
+    const when = start + event.at / rate;
+    if (event.click) clickAt(b.ctx, b.sfx, when, event.click === "accent");
+    else
+      for (const midi of event.notes) {
+        if (event.timbre)
+          timbreAt(b, midi, event.timbre, event.duration / rate, event.volume ?? 1, when);
+        else layeredNote(midiToFreq(midi), event.duration / rate, when, event.volume ?? 0.8);
+      }
+  }
+  const owned = [...activeTones];
+  return {
+    elapsed: () => Math.max(0, (b.ctx.currentTime - start) * rate),
+    stop: () => {
+      for (const osc of owned) if (activeTones.delete(osc)) osc.stop();
+    },
+  };
 }
 
 /** Play a chord progression, one chord after another. */
