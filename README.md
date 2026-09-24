@@ -153,7 +153,7 @@ npm run typecheck
 npm run build
 ```
 
-Dev server binds `0.0.0.0:8080`. Production preview uses `npm run preview`.
+Dev server binds `0.0.0.0:8086`. Production preview uses `npm run preview`.
 
 Use Node 24. GitHub Actions runs a clean `npm ci`, `npm test`, type checking and a production
 build on pull requests and pushes to main, with read-only repository permissions and no
