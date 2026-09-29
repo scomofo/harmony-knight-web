@@ -74,6 +74,15 @@ describe("focused curriculum and saved learning", () => {
     for (const u of COURSE_UNITS) {
       assert.ok(u.body.length > 120 && u.tryIt.length > 70 && u.goal.length > 10, u.id);
       assert.ok(u.musicianConnection.length > 60, `${u.id} needs a useful musician connection`);
+      if (u.runway) {
+        assert.ok(u.runway.note.length > 60, `${u.id} runway needs useful guidance`);
+        assert.ok(u.runway.unitIds.length > 0, `${u.id} runway needs at least one refresher`);
+        for (const id of u.runway.unitIds) {
+          const refresher = unitById(id);
+          assert.ok(refresher, `${u.id} points to missing refresher ${id}`);
+          assert.ok(refresher!.level < u.level, `${u.id} runway should point backward`);
+        }
+      }
       for (const q of u.checks) {
         assert.equal(q.options.filter((a) => a === q.answer).length, 1, q.prompt);
         assert.equal(new Set(q.options).size, q.options.length, q.prompt);
