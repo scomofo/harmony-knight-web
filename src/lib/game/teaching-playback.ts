@@ -25,6 +25,10 @@ function plan(events: TeachingEvent[], steps: TeachingStep[]): TeachingPlan {
     ),
   };
 }
+export function harmonyClipPlan(chords: number[][]): TeachingPlan {
+  return examplePlan({ label: "Harmony example", mode: "progression", notes: chords });
+}
+
 export function soundPlan(sounds: ListeningSound[]): TeachingPlan {
   return plan(
     sounds.map((s, i) => ({
@@ -79,6 +83,8 @@ export function activityPlan(
   part: PlaybackPart = "together",
 ): TeachingPlan {
   if (task.kind === "listening") return soundPlan(task.sounds);
+  if (task.kind === "harmony-listening")
+    return harmonyClipPlan(task.clips[task.solution[0]![0]]?.chords ?? task.clips[0]!.chords);
   if (task.kind === "chord")
     return examplePlan({
       label: task.title,

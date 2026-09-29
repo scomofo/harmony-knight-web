@@ -7,7 +7,12 @@ import {
   type ActivityTask,
   type LessonActivity,
 } from "@/lib/game/activities";
-import { activityPlan, soundPlan, type PlaybackPart } from "@/lib/game/teaching-playback";
+import {
+  activityPlan,
+  harmonyClipPlan,
+  soundPlan,
+  type PlaybackPart,
+} from "@/lib/game/teaching-playback";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { noteName } from "@/lib/game/music";
 import { useGameStore } from "@/lib/game/store";
@@ -99,6 +104,44 @@ export function LessonActivityPanel({
           ) : null}
           <fieldset disabled={progress.solved} className="flex flex-wrap gap-3">
             <legend className="mb-2 text-sm">Your answer</legend>
+            {task.options.map((option, i) => (
+              <Button
+                key={option}
+                variant={selected[0] === i ? "default" : "outline"}
+                aria-pressed={selected[0] === i}
+                onClick={() => edit([[i]])}
+              >
+                {option}
+              </Button>
+            ))}
+          </fieldset>
+          <Button
+            variant="ghost"
+            disabled={progress.solved}
+            onClick={() => update(unitId, { type: "reveal" })}
+          >
+            Use a written clue (guided)
+          </Button>
+          {progress.assisted ? <p className="text-sm">{task.writtenClue}</p> : null}
+        </div>
+      ) : null}
+
+      {task.kind === "harmony-listening" ? (
+        <div className="space-y-4">
+          <div role="group" aria-label="Harmony examples" className="flex flex-wrap gap-2">
+            {task.clips.map((clip, i) => (
+              <Button
+                key={clip.label}
+                variant="secondary"
+                disabled={muted}
+                onClick={() => player.play(harmonyClipPlan(clip.chords), clip.label)}
+              >
+                <Volume2 className="size-4" /> Hear {clip.label}
+              </Button>
+            ))}
+          </div>
+          <fieldset disabled={progress.solved} className="flex flex-wrap gap-3">
+            <legend className="mb-2 text-sm">What did you hear?</legend>
             {task.options.map((option, i) => (
               <Button
                 key={option}
@@ -282,7 +325,7 @@ export function LessonActivityPanel({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {task.kind !== "listening" ? (
+        {task.kind !== "listening" && task.kind !== "harmony-listening" ? (
           <>
             <Button
               variant="secondary"
@@ -317,10 +360,13 @@ export function LessonActivityPanel({
           </select>
         </label>
       ) : null}
-      <PlaybackOptions player={player} hideNotes={task.kind === "listening"} />
+      <PlaybackOptions
+        player={player}
+        hideNotes={task.kind === "listening" || task.kind === "harmony-listening"}
+      />
       {muted ? (
         <p className="text-sm text-[var(--color-muted)]">
-          {task.kind === "listening"
+          {task.kind === "listening" || task.kind === "harmony-listening"
             ? "Sound is muted. Use a written clue to continue as guided practice."
             : "Sound is muted in settings. All checks work without audio."}
         </p>
@@ -357,7 +403,9 @@ export function LessonActivityPanel({
           {(progress.hintLevel ?? 0) >= 3 ? `One worked answer: ${task.explanation}` : hint.text}
         </p>
       ) : null}
-      {progress.beforeCorrection?.some((r) => r.length > 0) && task.kind !== "listening" ? (
+      {progress.beforeCorrection?.some((r) => r.length > 0) &&
+      task.kind !== "listening" &&
+      task.kind !== "harmony-listening" ? (
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"

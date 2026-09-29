@@ -5,12 +5,13 @@ import { stopTones } from "@/lib/game/audio";
 import { examplePlan } from "@/lib/game/teaching-playback";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { levelFor } from "@/lib/game/curriculum";
-import { unitsForLevel, type CourseUnit } from "@/lib/game/course";
+import { unitById, unitsForLevel, type CourseUnit } from "@/lib/game/course";
 import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
 import { activityForUnit } from "@/lib/game/activity-catalog";
 import { reviewActivity } from "@/lib/game/practical-review";
 import { activityComplete } from "@/lib/game/activities";
 import { type LessonExample } from "@/lib/game/lessons";
+import { repertoireForUnit } from "@/lib/game/repertoire";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
@@ -60,6 +61,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
   const next = nextUnit(allProgress, unit.id);
   const done = p.step === 4;
   const correct = unit.checks.filter((q, i) => p.answers[i] === q.answer).length;
+  const repertoire = repertoireForUnit(unit.id);
 
   useEffect(() => {
     open(unit.id);
@@ -124,9 +126,54 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">{unit.goal}</p>
         </header>
 
+        {p.step === 0 && unit.runway ? (
+          <aside className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+              Before you start
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{unit.runway.note}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {unit.runway.unitIds.map((id) => {
+                const refresher = unitById(id);
+                if (!refresher) return null;
+                return (
+                  <Button key={id} asChild variant="outline" size="sm">
+                    <Link
+                      to="/lesson/$level"
+                      params={{ level: String(refresher.level) }}
+                      search={{ unit: refresher.id }}
+                    >
+                      Refresh: {refresher.title}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+          </aside>
+        ) : null}
+
         {p.step === 0 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             <p className="text-base leading-8">{unit.body}</p>
+            <aside className="mt-5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-3)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+                Why musicians care
+              </p>
+              <p className="mt-2 text-base leading-relaxed text-[var(--color-muted)]">
+                {unit.musicianConnection}
+              </p>
+            </aside>
+            {repertoire ? (
+              <aside className="mt-5 rounded-[var(--radius-md)] border border-[var(--color-harmony)]/50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+                  House repertoire · {repertoire.name}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                  {repertoire.note}
+                </p>
+                <ExampleAudio example={repertoire.example} />
+              </aside>
+            ) : null}
             {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             {unit.example ? <ExampleAudio example={unit.example} /> : null}
             <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
@@ -296,6 +343,10 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           >
             <summary className="cursor-pointer text-sm">Need the idea again?</summary>
             <p className="mt-3 text-base leading-8">{unit.body}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+              <span className="font-medium text-[var(--color-parchment)]">Why it matters: </span>
+              {unit.musicianConnection}
+            </p>
             {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             <p className="mt-3 text-sm text-[var(--color-muted)]">
               Reading this is welcome. Use the next scheduled recall to try without help.

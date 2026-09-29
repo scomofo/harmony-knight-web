@@ -110,6 +110,9 @@ export function HomeScreen() {
                 ? ` · ${["Learn", "Try it", "Recall 1 of 2", "Recall 2 of 2"][progress.unitProgress[next.id]!.step]}`
                 : ""}
             </p>
+            <p className="mt-3 text-sm leading-relaxed opacity-75">
+              {levelFor(next.level).chapterIntro}
+            </p>
             <Button
               asChild
               size="lg"
@@ -219,9 +222,16 @@ export function HomeScreen() {
 
         <section>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-[var(--font-display)] text-2xl">
-              {next ? "This chapter" : "Keep exploring"}
-            </h2>
+            <div>
+              <h2 className="font-[var(--font-display)] text-2xl">
+                {next ? levelFor(next.level).title : "Keep exploring"}
+              </h2>
+              {next ? (
+                <p className="mt-1 text-sm text-[var(--color-muted)]">
+                  {levelFor(next.level).subtitle}
+                </p>
+              ) : null}
+            </div>
             <Link
               to="/curriculum"
               className="inline-flex min-h-11 items-center gap-2 text-sm text-[var(--color-harmony)]"
@@ -231,7 +241,11 @@ export function HomeScreen() {
             </Link>
           </div>
           {next ? (
-            <ol className="mt-3 divide-y divide-[var(--color-border)]">
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+                {levelFor(next.level).chapterIntro}
+              </p>
+              <ol className="mt-3 divide-y divide-[var(--color-border)]">
               {chapter.map((u, i) => (
                 <li key={u.id}>
                   <Link
@@ -254,7 +268,14 @@ export function HomeScreen() {
                   </Link>
                 </li>
               ))}
-            </ol>
+              </ol>
+              {levelFor(next.level).nextBridge ? (
+                <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+                  <span className="font-medium text-[var(--color-parchment)]">Next horizon: </span>
+                  {levelFor(next.level).nextBridge}
+                </p>
+              ) : null}
+            </>
           ) : null}
         </section>
 

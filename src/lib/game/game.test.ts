@@ -42,6 +42,7 @@ import { playMidiSequence, setMasterGain, stopTones, unlockAudio } from "./audio
 import { activityForUnit } from "./activity-catalog.ts";
 import { reviewActivity } from "./practical-review.ts";
 import { COURSE_UNITS, unitById, unitsForLevel } from "./course.ts";
+import { REPERTOIRE } from "./repertoire.ts";
 import {
   advanceUnit,
   answerUnit,
@@ -73,6 +74,16 @@ describe("focused curriculum and saved learning", () => {
     for (const level of CURRICULUM) assert.equal(unitsForLevel(level.level).length, 4);
     for (const u of COURSE_UNITS) {
       assert.ok(u.body.length > 120 && u.tryIt.length > 70 && u.goal.length > 10, u.id);
+      assert.ok(u.musicianConnection.length > 60, `${u.id} needs a useful musician connection`);
+      if (u.runway) {
+        assert.ok(u.runway.note.length > 60, `${u.id} runway needs useful guidance`);
+        assert.ok(u.runway.unitIds.length > 0, `${u.id} runway needs at least one refresher`);
+        for (const id of u.runway.unitIds) {
+          const refresher = unitById(id);
+          assert.ok(refresher, `${u.id} points to missing refresher ${id}`);
+          assert.ok(refresher!.level < u.level, `${u.id} runway should point backward`);
+        }
+      }
       for (const q of u.checks) {
         assert.equal(q.options.filter((a) => a === q.answer).length, 1, q.prompt);
         assert.equal(new Set(q.options).size, q.options.length, q.prompt);
@@ -627,6 +638,29 @@ describe("rhythm tap scoring", () => {
   });
 });
 
+describe("recurring house repertoire", () => {
+  it("reuses original material across chapters without dangling lesson references", () => {
+    const names = Object.values(REPERTOIRE).map((moment) => moment.name);
+    assert.ok(new Set(names).size >= 3);
+    for (const [id, moment] of Object.entries(REPERTOIRE)) {
+      assert.ok(unitById(id), id);
+      assert.ok(moment.note.length > 80, `${id}: repertoire note`);
+      const notes = moment.example.notes.flat();
+      assert.ok(notes.length > 0, id);
+      assert.ok(notes.every((n) => Number.isInteger(n) && n >= 0 && n <= 127), id);
+    }
+    const lanternLevels = Object.keys(REPERTOIRE)
+      .filter((id) => REPERTOIRE[id]!.name === "Lantern Call")
+      .map((id) => unitById(id)!.level);
+    const homewardLevels = Object.keys(REPERTOIRE)
+      .filter((id) => REPERTOIRE[id]!.name === "Homeward Loop")
+      .map((id) => unitById(id)!.level);
+    assert.ok(new Set(lanternLevels).size >= 4, "Lantern Call should mature across the course");
+    assert.ok(new Set(homewardLevels).size >= 4, "Homeward Loop should mature across the course");
+    assert.ok(names.filter((name) => name === "Crossing Lines").length >= 3);
+  });
+});
+
 describe("curriculum", () => {
   it("has a lesson, drill and threshold for every level", () => {
     for (const level of CURRICULUM) {
@@ -638,7 +672,15 @@ describe("curriculum", () => {
         assert.ok(q.options.includes(q.answer), `${level.level}: ${q.prompt}`);
       }
       assert.ok(level.topics.length > 0);
-      if (level.level < CURRICULUM.length - 1) assert.ok(GRADE_THRESHOLDS[level.level]);
+      assert.ok(level.title.length > 8, `${level.level}: chapter title`);
+      assert.ok(level.subtitle.length > 12, `${level.level}: chapter subtitle`);
+      assert.ok(level.chapterIntro.length > 120, `${level.level}: chapter intro`);
+      if (level.level < CURRICULUM.length - 1) {
+        assert.ok(GRADE_THRESHOLDS[level.level]);
+        assert.ok(level.nextBridge && level.nextBridge.length > 100, `${level.level}: next bridge`);
+      } else {
+        assert.equal(level.nextBridge, undefined);
+      }
     }
     assert.equal(LESSONS.length, CURRICULUM.length);
   });

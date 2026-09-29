@@ -1,5 +1,12 @@
 import { noteName } from "./music.ts";
-import type { ChordTask, LessonActivity, NoteChoice, RhythmTask, VoiceTask } from "./activities.ts";
+import type {
+  ChordTask,
+  HarmonyListeningTask,
+  LessonActivity,
+  NoteChoice,
+  RhythmTask,
+  VoiceTask,
+} from "./activities.ts";
 import { LISTENING_ACTIVITIES } from "./listening-activities.ts";
 
 const choices = (midis: number[], spelling: Record<number, string> = {}): NoteChoice[] =>
@@ -21,7 +28,7 @@ const chord = (
   kind: "chord",
   id,
   title,
-  instruction: `Build ${title}. Select ${solution.length} notes from the palette; octave numbers fix the register.`,
+  instruction: `Build ${title}. Choose ${solution.length} notes from the palette. The octave numbers show exactly where each note should sit, so you can focus on the chord shape.`,
   hint,
   explanation: hint,
   choices: pool,
@@ -29,6 +36,28 @@ const chord = (
   initial: [[]],
   context,
 });
+const harmonyListen = (
+  id: string,
+  title: string,
+  instruction: string,
+  clips: HarmonyListeningTask["clips"],
+  answer: number,
+  explanation: string,
+  writtenClue: string,
+): HarmonyListeningTask => ({
+  kind: "harmony-listening",
+  id,
+  title,
+  instruction,
+  clips,
+  options: clips.map((clip) => clip.label),
+  solution: [[answer]],
+  initial: [[]],
+  hint: writtenClue,
+  explanation,
+  writtenClue,
+});
+
 const rhythm = (
   id: string,
   title: string,
@@ -50,7 +79,7 @@ const rhythm = (
   subdivisionPulse,
   initial: rows.map(() => []),
   hint: instruction,
-  explanation: `${title}: the attacks now match. ${instruction}`,
+  explanation: `That pattern works. ${instruction}`,
 });
 const voice = (
   id: string,
@@ -85,7 +114,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "pulse",
         "Four steady beats",
-        "Place an attack on every numbered beat. Leave the in-between '&' subdivisions empty.",
+        "Give each numbered beat one clear tap. Leave the in-between '&' spaces empty so you can hear the difference between the pulse and the subdivisions.",
         eighths,
         [[0, 2, 4, 6]],
         0.5,
@@ -98,7 +127,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "whole",
         "One whole note in 4/4",
-        "Start on beat 1 and hold for the whole bar: only one attack.",
+        "Start once on beat 1 and let that sound occupy the whole bar. Do not add another attack on beats 2, 3 or 4.",
         ["1", "2", "3", "4"],
         [[0]],
         1,
@@ -106,7 +135,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "halves",
         "Two half notes in 4/4",
-        "Start a new note every two beats, on 1 and 3.",
+        "Hear the bar as two equal halves: begin one note on 1, then the next on 3.",
         ["1", "2", "3", "4"],
         [[0, 2]],
         1,
@@ -114,7 +143,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "quarters",
         "Four quarter notes in 4/4",
-        "Start a new note on each numbered beat.",
+        "Now let every beat speak: start a new note on 1, 2, 3 and 4.",
         ["1", "2", "3", "4"],
         [[0, 1, 2, 3]],
         1,
@@ -127,7 +156,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "simple",
         "3/4: 2 + 2 + 2",
-        "The quiet pulse plays all six eighth notes. Mark an accent at the start of each group of two: subdivisions 1, 3 and 5.",
+        "Keep all six eighth notes even, but make 1, 3 and 5 feel heavier. That turns the six subdivisions into three groups of two—the feel of 3/4.",
         ["1", "2", "3", "4", "5", "6"],
         [[0, 2, 4]],
         0.5,
@@ -137,7 +166,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "compound",
         "6/8: 3 + 3",
-        "Keep the same six eighth notes. Accent the start of each group of three: subdivisions 1 and 4.",
+        "Keep the very same six subdivisions, then move the weight to 1 and 4. Now you should feel two larger groups of three—the usual shape of 6/8.",
         ["1", "2", "3", "4", "5", "6"],
         [[0, 3]],
         0.5,
@@ -152,7 +181,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "dotted",
         "Dotted quarter, eighth — twice",
-        "A dotted quarter spans three eighth-note cells. Attack on 1, the '&' after 2, 3, and the '&' after 4.",
+        "Feel each dotted quarter as three eighth-note spaces. Start on 1, then on the '&' after 2; repeat the same long-short shape from beat 3.",
         eighths,
         [[0, 3, 4, 7]],
         0.5,
@@ -165,7 +194,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "tied",
         "An offbeat entry tied across 3",
-        "Rest until the '&' after 2, then make one attack and hold to the end of the bar. Do not re-attack on beat 3.",
+        "Let beats 1 and 2 pass in silence. Enter on the '&' after 2, then hold through beat 3 instead of striking again. That offbeat arrival is the point of the exercise.",
         eighths,
         [[3]],
         0.5,
@@ -240,15 +269,43 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "5-cadences": {
-    title: "Complete an authentic cadence",
+    title: "Hear the ending, then build it",
     tasks: [
+      harmonyListen(
+        "hear-closed-open",
+        "Which ending sounds more finished?",
+        "Hear both short progressions. One lands on tonic; the other stops on the dominant and leaves the phrase asking for more.",
+        [
+          { label: "Example A", chords: [[55, 59, 62], [60, 64, 67]] },
+          { label: "Example B", chords: [[48, 52, 55], [53, 57, 60], [55, 59, 62]] },
+        ],
+        0,
+        "Example A is the stronger close: G major resolves to C major. Example B stops on G, so it sounds open.",
+        "Listen to the final chord. C feels like arrival here; G still carries dominant tension.",
+      ),
       chord(
         "pac",
-        "the final C chord, with C4 in the bass and C5 on top",
+        "the final C chord of a strong V–I cadence",
         [60, 64, 67, 72],
-        "Choose C4–E4–G4–C5. Root-position G–C with tonic on top of the final I makes a perfect authentic cadence.",
+        "Choose C4–E4–G4–C5. Hear how the G chord in the context wants to settle onto this root-position C chord with tonic on top.",
         choices([59, 60, 62, 64, 65, 67, 69, 72]),
         [[55, 59, 62, 67]],
+      ),
+      chord(
+        "plagal",
+        "the final C chord after F major",
+        [60, 64, 67],
+        "Choose C4–E4–G4 after the F chord. This IV–I motion settles differently from V–I; listen for the softer kind of arrival.",
+        choices([60, 64, 65, 67, 69, 72]),
+        [[53, 57, 60]],
+      ),
+      chord(
+        "half",
+        "the G chord that leaves the phrase open",
+        [55, 59, 62],
+        "Choose G3–B3–D4 after the C and F context. Ending on V is a half cadence: it sounds like a comma because the dominant still wants somewhere to go.",
+        choices([53, 55, 57, 59, 60, 62, 64]),
+        [[48, 52, 55], [53, 57, 60]],
       ),
     ],
   },
@@ -303,16 +360,28 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "6-parallels": {
-    title: "Repair parallel fifths",
+    title: "Repair voices that fuse together",
     tasks: [
       voice(
-        "repair",
-        "C–G followed by D–A",
+        "repair-fifths",
+        "Repair C–G followed by D–A",
         "consonant",
         [60, 62],
         [67, 65],
-        "The starting line has parallel fifths. Change an upper note so both vertical intervals remain consonant without moving in parallel fifths or octaves.",
+        "The starting line moves in parallel perfect fifths. Change the second upper note so the intervals stay consonant but the two parts keep more independence.",
         { initial: [[67, 69]] },
+      ),
+      voice(
+        "repair-octaves",
+        "Repair C–C followed by D–D",
+        "consonant",
+        [60, 62],
+        [72, 71],
+        "The starting line doubles the bass in parallel octaves. Keep the first octave, then choose a consonant second note that does not simply copy the bass upward.",
+        {
+          choices: choices([60, 62, 64, 65, 67, 69, 71, 72, 74]),
+          initial: [[72, 74]],
+        },
       ),
     ],
   },
@@ -344,22 +413,102 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       ),
     ],
   },
-  "7-pivot": {
-    title: "Build a shared chord",
+  "7-related": {
+    title: "Move into a nearby key",
     tasks: [
       chord(
-        "pivot",
-        "A minor as a pivot from C to G",
+        "dominant-key",
+        "G major, one-note away from C major",
+        [55, 59, 62],
+        "Choose G3–B3–D4. C major and G major share most of their material; the new key mainly introduces F# when it needs to establish G strongly.",
+        choices([53, 55, 57, 59, 60, 62, 64, 66]),
+        [[48, 52, 55]],
+      ),
+      chord(
+        "relative-minor",
+        "A minor, C major's relative minor",
         [57, 60, 64],
-        "A3–C4–E4 belongs to both keys: vi in C and ii in G. A later cadence must establish G as home.",
-        choices([55, 57, 59, 60, 62, 64, 66]),
+        "Choose A3–C4–E4. Relative major and minor share a key signature, so the change of home comes from emphasis and cadence rather than a new collection of notes.",
+        choices([55, 57, 59, 60, 62, 64, 65]),
         [[48, 52, 55]],
       ),
     ],
   },
-  "7-secondary": {
-    title: "Aim a dominant at G",
+  "7-pivot": {
+    title: "Hear a new home, then use a pivot",
     tasks: [
+      harmonyListen(
+        "hear-modulation",
+        "Which example really establishes G as home?",
+        "Both examples visit D7 and G. Listen past that moment: which one continues to make G feel like the new tonic instead of immediately returning to C?",
+        [
+          {
+            label: "Example A",
+            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [55, 59, 62]],
+          },
+          {
+            label: "Example B",
+            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [48, 52, 55]],
+          },
+        ],
+        0,
+        "Example A keeps G in focus after D7–G, so the new tonic has time to settle. Example B returns straight to C.",
+        "A modulation needs more than one altered chord. Listen for continued emphasis after the arrival.",
+      ),
+      chord(
+        "pivot-am",
+        "A minor as vi in C and ii in G",
+        [57, 60, 64],
+        "A3–C4–E4 belongs to both keys. Hear it first as vi after C, then imagine the same notes reinterpreted as ii on the way toward D7–G.",
+        choices([55, 57, 59, 60, 62, 64, 66]),
+        [[48, 52, 55]],
+      ),
+      chord(
+        "pivot-c",
+        "C major as I in C and IV in G",
+        [60, 64, 67],
+        "C4–E4–G4 can be home in C or become IV once G takes over as tonic. The chord does not change—its job changes because the surrounding harmony does.",
+        choices([57, 59, 60, 62, 64, 66, 67]),
+        [[55, 59, 62]],
+      ),
+    ],
+  },
+  "7-tonicization": {
+    title: "Spotlight a chord without leaving home",
+    tasks: [
+      chord(
+        "v-of-vi",
+        "E major, V of vi in C major",
+        [52, 56, 59],
+        "Choose E3–G#3–B3. G# is outside C major, but it points directly to A minor. If the music returns to C soon after, A minor was tonicized rather than established as a new key.",
+        choices([52, 55, 56, 57, 59, 60, 64], { 56: "G#3" }),
+        [[48, 52, 55], [57, 60, 64]],
+      ),
+      chord(
+        "return-home",
+        "C major after the brief A-minor spotlight",
+        [60, 64, 67],
+        "Choose C4–E4–G4. Returning convincingly to C after E–Am helps you hear the earlier A minor as a local emphasis, not a full modulation.",
+        choices([57, 59, 60, 62, 64, 67, 69]),
+        [[52, 56, 59], [57, 60, 64]],
+      ),
+    ],
+  },
+  "7-secondary": {
+    title: "Hear the extra pull, then build it",
+    tasks: [
+      harmonyListen(
+        "hear-secondary",
+        "Which progression gives G an extra dominant pull?",
+        "Both examples move toward G and then C. One uses ordinary ii–V–I in C; the other changes D minor to D7 so F# leans into G.",
+        [
+          { label: "Example A", chords: [[50, 53, 57], [55, 59, 62], [60, 64, 67]] },
+          { label: "Example B", chords: [[50, 54, 57, 60], [55, 59, 62], [60, 64, 67]] },
+        ],
+        1,
+        "Example B uses D7. Its F# is the leading tone of G, so G briefly receives dominant-style emphasis before the music returns to C.",
+        "Listen for the brighter chromatic note in the first chord of one example: F# points upward to G.",
+      ),
       chord(
         "secondary-triad",
         "V/V in C major",
@@ -377,8 +526,20 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "8-sevenths": {
-    title: "Build the seventh-chord family",
+    title: "Hear seventh-chord colour, then build it",
     tasks: [
+      harmonyListen(
+        "hear-major-vs-dominant",
+        "Which C chord has the dominant-seventh bite?",
+        "Hear Cmaj7 and C7 side by side. Both start with a C-major triad; the seventh is the only note that changes.",
+        [
+          { label: "Example A", chords: [[60, 64, 67, 71]] },
+          { label: "Example B", chords: [[60, 64, 67, 70]] },
+        ],
+        1,
+        "Example B is C7: Bb creates the minor seventh above C. Example A uses B natural and is Cmaj7.",
+        "Focus on the top note: B natural gives the smoother major-seventh colour; Bb gives the dominant-seventh sound.",
+      ),
       chord("major7", "Cmaj7", [60, 64, 67, 71], "C4–E4–G4–B4: major triad, major seventh."),
       chord("dominant7", "C7", [60, 64, 67, 70], "C4–E4–G4–Bb4: major triad, minor seventh."),
       chord("minor7", "Cm7", [60, 63, 67, 70], "C4–Eb4–G4–Bb4: minor triad, minor seventh."),
@@ -391,18 +552,35 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "8-borrowed": {
-    title: "Borrow from the parallel minor",
+    title: "Hear borrowed colour, then build it",
     tasks: [
+      harmonyListen(
+        "hear-borrowed-iv",
+        "Which middle chord is borrowed from C minor?",
+        "Both progressions begin and end on C major. In one, the middle chord is F major; in the other, A drops to Ab and the chord becomes F minor.",
+        [
+          { label: "Example A", chords: [[48, 52, 55], [53, 57, 60], [48, 52, 55]] },
+          { label: "Example B", chords: [[48, 52, 55], [53, 56, 60], [48, 52, 55]] },
+        ],
+        1,
+        "Example B borrows F minor from the parallel key, C minor. C remains home; only the colour of the middle chord changes.",
+        "Listen to the third of the F chord: A natural belongs to F major; Ab turns it into borrowed F minor.",
+      ),
       chord(
         "iv",
         "F minor, borrowed iv in C",
         [53, 56, 60],
-        "F3–Ab3–C4 lowers A to Ab. This iv comes from C minor while the larger key can stay C major.",
+        "F3–Ab3–C4 lowers A to Ab. Hear that one altered note change the colour while C can still remain the tonic.",
         choices([53, 55, 56, 57, 59, 60, 62], { 56: "Ab3" }),
-        [
-          [48, 52, 55],
-          [45, 48, 52],
-        ],
+        [[48, 52, 55], [45, 48, 52]],
+      ),
+      chord(
+        "neapolitan",
+        "Db major, the Neapolitan in C",
+        [61, 65, 68],
+        "Choose Db4–F4–Ab4. The flattened second degree gives this chord its distinctive colour; in tonal writing it often moves toward V rather than becoming a new tonic.",
+        choices([60, 61, 62, 64, 65, 67, 68], { 61: "Db4", 68: "Ab4" }),
+        [[60, 64, 67]],
       ),
     ],
   },
@@ -550,6 +728,35 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [65, 71, 69, 62],
         "Choose four notes, using F4 and B4 somewhere and ending on D4. F supplies the minor third; B natural supplies Dorian's raised sixth. Hear the phrase over a D bass.",
         { choices: choices([62, 64, 65, 67, 69, 71, 72, 74]), initial: [[62, 62, 62, 62]] },
+      ),
+    ],
+  },
+  "10-post-tonal": {
+    title: "Transform one small pitch-class idea",
+    tasks: [
+      voice(
+        "transpose-cell",
+        "Transpose C–C#–E up two semitones",
+        "exact",
+        [60, 61, 64],
+        [62, 63, 66],
+        "Treat the notes as pitch classes first: [0,1,4] becomes [2,3,6]. In this register that is D4–D#4–F#4. The shape stays the same because every pitch moved by the same amount.",
+        {
+          choices: choices([60, 61, 62, 63, 64, 65, 66], { 61: "C#4", 63: "D#4", 66: "F#4" }),
+          positions: ["0 + 2", "1 + 2", "4 + 2"],
+        },
+      ),
+      voice(
+        "retrograde-cell",
+        "Reverse C–C#–E",
+        "exact",
+        [60, 61, 64],
+        [64, 61, 60],
+        "Retrograde changes order, not pitch content: [0,1,4] becomes [4,1,0]. Play the same three pitch classes backward as E4–C#4–C4.",
+        {
+          choices: choices([60, 61, 62, 63, 64, 65, 66], { 61: "C#4", 63: "D#4", 66: "F#4" }),
+          positions: ["Last becomes first", "Middle stays middle", "First becomes last"],
+        },
       ),
     ],
   },

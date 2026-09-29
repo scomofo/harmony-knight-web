@@ -10,7 +10,7 @@ export function activityHint(
     return {
       focus: [],
       text:
-        task.kind === "listening"
+        task.kind === "listening" || task.kind === "harmony-listening"
           ? task.hint
           : task.kind === "chord"
             ? "Check the number of notes, the distances between them, and which note is lowest."
@@ -20,7 +20,8 @@ export function activityHint(
     };
   if (evaluateActivity(task, draft).correct)
     return { text: "This answer satisfies the task. Check it when you are ready.", focus: [] };
-  if (task.kind === "listening") return { text: task.writtenClue, focus: [] };
+  if (task.kind === "listening" || task.kind === "harmony-listening")
+    return { text: task.writtenClue, focus: [] };
   if (task.kind === "rhythm") {
     for (let row = 0; row < task.rows.length; row++) {
       const index = task.labels.findIndex(

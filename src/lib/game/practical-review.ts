@@ -125,7 +125,18 @@ export function reviewActivity(unitId: string, round: number): LessonActivity | 
   const source = original.tasks[round % original.tasks.length]!;
   const shift = [2, 5, -2, 7][round % 4]!;
   let task: ActivityTask;
-  if (source.kind === "listening") {
+  if (source.kind === "harmony-listening") {
+    const move = (notes: number[]) => notes.map((n) => n + shift);
+    task = {
+      ...source,
+      clips: source.clips.map((clip) => ({
+        ...clip,
+        chords: clip.chords.map(move),
+      })),
+      explanation: source.explanation,
+      writtenClue: source.writtenClue,
+    };
+  } else if (source.kind === "listening") {
     const sounds = source.sounds.map((s) => ({ ...s, midi: s.midi + shift }));
     const answer = source.options[source.solution[0]![0]!]!;
     const clue =

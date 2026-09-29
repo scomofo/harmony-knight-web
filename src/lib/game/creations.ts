@@ -35,9 +35,9 @@ export const CHAPTER_CREATIONS: CreationTemplate[] = [
     palette: [60, 64, 67, 72],
   },
   {
-    title: "A musical postcard",
+    title: "Remix Lantern Call",
     prompt:
-      "Choose four notes by name. Play your postcard, then change one note and hear what changes.",
+      "Start from the idea of Lantern Call: C–D–E–C. Keep the contour, change one note, or invent a reply. Hear how much can change while the four-note shape still feels related.",
     kind: "melody",
     steps: 4,
     palette: scale,
@@ -51,71 +51,71 @@ export const CHAPTER_CREATIONS: CreationTemplate[] = [
     palette: [],
   },
   {
-    title: "A melody with a home",
+    title: "Give Lantern Call a home",
     prompt:
-      "Make a phrase from C major. Try finishing on C, then on a different note. Which ending feels settled to you?",
+      "Use Lantern Call or invent a nearby four-note idea inside C major, then extend it to eight notes. Try ending on C, then somewhere else. Which version makes C feel most like home?",
     kind: "melody",
     steps: 8,
     palette: scale,
   },
   {
-    title: "A palette of chords",
+    title: "Rebuild Homeward Loop",
     prompt:
-      "Choose four chords. Compare C major with C minor, then make a sequence whose sound you like.",
+      "Start with Homeward Loop: C–Am–F–G. Then replace one chord and listen to what the change does. Keep the roots, change a quality, or make the route your own.",
     kind: "chords",
     steps: 4,
     palette: [],
     chordOptions: ["C", "Cm", "F", "G", "Am", "Dm"],
   },
   {
-    title: "Give your phrase an ending",
+    title: "Change Homeward Loop’s ending",
     prompt:
-      "Choose a melody and its chords. Try G–C for an authentic ending, F–C for a plagal ending, or G–Am for a surprise.",
+      "Use Homeward Loop as your starting point. Give it a strong G–C arrival, a softer F–C close, or let G surprise the ear by moving to Am. Put a melody above the version you prefer.",
     kind: "melody",
     steps: 8,
     palette: scale,
     chordOptions: ["C", "F", "G", "Am", "Dm"],
   },
   {
-    title: "Two lines in conversation",
+    title: "Write your own Crossing Lines",
     prompt:
-      "Write an upper line above this bass. Try moving in the opposite direction. Hear the voices alone and together.",
+      "Build on the idea of Crossing Lines: let one voice rise while the other falls, then let them trade roles. Hear the upper line alone, the bass alone, and both together.",
     kind: "duet",
     steps: 4,
     palette: [64, 65, 67, 69, 71, 72, 74, 76],
     bass: [60, 62, 64, 60],
   },
   {
-    title: "Travel to a new key",
+    title: "Send Homeward Loop somewhere new",
     prompt:
-      "Start near C and try ending in G. D major includes F#, which can help point toward G. Explore the route by listening.",
+      "Begin with the world of Homeward Loop in C, then make G feel like the new home. D major can introduce F# and point toward G. Listen for the moment the familiar loop starts living somewhere else.",
     kind: "chords",
     steps: 4,
     palette: [],
     chordOptions: ["C", "Dm", "F", "G", "Am", "D", "Em"],
   },
   {
-    title: "A groove with colour",
+    title: "Recolour Homeward Loop",
     prompt:
-      "Build a rhythm, then hear it over different seventh chords. Keep the groove and change just the chord colour.",
+      "Keep a groove steady while you cycle through richer versions of familiar harmony: Cmaj7, Am7, Fmaj7 and G7. Change the chord colour without losing the underlying pulse.",
     kind: "rhythm",
     steps: 8,
     palette: [],
     chordOptions: ["Cmaj7", "Fmaj7", "G7", "Am7"],
   },
   {
-    title: "A tiny duet",
+    title: "Finish Crossing Lines",
     prompt:
-      "Shape a four-note upper voice over the bass. Try a stepwise approach to an octave at the end. Compare a few endings.",
+      "Treat both parts as melodies. Shape the upper voice so it answers the bass, then try a contrary stepwise approach into the final octave—the closing gesture from Crossing Lines.",
     kind: "duet",
     steps: 4,
     palette: [64, 65, 67, 69, 71, 72, 74, 76],
     bass: [60, 64, 62, 60],
   },
   {
-    title: "Theme and answer",
+    title: "Transform Lantern Call",
     prompt:
-      "Create a four-note theme in positions 1–4. Write an answer in 5–8, or use the fifth-up button and adjust its result.",
+      "Use Lantern Call (C–D–E–C) or invent a four-note cousin in positions 1–4. Answer it in 5–8, then experiment with moving, reversing or reshaping the idea while keeping it recognizable.",
     kind: "melody",
     steps: 8,
     palette: Array.from({ length: 25 }, (_, i) => 60 + i),

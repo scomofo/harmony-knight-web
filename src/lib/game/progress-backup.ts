@@ -169,7 +169,7 @@ function validActivity(activity: LessonActivity | undefined, progress: ActivityP
           )
         )
           return false;
-      } else if (task.kind === "listening") {
+      } else if (task.kind === "listening" || task.kind === "harmony-listening") {
         if (
           draft.length !== 1 ||
           draft[0]!.length > 1 ||
