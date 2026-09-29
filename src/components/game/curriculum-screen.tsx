@@ -61,6 +61,12 @@ export function CurriculumScreen() {
                 Chapter {level.level + 1} · {level.phase} · {count}/{units.length} completed
               </p>
               <h3 className="mt-2 font-[var(--font-display)] text-2xl">{level.title}</h3>
+              <p className="mt-1 text-sm font-medium text-[var(--color-parchment)]">
+                {level.subtitle}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+                {level.chapterIntro}
+              </p>
               {legacyRead.includes(level.level) && count === 0 ? (
                 <p className="mt-2 text-sm text-[var(--color-muted)]">
                   Your earlier overview is saved as read. These focused lessons add practice and
@@ -127,13 +133,19 @@ export function CurriculumScreen() {
                   Create: {CHAPTER_CREATIONS[level.level]!.title}
                 </Link>
               </Button>
+              {level.nextBridge ? (
+                <p className="mt-4 border-t border-[var(--color-border)] pt-4 text-sm leading-relaxed text-[var(--color-muted)]">
+                  <span className="font-medium text-[var(--color-parchment)]">Where this leads: </span>
+                  {level.nextBridge}
+                </p>
+              ) : null}
             </li>
           );
         })}
       </ol>
       <p className="mt-6 text-sm leading-relaxed text-[var(--color-muted)]">
-        Explore foundations through advanced concepts in Western music theory. Return to the
-        creative tasks to turn each idea into music of your own.
+        The path keeps circling between listening, naming, building and creating. Revisit earlier
+        chapters whenever a later idea feels crowded; musicians do that constantly.
       </p>
     </GameShell>
   );
