@@ -5,7 +5,7 @@ import { stopTones } from "@/lib/game/audio";
 import { examplePlan } from "@/lib/game/teaching-playback";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { levelFor } from "@/lib/game/curriculum";
-import { unitsForLevel, type CourseUnit } from "@/lib/game/course";
+import { unitById, unitsForLevel, type CourseUnit } from "@/lib/game/course";
 import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
 import { activityForUnit } from "@/lib/game/activity-catalog";
 import { reviewActivity } from "@/lib/game/practical-review";
@@ -123,6 +123,32 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           </h2>
           <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">{unit.goal}</p>
         </header>
+
+        {p.step === 0 && unit.runway ? (
+          <aside className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+              Before you start
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{unit.runway.note}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {unit.runway.unitIds.map((id) => {
+                const refresher = unitById(id);
+                if (!refresher) return null;
+                return (
+                  <Button key={id} asChild variant="outline" size="sm">
+                    <Link
+                      to="/lesson/$level"
+                      params={{ level: String(refresher.level) }}
+                      search={{ unit: refresher.id }}
+                    >
+                      Refresh: {refresher.title}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+          </aside>
+        ) : null}
 
         {p.step === 0 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
