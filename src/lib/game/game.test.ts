@@ -42,6 +42,7 @@ import { playMidiSequence, setMasterGain, stopTones, unlockAudio } from "./audio
 import { activityForUnit } from "./activity-catalog.ts";
 import { reviewActivity } from "./practical-review.ts";
 import { COURSE_UNITS, unitById, unitsForLevel } from "./course.ts";
+import { REPERTOIRE } from "./repertoire.ts";
 import {
   advanceUnit,
   answerUnit,
@@ -634,6 +635,29 @@ describe("rhythm tap scoring", () => {
   it("handles dotted rhythms", () => {
     const dotted = [1.5, 0.5, 1.5, 0.5];
     assert.ok(scoreTaps(dotted, onsetsMs(dotted)).passed);
+  });
+});
+
+describe("recurring house repertoire", () => {
+  it("reuses original material across chapters without dangling lesson references", () => {
+    const names = Object.values(REPERTOIRE).map((moment) => moment.name);
+    assert.ok(new Set(names).size >= 3);
+    for (const [id, moment] of Object.entries(REPERTOIRE)) {
+      assert.ok(unitById(id), id);
+      assert.ok(moment.note.length > 80, `${id}: repertoire note`);
+      const notes = moment.example.notes.flat();
+      assert.ok(notes.length > 0, id);
+      assert.ok(notes.every((n) => Number.isInteger(n) && n >= 0 && n <= 127), id);
+    }
+    const lanternLevels = Object.keys(REPERTOIRE)
+      .filter((id) => REPERTOIRE[id]!.name === "Lantern Call")
+      .map((id) => unitById(id)!.level);
+    const homewardLevels = Object.keys(REPERTOIRE)
+      .filter((id) => REPERTOIRE[id]!.name === "Homeward Loop")
+      .map((id) => unitById(id)!.level);
+    assert.ok(new Set(lanternLevels).size >= 4, "Lantern Call should mature across the course");
+    assert.ok(new Set(homewardLevels).size >= 4, "Homeward Loop should mature across the course");
+    assert.ok(names.filter((name) => name === "Crossing Lines").length >= 3);
   });
 });
 
