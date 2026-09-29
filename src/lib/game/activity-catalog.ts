@@ -378,7 +378,10 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [60, 62],
         [72, 71],
         "The starting line doubles the bass in parallel octaves. Keep the first octave, then choose a consonant second note that does not simply copy the bass upward.",
-        { initial: [[72, 74]] },
+        {
+          choices: choices([60, 62, 64, 65, 67, 69, 71, 72, 74]),
+          initial: [[72, 74]],
+        },
       ),
     ],
   },
