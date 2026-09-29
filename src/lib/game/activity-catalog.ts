@@ -633,6 +633,35 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       ),
     ],
   },
+  "10-post-tonal": {
+    title: "Transform one small pitch-class idea",
+    tasks: [
+      voice(
+        "transpose-cell",
+        "Transpose C–C#–E up two semitones",
+        "exact",
+        [60, 61, 64],
+        [62, 63, 66],
+        "Treat the notes as pitch classes first: [0,1,4] becomes [2,3,6]. In this register that is D4–D#4–F#4. The shape stays the same because every pitch moved by the same amount.",
+        {
+          choices: choices([60, 61, 62, 63, 64, 65, 66], { 61: "C#4", 63: "D#4", 66: "F#4" }),
+          positions: ["0 + 2", "1 + 2", "4 + 2"],
+        },
+      ),
+      voice(
+        "retrograde-cell",
+        "Reverse C–C#–E",
+        "exact",
+        [60, 61, 64],
+        [64, 61, 60],
+        "Retrograde changes order, not pitch content: [0,1,4] becomes [4,1,0]. Play the same three pitch classes backward as E4–C#4–C4.",
+        {
+          choices: choices([60, 61, 62, 63, 64, 65, 66], { 61: "C#4", 63: "D#4", 66: "F#4" }),
+          positions: ["Last becomes first", "Middle stays middle", "First becomes last"],
+        },
+      ),
+    ],
+  },
 };
 
 export function activityForUnit(id: string): LessonActivity | undefined {
