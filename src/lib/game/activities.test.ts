@@ -46,6 +46,26 @@ describe("authored interactive activities", () => {
     assert.equal(correct("4-inversions", [[64, 67, 72, 72]], 1), false);
     assert.equal(correct("8-sevenths", [[60, 64, 67, 70]]), false);
   });
+  it("adds contrasting harmony situations instead of one-answer construction drills", () => {
+    assert.equal(activityForUnit("5-cadences")!.tasks.length, 3);
+    assert.equal(correct("5-cadences", [[60, 64, 67]], 1), true, "IV–I plagal arrival");
+    assert.equal(correct("5-cadences", [[55, 59, 62]], 2), true, "half cadence ends on V");
+
+    assert.equal(activityForUnit("7-related")!.tasks.length, 2);
+    assert.equal(correct("7-related", [[55, 59, 62]], 0), true);
+    assert.equal(correct("7-related", [[57, 60, 64]], 1), true);
+
+    assert.equal(activityForUnit("7-pivot")!.tasks.length, 2);
+    assert.equal(correct("7-pivot", [[57, 60, 64]], 0), true);
+    assert.equal(correct("7-pivot", [[60, 64, 67]], 1), true);
+
+    assert.equal(activityForUnit("7-tonicization")!.tasks.length, 2);
+    assert.equal(correct("7-tonicization", [[52, 56, 59]], 0), true);
+    assert.equal(correct("7-tonicization", [[60, 64, 67]], 1), true);
+
+    assert.equal(activityForUnit("8-borrowed")!.tasks.length, 2);
+    assert.equal(correct("8-borrowed", [[61, 65, 68]], 1), true, "Neapolitan colour");
+  });
   it("checks missing and extra attacks independently in both polyrhythm rows", () => {
     assert.equal(
       correct("8-polyrhythm", [
@@ -88,6 +108,8 @@ describe("authored interactive activities", () => {
     assert.equal(correct("6-parallels", [[67, 65]]), true);
     assert.equal(correct("6-parallels", [[67, 69]]), false);
     assert.equal(correct("6-parallels", [[65, 65]]), false, "a fourth above the bass is dissonant");
+    assert.equal(correct("6-parallels", [[72, 71]], 1), true, "repair parallel octaves");
+    assert.equal(correct("6-parallels", [[72, 74]], 1), false, "parallel octaves still fuse the lines");
   });
   it("requires contrary steps and the final octave for a closing gesture", () => {
     assert.equal(correct("9-close", [[71, 72]]), true);
