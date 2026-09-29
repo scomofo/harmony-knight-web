@@ -21,7 +21,7 @@ const chord = (
   kind: "chord",
   id,
   title,
-  instruction: `Build ${title}. Select ${solution.length} notes from the palette; octave numbers fix the register.`,
+  instruction: `Build ${title}. Choose ${solution.length} notes from the palette. The octave numbers show exactly where each note should sit, so you can focus on the chord shape.`,
   hint,
   explanation: hint,
   choices: pool,
@@ -50,7 +50,7 @@ const rhythm = (
   subdivisionPulse,
   initial: rows.map(() => []),
   hint: instruction,
-  explanation: `${title}: the attacks now match. ${instruction}`,
+  explanation: `That pattern works. ${instruction}`,
 });
 const voice = (
   id: string,
@@ -85,7 +85,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "pulse",
         "Four steady beats",
-        "Place an attack on every numbered beat. Leave the in-between '&' subdivisions empty.",
+        "Give each numbered beat one clear tap. Leave the in-between '&' spaces empty so you can hear the difference between the pulse and the subdivisions.",
         eighths,
         [[0, 2, 4, 6]],
         0.5,
@@ -98,7 +98,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "whole",
         "One whole note in 4/4",
-        "Start on beat 1 and hold for the whole bar: only one attack.",
+        "Start once on beat 1 and let that sound occupy the whole bar. Do not add another attack on beats 2, 3 or 4.",
         ["1", "2", "3", "4"],
         [[0]],
         1,
@@ -106,7 +106,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "halves",
         "Two half notes in 4/4",
-        "Start a new note every two beats, on 1 and 3.",
+        "Hear the bar as two equal halves: begin one note on 1, then the next on 3.",
         ["1", "2", "3", "4"],
         [[0, 2]],
         1,
@@ -114,7 +114,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "quarters",
         "Four quarter notes in 4/4",
-        "Start a new note on each numbered beat.",
+        "Now let every beat speak: start a new note on 1, 2, 3 and 4.",
         ["1", "2", "3", "4"],
         [[0, 1, 2, 3]],
         1,
@@ -127,7 +127,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "simple",
         "3/4: 2 + 2 + 2",
-        "The quiet pulse plays all six eighth notes. Mark an accent at the start of each group of two: subdivisions 1, 3 and 5.",
+        "Keep all six eighth notes even, but make 1, 3 and 5 feel heavier. That turns the six subdivisions into three groups of two—the feel of 3/4.",
         ["1", "2", "3", "4", "5", "6"],
         [[0, 2, 4]],
         0.5,
@@ -137,7 +137,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "compound",
         "6/8: 3 + 3",
-        "Keep the same six eighth notes. Accent the start of each group of three: subdivisions 1 and 4.",
+        "Keep the very same six subdivisions, then move the weight to 1 and 4. Now you should feel two larger groups of three—the usual shape of 6/8.",
         ["1", "2", "3", "4", "5", "6"],
         [[0, 3]],
         0.5,
@@ -152,7 +152,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "dotted",
         "Dotted quarter, eighth — twice",
-        "A dotted quarter spans three eighth-note cells. Attack on 1, the '&' after 2, 3, and the '&' after 4.",
+        "Feel each dotted quarter as three eighth-note spaces. Start on 1, then on the '&' after 2; repeat the same long-short shape from beat 3.",
         eighths,
         [[0, 3, 4, 7]],
         0.5,
@@ -165,7 +165,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       rhythm(
         "tied",
         "An offbeat entry tied across 3",
-        "Rest until the '&' after 2, then make one attack and hold to the end of the bar. Do not re-attack on beat 3.",
+        "Let beats 1 and 2 pass in silence. Enter on the '&' after 2, then hold through beat 3 instead of striking again. That offbeat arrival is the point of the exercise.",
         eighths,
         [[3]],
         0.5,
