@@ -18,6 +18,8 @@ export type CourseUnit = {
   tryIt: string;
   /** A brief teacher-style bridge from the concept to real musical use. */
   musicianConnection: string;
+  /** Optional prerequisite refresher for lessons with a meaningful difficulty jump. */
+  runway?: { note: string; unitIds: string[] };
   checks: CheckQuestion[];
 };
 
@@ -75,6 +77,79 @@ const MUSICIAN_CONNECTIONS: Record<string, string> = {
   "10-post-tonal": "Pitch-class tools deliberately ignore octave so you can study interval patterns in a compact way. They are useful for seeing relationships in music where traditional key-centred labels no longer explain what is happening."
 };
 
+const HUMANIZED_TEACHING: Record<string, string> = {
+  "0-pitch":
+    "You already know more about pitch than the word makes it sound. Think of a kettle rising to a squeal, a truck rumbling past, or someone sliding their voice upward on a question. Pitch is simply where a sound sits from low to high. It is not the same as loudness: a whisper can be high and a shout can be low. In the example, listen only for which note sits higher. You do not need to name either note yet.",
+  "0-dynamics":
+    "Keep the note the same and change only its size. That is dynamics. Musicians use words such as piano (p) for soft and forte (f) for loud, but the useful skill is hearing that volume can move independently of pitch. Imagine saying the same word first to someone beside you, then to someone across a room: the message stays the same while the energy changes.",
+  "0-timbre":
+    "If a piano, guitar and trumpet all play the same E, you can still tell them apart. That fingerprint is timbre: the particular blend of overtones, attack and texture that gives a sound its character. You do not need a perfect adjective for what you hear. 'Buzzy', 'round', 'thin', 'breathy' or even 'I just know they are different' are all useful observations.",
+  "0-pulse":
+    "Put on almost any song and your foot will try to find a regular place to land. That repeating pulse is the beat. Tempo tells you how quickly those beats arrive; rhythm is what the music does on and between them. A melody can become busy, sparse or syncopated while the underlying pulse keeps walking at the same speed.",
+  "1-alphabet":
+    "Music uses only seven letter names: A through G. Then it loops. That is why a keyboard has many Cs instead of running out of alphabet. Two Cs can be far apart in pitch and still belong to the same note family; the distance from one C to the next is an octave. For now, get comfortable with the loop rather than trying to memorize a keyboard.",
+  "1-staff":
+    "A staff is a five-line map for pitch. Notes higher on the page generally sound higher; notes lower on the page sound lower. The important trick is that lines and spaces alternate. Move from a line to the neighbouring space and you move one letter name. Good readers do not recalculate the whole staff every time—they learn a few anchors and judge nearby notes from them.",
+  "1-landmarks":
+    "Instead of memorizing every staff position at once, learn three dependable landmarks. Middle C sits between the treble and bass staves on its own short ledger line. Treble G sits on the second treble line, where the G clef curls. Bass F sits on the fourth bass line, between the two dots of the F clef. Once one landmark is familiar, nearby notes are only a few steps away.",
+  "1-steps":
+    "On a piano, the next key in either direction—black or white—is one half step, also called a semitone. Two half steps make a whole step. Sharps raise a written note by a half step; flats lower it. The odd-looking pairs E–F and B–C are already neighbours, so there is no black key between them. Notice the physical spacing first; the symbols make more sense after the pattern is visible.",
+  "2-duration":
+    "Rhythm notation tells you when a sound begins and how long it occupies the pulse. In 4/4, imagine four steady walking steps. A whole note stretches across all four; a half note across two; a quarter note takes one; two eighth notes split one beat in half. Keep the beat steady underneath and let the note lengths change above it.",
+  "2-meter":
+    "Meter is the repeating pattern of stronger and weaker beats that gives the pulse a shape. Three-quarter time often feels like ONE two three, ONE two three. Six-eight contains six eighth notes too, but it usually feels like two larger beats: ONE-and-a TWO-and-a. The arithmetic may look similar on paper; the body feels the grouping differently.",
+  "2-dots":
+    "A dot after a note adds half of that note's original length. A dotted quarter therefore lasts one and a half quarter-note beats. That sounds mathematical on paper, but players usually feel the smaller subdivision: count '1-and-2-and' and let the dotted note occupy three of those four little slots. Rests work the same way—silence still takes up measured time.",
+  "2-syncopation":
+    "The beat can stay perfectly steady while the music leans away from it. That is the heart of syncopation. Start a sound between the numbered beats, or hold it across a beat where your ear expected a fresh attack, and the rhythm suddenly feels less square. A tie is one way to create that effect: it joins two written notes of the same pitch into one continuous sound."
+};
+
+const HUMANIZED_TRY_IT: Record<string, string> = {
+  "0-pitch": "Make two comfortable sounds: one low, one a little higher. Keep the volume roughly the same. Then reverse them. If you would rather not vocalize, use the example and point up or down with your hand as the pitch changes.",
+  "0-dynamics": "Use one comfortable pitch and say 'ah' softly, then moderately louder without sliding upward. Try it once more in reverse. The challenge is to change the energy while keeping the pitch parked in the same place.",
+  "0-timbre": "Picture—or listen for—two instruments on the same note. Describe one difference without searching for the 'correct' adjective. Then ask what would still let you recognize each instrument if pitch and loudness matched.",
+  "0-pulse": "Tap a slow, even four-beat pulse. Keep the tapping unchanged while you say 'tea, coffee, tea, coffee'. Your hand is the beat; your voice is the rhythm moving around it.",
+  "1-alphabet": "Say C D E F G A B C, then keep going: D E F G. Now go backward from C to B A G. The goal is for the alphabet to wrap without feeling like you reached an edge.",
+  "1-staff": "Use the picture or sketch five lines. Start with E on the bottom treble line and climb E–F–G–A by alternating line, space, line, space. Trace the motion with your finger as you say the letters.",
+  "1-landmarks": "Find treble G first. From that anchor, point one step above and name A, then one step below and name F. Do the same idea from Middle C. You are practising navigation, not flash-card memorization.",
+  "1-steps": "Imagine one octave of piano keys. Walk from C to C#, then to D. Say 'half, half'. Now go E to F and say only 'half'. If you have an instrument nearby, play the pairs and notice how small each move sounds.",
+  "2-duration": "Keep four slow taps going. Hum for four taps, rest, then hum for two taps twice, then for one tap four times. The pulse should not speed up when the notes get shorter.",
+  "2-meter": "Tap six equal eighth notes twice. First accent 1, 3 and 5 to feel three groups of two. Then accent 1 and 4 to feel two groups of three. Same six subdivisions, different musical shape.",
+  "2-dots": "Count '1-and-2-and' evenly. Make one sound on 1 and hold it through 2, then make a short sound on the final 'and'. That long-short shape is a dotted quarter plus eighth. Repeat it until the counting feels less important than the feel.",
+  "2-syncopation": "Count '1-and-2-and-3-and-4-and'. Tap the numbered beats quietly, but make your voiced 'da' only on the '&' after 2 and hold it across beat 3. If that tangles, practise the tapping and voice separately before combining them."
+};
+
+const RUNWAYS: Record<string, { note: string; unitIds: string[] }> = {
+  "6-voices": {
+    note: "Part-writing gets much easier when intervals and inversions are already familiar. A two-minute refresh is enough if either feels rusty.",
+    unitIds: ["4-intervals", "4-inversions"],
+  },
+  "6-parallels": {
+    note: "This lesson assumes you can recognize perfect fifths and octaves. Refresh intervals first if those labels still take effort.",
+    unitIds: ["4-intervals"],
+  },
+  "7-pivot": {
+    note: "Pivot chords combine key relationships with chord function. Refresh the circle and Roman-numeral function if the setup feels crowded.",
+    unitIds: ["3-circle", "5-function"],
+  },
+  "7-secondary": {
+    note: "Secondary dominants build directly on dominant function. If V does not yet feel like a pull toward I, revisit that idea before adding the slash notation.",
+    unitIds: ["5-function", "5-cadences"],
+  },
+  "9-line": {
+    note: "Counterpoint asks you to hear melody and interval at the same time. Refresh interval naming first if you are spending all your attention counting semitones.",
+    unitIds: ["4-intervals", "5-melody"],
+  },
+  "10-fugue": {
+    note: "Fugue study assumes you can follow independent melodic lines. The counterpoint runway is worth revisiting before tracking several subject entries.",
+    unitIds: ["9-line", "9-suspensions"],
+  },
+  "10-post-tonal": {
+    note: "Pitch-class work is easier once chromatic half steps and interval distance feel automatic. Refresh those first if the numbers seem disconnected from sound.",
+    unitIds: ["1-steps", "4-intervals"],
+  }
+};
+
 const check = (level: number, index: number) => {
   const question = lessonFor(level).check[index]!;
   return q(
@@ -101,13 +176,14 @@ function unit(
     title: section.heading,
     minutes: level < 6 ? 3 : 5,
     goal,
-    body: section.body,
+    body: HUMANIZED_TEACHING[id] ?? section.body,
     example: section.example,
     visual: section.visual,
-    tryIt,
+    tryIt: HUMANIZED_TRY_IT[id] ?? tryIt,
     musicianConnection:
       MUSICIAN_CONNECTIONS[id] ??
       "This idea becomes useful when you can connect the label to something you can hear, play or write.",
+    runway: RUNWAYS[id],
     checks,
   };
 }
