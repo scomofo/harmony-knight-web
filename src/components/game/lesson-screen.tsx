@@ -11,6 +11,7 @@ import { activityForUnit } from "@/lib/game/activity-catalog";
 import { reviewActivity } from "@/lib/game/practical-review";
 import { activityComplete } from "@/lib/game/activities";
 import { type LessonExample } from "@/lib/game/lessons";
+import { repertoireForUnit } from "@/lib/game/repertoire";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
@@ -60,6 +61,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
   const next = nextUnit(allProgress, unit.id);
   const done = p.step === 4;
   const correct = unit.checks.filter((q, i) => p.answers[i] === q.answer).length;
+  const repertoire = repertoireForUnit(unit.id);
 
   useEffect(() => {
     open(unit.id);
@@ -161,6 +163,17 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
                 {unit.musicianConnection}
               </p>
             </aside>
+            {repertoire ? (
+              <aside className="mt-5 rounded-[var(--radius-md)] border border-[var(--color-harmony)]/50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+                  House repertoire · {repertoire.name}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                  {repertoire.note}
+                </p>
+                <ExampleAudio example={repertoire.example} />
+              </aside>
+            ) : null}
             {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             {unit.example ? <ExampleAudio example={unit.example} /> : null}
             <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
