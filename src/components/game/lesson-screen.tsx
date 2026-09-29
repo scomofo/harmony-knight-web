@@ -127,6 +127,14 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
         {p.step === 0 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             <p className="text-base leading-8">{unit.body}</p>
+            <aside className="mt-5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-3)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
+                Why musicians care
+              </p>
+              <p className="mt-2 text-base leading-relaxed text-[var(--color-muted)]">
+                {unit.musicianConnection}
+              </p>
+            </aside>
             {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             {unit.example ? <ExampleAudio example={unit.example} /> : null}
             <Button className="mt-6 w-full sm:w-auto" onClick={() => advance(unit.id)}>
@@ -296,6 +304,10 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           >
             <summary className="cursor-pointer text-sm">Need the idea again?</summary>
             <p className="mt-3 text-base leading-8">{unit.body}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+              <span className="font-medium text-[var(--color-parchment)]">Why it matters: </span>
+              {unit.musicianConnection}
+            </p>
             {unit.visual ? <LessonFigure visual={unit.visual} /> : null}
             <p className="mt-3 text-sm text-[var(--color-muted)]">
               Reading this is welcome. Use the next scheduled recall to try without help.
