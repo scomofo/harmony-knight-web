@@ -148,6 +148,9 @@ describe("authored interactive activities", () => {
     assert.equal(correct("10-development", [[60, 58, 56, 60]]), true);
     assert.equal(correct("10-modes", [[71, 65, 64, 62]]), true);
     assert.equal(correct("10-modes", [[65, 67, 69, 62]]), false);
+    assert.equal(correct("10-post-tonal", [[62, 63, 66]], 0), true);
+    assert.equal(correct("10-post-tonal", [[64, 61, 60]], 1), true);
+    assert.equal(correct("10-post-tonal", [[62, 64, 66]], 0), false);
     assert.equal(
       correct("9-line", [[60, 62, 64, 65, 67, 65, 62, 60]]),
       false,
