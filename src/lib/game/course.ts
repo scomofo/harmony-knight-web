@@ -77,6 +77,149 @@ const MUSICIAN_CONNECTIONS: Record<string, string> = {
   "10-post-tonal": "Pitch-class tools deliberately ignore octave so you can study interval patterns in a compact way. They are useful for seeing relationships in music where traditional key-centred labels no longer explain what is happening."
 };
 
+,
+  "3-major": "A major scale is a reusable sound pattern, not just eight notes to recite. Start with C major: C D E F G A B C. The half steps are the places where the notes sit closest together—E to F and B to C—so the pattern is whole, whole, half, whole, whole, whole, half. Move that same spacing to G and F# appears because the pattern, not the letter list, is what makes the scale major."
+,
+  "3-signatures": "A key signature is the score's way of saying, 'these sharps or flats are normal here, so I won't keep writing them.' Two sharps means F# and C#, which fits D major—but the same signature also belongs to B minor. Treat the signature as evidence, not a final answer: the melody, bass and cadence tell you which note actually feels like home."
+,
+  "3-circle": "The circle of fifths is most useful as a neighbourhood map. Keys beside each other differ by only one note, so C sits between F and G, G beside D, and so on. That closeness explains why nearby keys share so many chords and why moving between them often sounds natural instead of abrupt."
+,
+  "3-minor": "Minor is a family of related sounds rather than one fixed scale. A natural minor gives you the basic collection; harmonic minor raises degree 7 so it pulls strongly toward home; melodic minor often smooths the awkward leap by raising 6 as well on the way up. In A minor, listen for how G# changes the final step into A—it creates direction, not merely a spelling rule."
+,
+  "4-intervals": "An interval answers two questions: how many letter names apart are the notes, and how wide is the actual pitch gap? C to E is some kind of third because C–D–E spans three letters; four semitones makes it major, three makes it minor. That two-part method matters because C–D# may sound like C–Eb on a piano, but the spelling gives it a different musical meaning."
+,
+  "4-tension": "Some note combinations feel settled; others seem to lean toward somewhere else. That pull is useful musical information, not an error signal. Context matters too: a perfect fourth can sound completely stable in one texture and function as a dissonance that needs resolution in another. Listen for what the sound seems to want before worrying about the label."
+,
+  "4-triads": "Build a triad by stacking every other note: root, third, fifth. C–E–G is major. Lower only E and you get C minor; lower E and G for diminished; raise G from the major triad for augmented. The fastest way to learn these qualities is to notice which single chord member changes rather than memorizing four unrelated formulas."
+,
+  "4-inversions": "A chord keeps its identity even when a different chord tone is lowest. C–E–G is C major whether C, E or G sits in the bass; those choices are root position, first inversion and second inversion. Slash symbols say the same thing directly: C/E means 'C major with E in the bass.' Inversions are how real progressions get smoother bass lines and less blocky motion."
+,
+  "5-function": "Chord function is about musical job rather than chord name. In C major, C is I, F is IV and G is V; in G major those same jobs are G, C and D. Roman numerals let you notice that two songs can share the same harmonic behaviour even when every actual note is different."
+,
+  "5-cadences": "A cadence is what happens when harmony approaches a point of arrival. V–I has a strong pull because several notes resolve by small, directed steps; IV–I settles differently; V that stops without I leaves the phrase hanging. Instead of memorizing cadence names first, listen for how final—or unfinished—the ending feels, then connect that feeling to the harmonic motion."
+,
+  "5-open-endings": "Your ear quickly learns that V often wants to move to I. A deceptive cadence uses that expectation and sends V somewhere else—commonly vi—so the phrase continues instead of fully landing. The trick works because vi shares notes with I: it is surprising, but not random."
+,
+  "5-melody": "A melody can agree with the harmony without being made only of chord tones. Chord tones often feel like stable places to land; passing notes, neighbours and other non-chord tones create movement between them. Try hearing the phrase as a path between points of rest rather than sorting every note into 'right' and 'wrong.'"
+,
+  "6-voices": "SATB writing is four melodies happening at once. The soprano and bass are easiest to hear, but alto and tenor still need to move like singable lines rather than filler notes. Good part-writing balances two goals at the same time: each voice should make melodic sense on its own, and all four should form the intended harmony together."
+,
+  "6-parallels": "Parallel perfect fifths and octaves are avoided in traditional common-practice part-writing because two voices can start sounding like one doubled line. The issue is independence, not that fifths or octaves themselves are bad. Listen to the before-and-after examples and notice whether the voices feel like separate characters or suddenly lock together."
+,
+  "6-motion": "When two voices move, describe the relationship between their directions. Contrary motion means one rises while the other falls; similar motion sends both the same way by different intervals; oblique motion holds one while the other moves. These labels become useful when you are deciding how to connect chords without sacrificing independent melodic lines."
+,
+  "6-decoration": "A plain chord progression is a skeleton. Passing notes, neighbour notes and suspensions are ways of giving that skeleton motion without losing the underlying harmony. The important clue is how the note behaves: where it comes from, whether it belongs to the current chord, and how it leaves."
+,
+  "7-related": "Closely related keys share most of the same notes, which is why they make natural destinations for modulation. From C major, G major changes only F to F#, while A minor changes no key-signature notes at all. Think of these as nearby tonal rooms: enough changes to feel different, but enough shared material to make the doorway easy to hear."
+,
+  "7-pivot": "A pivot chord is a chord with two valid identities—one in the old key and one in the new. Imagine C major moving toward G major: an A minor chord can be vi in C and ii in G. Nothing about the chord itself changes; what changes is the context around it, so the listener only gradually realizes that 'home' has moved."
+,
+  "7-tonicization": "Not every chromatic chord means the whole piece changed key. Sometimes harmony briefly treats one ordinary chord as if it were a miniature tonic, gives it a dominant, then returns to the original key. That short spotlight is tonicization. A full modulation needs stronger evidence: cadence, duration and continued emphasis in the new key."
+,
+  "7-secondary": "Read V/V from right to left. In C major, the target V is G; the dominant of G is D, so D or D7 can act as V/V. The F# in D major is not a random chromatic note—it is the leading tone that pulls into G. Once you hear the destination, the slash notation starts to describe a sound rather than an equation."
+,
+  "8-sevenths": "A seventh chord adds one more third above a triad, and that extra note changes both colour and motion. Cmaj7, C7, Cm7 and Cm7b5 differ by only a few semitones, but their functions can be very different. Pay particular attention to the symbol: plain '7' means a minor seventh above a major triad, while 'maj7' explicitly asks for the larger seventh."
+,
+  "8-borrowed": "A borrowed chord changes the colour of a key without necessarily changing its home note. In C major, F minor borrows Ab from C minor; that single altered note can make the progression sound suddenly darker or more wistful while C still feels like tonic. The Neapolitan takes this idea further with a major chord on the lowered second degree, often steering strongly toward V."
+,
+  "8-odd-meter": "Five and seven become much easier when you feel them as smaller groups rather than one long count. Five might be 3+2 or 2+3; seven might be 2+2+3. The pulse underneath can stay perfectly even—the asymmetry comes from where the accents make the groups begin."
+,
+  "8-polyrhythm": "Three-against-two sounds complicated until both parts share one grid. Divide the span into six equal pieces: the three-part lands on 1, 3 and 5, while the two-part lands on 1 and 4. Practise each row alone, then listen for the larger cycle where both parts meet again."
+,
+  "9-line": "Before counterpoint has rules, it has melody. A strong line has a clear direction, a manageable range, a meaningful high or low point and enough stepwise motion to feel singable. Treat the counterpoint rules as ways of protecting that musical independence, not as a substitute for writing a line worth hearing."
+,
+  "9-close": "A good two-voice cadence gives both lines somewhere clear to go. One classic close moves from a sixth into an octave by contrary stepwise motion: for example, lower D falls to C while upper B rises to C. The voices arrive together, but they approach the goal from different directions."
+,
+  "9-moving-species": "Second species gives one voice two notes against each note of the cantus; third species usually gives four. The extra motion creates opportunities for controlled dissonance, especially passing notes on weaker parts of the beat. The point is not to eliminate tension—it is to make tension behave like part of a deliberate melodic line."
+,
+  "9-suspensions": "A suspension has a three-part story: prepare a note as a consonance, hold it while the bass changes so it becomes dissonant, then resolve it by step. In a 4–3 suspension, the held upper note forms a fourth above the new bass before falling to a third. Once you hear that prepare–hold–release shape, the species terminology becomes much less abstract."
+,
+  "10-fugue": "Start a fugue by learning its subject well enough that you can recognize it without staring at the score. The next voice usually answers that subject around the dominant, either by exact transposition (a real answer) or with small adjustments (a tonal answer). Other voices may continue with a countersubject, so listening becomes an exercise in tracking familiar musical identities as they overlap."
+,
+  "10-development": "Fugal writing keeps recycling recognizable material. Stretto overlaps subject entries; melodic inversion flips interval directions; augmentation stretches durations; diminution compresses them. These are not tricks for their own sake—they let a composer create contrast while giving the listener something familiar to hold onto."
+,
+  "10-modes": "A mode is defined by both its interval pattern and its tonal centre. D Dorian uses the same white-key collection as C major, but D has to feel like home; the F gives it a minor third while B natural supplies the characteristic raised sixth. Bass emphasis, phrase endings and repeated returns to D are what turn a note collection into an audible mode."
+,
+  "10-post-tonal": "Pitch-class notation strips away octave and names the twelve chromatic positions 0 through 11. That makes it easy to compare interval patterns even when the notes move into different registers. A set such as [0,1,4] can be transposed, inverted or reversed while preserving relationships that traditional major/minor labels may not capture."
+};port {
+  lessonFor,
+  type CheckQuestion,
+  type LessonExample,
+  type LessonSection,
+  type LessonVisual,
+} from "./lessons.ts";
+
+export type CourseUnit = {
+  id: string;
+  level: number;
+  title: string;
+  minutes: number;
+  goal: string;
+  body: string;
+  example?: LessonExample;
+  visual?: LessonVisual;
+  tryIt: string;
+  /** A brief teacher-style bridge from the concept to real musical use. */
+  musicianConnection: string;
+  /** Optional prerequisite refresher for lessons with a meaningful difficulty jump. */
+  runway?: { note: string; unitIds: string[] };
+  checks: CheckQuestion[];
+};
+
+function q(prompt: string, answer: string, distractors: string[], why: string): CheckQuestion {
+  const options = [answer, ...distractors];
+  // Stable order across reloads, without teaching that the first option is always right.
+  const shift = Array.from(prompt).reduce((sum, c) => sum + c.charCodeAt(0), 0) % options.length;
+  return { prompt, answer, why, options: [...options.slice(shift), ...options.slice(0, shift)] };
+}
+
+const MUSICIAN_CONNECTIONS: Record<string, string> = {
+  "0-pitch": "Pitch is the first thing most people can already hear before they know any theory. If you can tell that a siren rises or a singer drops lower, you already have the raw skill this lesson is naming.",
+  "0-dynamics": "Musicians use dynamics to shape a phrase without changing its notes. The same melody can feel intimate, urgent, distant or bold simply because of how its loudness moves.",
+  "0-timbre": "Timbre is why you can recognize a friend’s voice from one word, or tell a guitar from a piano on the same note. Later, this becomes part of arranging: choosing who should carry a musical idea.",
+  "0-pulse": "A steady pulse is the floor under nearly everything else. Players may push, pull, syncopate or leave silence around it, but being able to feel that invisible grid makes rhythm much easier to understand.",
+  "1-alphabet": "The seven-letter alphabet looks small because it is meant to repeat. Once that loop feels ordinary, scales, chords and staff reading stop looking like dozens of unrelated facts.",
+  "1-staff": "Reading a staff is closer to reading a map than decoding a secret code. You do not need to memorize every dot at once; learn a few reliable places, then navigate from them.",
+  "1-landmarks": "Experienced readers rarely identify every note from scratch. They spot landmarks, patterns and intervals, then fill in the rest. This lesson is teaching that faster strategy from the beginning.",
+  "1-steps": "Half steps are the smallest standard moves in most Western keyboard music. They are also where a lot of musical pull lives: leading tones, bluesy bends, chromatic colour and tense resolutions all lean on tiny pitch distances.",
+  "2-duration": "Rhythm notation is really a way of dividing time. If you can feel one steady beat and decide whether a sound lasts for one beat, two, four or half a beat, the symbols are just labels for something physical.",
+  "2-meter": "Meter tells you where the recurring weight of the beat tends to land. Two patterns can contain the same number of eighth notes and still feel completely different because the accents group them differently.",
+  "2-dots": "A dot is not a special mysterious note value; it simply adds half of the note’s original length. Musicians get comfortable with dotted rhythms by feeling the subdivision underneath, not by doing arithmetic in real time.",
+  "2-syncopation": "Syncopation is one of the main ways music becomes lively. Funk, rock, jazz, hip-hop and countless folk styles get character by placing important sounds between the obvious beats or carrying them across the beat line.",
+  "3-major": "A scale is less useful as a recital exercise than as a map of available notes and tendencies. The major-scale step pattern is the source of the familiar sound of major keys, and it also determines the chords built inside them.",
+  "3-signatures": "A key signature is a shortcut: it tells the player which notes are normally altered so the score does not have to repeat sharps or flats on every occurrence. The signature narrows the possibilities, but the music still tells you where home is.",
+  "3-circle": "The circle of fifths becomes useful when you stop treating it as a poster to memorize. It shows which keys differ by only one note, which chords are closely related, and why certain modulations feel smoother than others.",
+  "3-minor": "There is no single 'minor sound.' Natural, harmonic and melodic minor solve different musical problems, especially the pull toward the tonic. Hearing what the raised sixth or seventh actually changes is more useful than memorizing three lists.",
+  "4-intervals": "Intervals are the measuring tape of melody and harmony. Once you can hear and name the distance between two notes, transposing melodies, building chords and understanding voice-leading all become variations of the same skill.",
+  "4-tension": "Consonance and dissonance are not a good-versus-bad switch. Music gets motion from degrees of stability and friction, and different styles disagree about which sounds count as settled, spicy or unresolved.",
+  "4-triads": "Triads are everywhere because three notes are enough to establish a surprisingly strong harmonic identity. Learning how one altered note changes major to minor, diminished or augmented makes chord spelling much less abstract.",
+  "4-inversions": "Inversions let the harmony stay the same while the bass line moves more naturally. Keyboard players, guitarists, arrangers and producers use this constantly to avoid every chord sounding like a separate block dropped from the sky.",
+  "5-function": "Roman numerals describe what a chord is doing instead of only what it is called. That is why the same I–IV–V pattern can be recognized in C, G or any other key without relearning the progression from scratch.",
+  "5-cadences": "Cadences are musical punctuation, but not every full stop sounds equally final. Learning to hear how V–I, IV–I and other endings differ will help you recognize phrase structure long before you can analyze an entire score.",
+  "5-open-endings": "A deceptive cadence works because your ear has learned to expect one destination and gets another plausible one. Songwriters use that delayed arrival to keep a phrase moving instead of letting it settle too soon.",
+  "5-melody": "Chord tones give a melody stability; non-chord tones give it motion and personality. Strong melodies constantly move between those roles rather than sitting on chord tones all the time.",
+  "6-voices": "Part-writing is not mainly about obeying a list of prohibitions. It is the craft of making several believable melodies coexist so that each line makes sense by itself and the combined harmony also works.",
+  "6-parallels": "Traditional style avoids parallel perfect fifths and octaves because two voices can suddenly sound fused into one line. The rule makes more sense when you listen for lost independence instead of treating it as a red mark on paper.",
+  "6-motion": "Contrary, similar and oblique motion describe how two lines travel relative to each other. Composers mix all three; contrary motion is especially useful because it helps voices remain distinct while the harmony changes.",
+  "6-decoration": "Passing notes, neighbours and suspensions are how a simple harmonic skeleton becomes an expressive surface. The important question is not 'is this note in the chord?' but 'how did it arrive, and where is it going?'",
+  "7-related": "Closely related keys share most of their notes and chords, which makes them natural places to travel. This is why moving to the dominant or relative minor often feels like entering a new room in the same house rather than a different building.",
+  "7-pivot": "A pivot chord belongs to both the old key and the new one. Good modulation often feels smooth precisely because the listener realizes the chord has changed jobs only after the music has already crossed the border.",
+  "7-tonicization": "Sometimes music briefly shines a spotlight on a chord without truly changing key. Learning to separate tonicization from modulation keeps you from declaring a new key every time one accidental appears.",
+  "7-secondary": "Secondary dominants are one of the most common ways tonal music adds chromatic energy. They momentarily give an ordinary diatonic chord the gravitational pull of a tonic by approaching it with its own dominant.",
+  "8-sevenths": "Adding a seventh turns a basic triad into a chord with more colour and often a stronger tendency to move. In jazz, pop, blues and classical harmony, the exact kind of seventh is a major part of the chord’s identity.",
+  "8-borrowed": "Borrowed chords let a progression keep the same home note while borrowing colour from a parallel mode. That is why a single unexpected flat or minor chord can change the emotional shade without actually changing the key.",
+  "8-odd-meter": "Odd meters become much easier when you stop counting a long string of identical beats and feel smaller groups instead. Players usually internalize 5 or 7 as combinations such as 3+2 or 2+2+3.",
+  "8-polyrhythm": "A polyrhythm is two different ways of dividing the same span of time. The trick is not to count faster; it is to feel a shared cycle and place each part at its own evenly spaced points inside that cycle.",
+  "9-line": "Counterpoint starts with melody. Before checking rules, ask whether the line itself feels singable, has a clear shape and avoids wandering aimlessly. A good contrapuntal voice should still sound like music when heard alone.",
+  "9-close": "Cadential counterpoint often becomes clear when you track the two lines as motions rather than isolated notes. Contrary stepwise motion into the final octave gives both voices a sense of arrival without making them collapse into the same path too early.",
+  "9-moving-species": "Species counterpoint is a practice environment, not a claim that real music moves only in fixed ratios. Each species isolates one coordination problem so you can learn how melodic freedom and controlled dissonance work together.",
+  "9-suspensions": "A suspension is tension you can hear being manufactured in slow motion: prepare a note, hold it while the harmony changes underneath, then let it resolve. Once you hear that three-step story, the numbered labels become much easier to remember.",
+  "10-fugue": "A fugue is easier to follow when you treat the subject like a character returning in different voices. Do not try to hear everything at once; first learn the subject well enough that you notice when it enters again.",
+  "10-development": "Composers keep material recognizable while changing its shape, speed, direction or context. Inversion, augmentation, diminution and stretto are specific names for transformations your ear can learn to track as variations of one idea.",
+  "10-modes": "Modes become musical only when one pitch actually feels like home. Playing the white keys from D to D is not automatically Dorian; phrasing, bass notes and points of rest are what convince the ear that D is the centre.",
+  "10-post-tonal": "Pitch-class tools deliberately ignore octave so you can study interval patterns in a compact way. They are useful for seeing relationships in music where traditional key-centred labels no longer explain what is happening."
+};
+
 const HUMANIZED_TEACHING: Record<string, string> = {
   "0-pitch":
     "You already know more about pitch than the word makes it sound. Think of a kettle rising to a squeal, a truck rumbling past, or someone sliding their voice upward on a question. Pitch is simply where a sound sits from low to high. It is not the same as loudness: a whisper can be high and a shout can be low. In the example, listen only for which note sits higher. You do not need to name either note yet.",
