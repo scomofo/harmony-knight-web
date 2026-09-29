@@ -55,7 +55,19 @@ export type ListeningTask = ExerciseBase & {
   references?: { label: string; sound: ListeningSound }[];
   writtenClue: string;
 };
-export type ActivityTask = ChordTask | RhythmTask | VoiceTask | ListeningTask;
+export type HarmonyListeningClip = { label: string; chords: number[][] };
+export type HarmonyListeningTask = ExerciseBase & {
+  kind: "harmony-listening";
+  clips: HarmonyListeningClip[];
+  options: string[];
+  writtenClue: string;
+};
+export type ActivityTask =
+  | ChordTask
+  | RhythmTask
+  | VoiceTask
+  | ListeningTask
+  | HarmonyListeningTask;
 export type LessonActivity = { title: string; tasks: ActivityTask[] };
 export type ActivityFeedback = { correct: boolean; message: string };
 export type TaskProgress = {
@@ -100,7 +112,7 @@ export function activityComplete(activity: LessonActivity, progress?: ActivityPr
 export function evaluateActivity(task: ActivityTask, draft: number[][]): ActivityFeedback {
   const fail = (message: string): ActivityFeedback => ({ correct: false, message });
   const pass = (): ActivityFeedback => ({ correct: true, message: task.explanation });
-  if (task.kind === "listening") {
+  if (task.kind === "listening" || task.kind === "harmony-listening") {
     const picked = draft[0]?.[0];
     if (
       draft.length !== 1 ||
@@ -112,7 +124,11 @@ export function evaluateActivity(task: ActivityTask, draft: number[][]): Activit
       return fail("Choose one answer after comparing the sounds or using the written clue.");
     return picked === task.solution[0]![0]
       ? pass()
-      : fail(`Listen again and compare with the references. ${task.hint}`);
+      : fail(
+          task.kind === "harmony-listening"
+            ? `Listen to both examples again. ${task.hint}`
+            : `Listen again and compare with the references. ${task.hint}`,
+        );
   }
   if (task.kind === "rhythm") {
     if (
