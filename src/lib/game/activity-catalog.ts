@@ -1,5 +1,12 @@
 import { noteName } from "./music.ts";
-import type { ChordTask, LessonActivity, NoteChoice, RhythmTask, VoiceTask } from "./activities.ts";
+import type {
+  ChordTask,
+  HarmonyListeningTask,
+  LessonActivity,
+  NoteChoice,
+  RhythmTask,
+  VoiceTask,
+} from "./activities.ts";
 import { LISTENING_ACTIVITIES } from "./listening-activities.ts";
 
 const choices = (midis: number[], spelling: Record<number, string> = {}): NoteChoice[] =>
@@ -29,6 +36,28 @@ const chord = (
   initial: [[]],
   context,
 });
+const harmonyListen = (
+  id: string,
+  title: string,
+  instruction: string,
+  clips: HarmonyListeningTask["clips"],
+  answer: number,
+  explanation: string,
+  writtenClue: string,
+): HarmonyListeningTask => ({
+  kind: "harmony-listening",
+  id,
+  title,
+  instruction,
+  clips,
+  options: clips.map((clip) => clip.label),
+  solution: [[answer]],
+  initial: [[]],
+  hint: writtenClue,
+  explanation,
+  writtenClue,
+});
+
 const rhythm = (
   id: string,
   title: string,
@@ -240,8 +269,20 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "5-cadences": {
-    title: "Make three different kinds of arrival",
+    title: "Hear the ending, then build it",
     tasks: [
+      harmonyListen(
+        "hear-closed-open",
+        "Which ending sounds more finished?",
+        "Hear both short progressions. One lands on tonic; the other stops on the dominant and leaves the phrase asking for more.",
+        [
+          { label: "Example A", chords: [[55, 59, 62], [60, 64, 67]] },
+          { label: "Example B", chords: [[48, 52, 55], [53, 57, 60], [55, 59, 62]] },
+        ],
+        0,
+        "Example A is the stronger close: G major resolves to C major. Example B stops on G, so it sounds open.",
+        "Listen to the final chord. C feels like arrival here; G still carries dominant tension.",
+      ),
       chord(
         "pac",
         "the final C chord of a strong V–I cadence",
@@ -391,8 +432,26 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "7-pivot": {
-    title: "Use a chord with two jobs",
+    title: "Hear a new home, then use a pivot",
     tasks: [
+      harmonyListen(
+        "hear-modulation",
+        "Which example really establishes G as home?",
+        "Both examples visit D7 and G. Listen past that moment: which one continues to make G feel like the new tonic instead of immediately returning to C?",
+        [
+          {
+            label: "Example A",
+            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [55, 59, 62]],
+          },
+          {
+            label: "Example B",
+            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [48, 52, 55]],
+          },
+        ],
+        0,
+        "Example A keeps G in focus after D7–G, so the new tonic has time to settle. Example B returns straight to C.",
+        "A modulation needs more than one altered chord. Listen for continued emphasis after the arrival.",
+      ),
       chord(
         "pivot-am",
         "A minor as vi in C and ii in G",
@@ -433,8 +492,20 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "7-secondary": {
-    title: "Aim a dominant at G",
+    title: "Hear the extra pull, then build it",
     tasks: [
+      harmonyListen(
+        "hear-secondary",
+        "Which progression gives G an extra dominant pull?",
+        "Both examples move toward G and then C. One uses ordinary ii–V–I in C; the other changes D minor to D7 so F# leans into G.",
+        [
+          { label: "Example A", chords: [[50, 53, 57], [55, 59, 62], [60, 64, 67]] },
+          { label: "Example B", chords: [[50, 54, 57, 60], [55, 59, 62], [60, 64, 67]] },
+        ],
+        1,
+        "Example B uses D7. Its F# is the leading tone of G, so G briefly receives dominant-style emphasis before the music returns to C.",
+        "Listen for the brighter chromatic note in the first chord of one example: F# points upward to G.",
+      ),
       chord(
         "secondary-triad",
         "V/V in C major",
@@ -452,8 +523,20 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "8-sevenths": {
-    title: "Build the seventh-chord family",
+    title: "Hear seventh-chord colour, then build it",
     tasks: [
+      harmonyListen(
+        "hear-major-vs-dominant",
+        "Which C chord has the dominant-seventh bite?",
+        "Hear Cmaj7 and C7 side by side. Both start with a C-major triad; the seventh is the only note that changes.",
+        [
+          { label: "Example A", chords: [[60, 64, 67, 71]] },
+          { label: "Example B", chords: [[60, 64, 67, 70]] },
+        ],
+        1,
+        "Example B is C7: Bb creates the minor seventh above C. Example A uses B natural and is Cmaj7.",
+        "Focus on the top note: B natural gives the smoother major-seventh colour; Bb gives the dominant-seventh sound.",
+      ),
       chord("major7", "Cmaj7", [60, 64, 67, 71], "C4–E4–G4–B4: major triad, major seventh."),
       chord("dominant7", "C7", [60, 64, 67, 70], "C4–E4–G4–Bb4: major triad, minor seventh."),
       chord("minor7", "Cm7", [60, 63, 67, 70], "C4–Eb4–G4–Bb4: minor triad, minor seventh."),
@@ -466,8 +549,20 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
     ],
   },
   "8-borrowed": {
-    title: "Borrow colour without changing home",
+    title: "Hear borrowed colour, then build it",
     tasks: [
+      harmonyListen(
+        "hear-borrowed-iv",
+        "Which middle chord is borrowed from C minor?",
+        "Both progressions begin and end on C major. In one, the middle chord is F major; in the other, A drops to Ab and the chord becomes F minor.",
+        [
+          { label: "Example A", chords: [[48, 52, 55], [53, 57, 60], [48, 52, 55]] },
+          { label: "Example B", chords: [[48, 52, 55], [53, 56, 60], [48, 52, 55]] },
+        ],
+        1,
+        "Example B borrows F minor from the parallel key, C minor. C remains home; only the colour of the middle chord changes.",
+        "Listen to the third of the F chord: A natural belongs to F major; Ab turns it into borrowed F minor.",
+      ),
       chord(
         "iv",
         "F minor, borrowed iv in C",
