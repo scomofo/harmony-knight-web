@@ -20,10 +20,10 @@ function listen(
     title: skill === "timbre" ? "Match the sound colour" : "Compare the two sounds",
     instruction:
       skill === "pitch"
-        ? "Is the second note higher, lower, or the same pitch?"
+        ? "Listen twice if you need to. Does the second note sit higher, lower, or in exactly the same place?"
         : skill === "dynamics"
-          ? "Is the second note louder, softer, or equally loud? Both notes have the same pitch. Keep your device volume comfortable."
-          : "Hear the mystery sound, then compare the labelled references. Which sound colour matches?",
+          ? "Ignore pitch this time—it stays the same. Does the second note feel louder, softer, or equally loud? Keep your device at a comfortable volume."
+          : "Hear the mystery sound first, then try the labelled references one at a time. Which one has the closest sound character?",
     sounds,
     options,
     solution: [[answer]],
@@ -32,10 +32,10 @@ function listen(
     writtenClue: explanation,
     hint:
       skill === "pitch"
-        ? "Focus on how high the sound is, rather than how strong it is."
+        ? "Follow the sound with an imaginary hand: did it move up, move down, or stay level? Ignore loudness."
         : skill === "dynamics"
-          ? "Compare the strength of the second sound with the first."
-          : "Replay the mystery sound and one reference at a time. Their pitch and volume setting match.",
+          ? "Picture the same note being played with more or less energy. Compare only that change."
+          : "Replay the mystery, then one reference. Do not rush the label—listen for texture, edge, buzz or roundness. Pitch and volume already match.",
     references:
       skill === "timbre"
         ? options.map((label) => ({
