@@ -73,6 +73,7 @@ describe("focused curriculum and saved learning", () => {
     for (const level of CURRICULUM) assert.equal(unitsForLevel(level.level).length, 4);
     for (const u of COURSE_UNITS) {
       assert.ok(u.body.length > 120 && u.tryIt.length > 70 && u.goal.length > 10, u.id);
+      assert.ok(u.musicianConnection.length > 60, `${u.id} needs a useful musician connection`);
       for (const q of u.checks) {
         assert.equal(q.options.filter((a) => a === q.answer).length, 1, q.prompt);
         assert.equal(new Set(q.options).size, q.options.length, q.prompt);
