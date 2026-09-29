@@ -648,7 +648,15 @@ describe("curriculum", () => {
         assert.ok(q.options.includes(q.answer), `${level.level}: ${q.prompt}`);
       }
       assert.ok(level.topics.length > 0);
-      if (level.level < CURRICULUM.length - 1) assert.ok(GRADE_THRESHOLDS[level.level]);
+      assert.ok(level.title.length > 8, `${level.level}: chapter title`);
+      assert.ok(level.subtitle.length > 12, `${level.level}: chapter subtitle`);
+      assert.ok(level.chapterIntro.length > 120, `${level.level}: chapter intro`);
+      if (level.level < CURRICULUM.length - 1) {
+        assert.ok(GRADE_THRESHOLDS[level.level]);
+        assert.ok(level.nextBridge && level.nextBridge.length > 100, `${level.level}: next bridge`);
+      } else {
+        assert.equal(level.nextBridge, undefined);
+      }
     }
     assert.equal(LESSONS.length, CURRICULUM.length);
   });
