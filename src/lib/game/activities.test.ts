@@ -27,7 +27,11 @@ describe("authored interactive activities", () => {
           `${id}/${t.id}`,
         );
         if (t.kind === "voice") assert.equal(t.positions.length, t.solution[0]!.length);
-        if (t.kind !== "rhythm" && t.kind !== "listening") {
+        if (
+          t.kind !== "rhythm" &&
+          t.kind !== "listening" &&
+          t.kind !== "harmony-listening"
+        ) {
           assert.equal(new Set(t.choices.map((c) => c.midi)).size, t.choices.length);
           for (const n of t.initial.flat())
             assert.ok(
@@ -46,6 +50,23 @@ describe("authored interactive activities", () => {
     assert.equal(correct("4-inversions", [[64, 67, 72, 72]], 1), false);
     assert.equal(correct("8-sevenths", [[60, 64, 67, 70]]), false);
   });
+  it("starts advanced harmony with ear-first A/B comparisons", () => {
+    for (const id of ["5-cadences", "7-pivot", "7-secondary", "8-sevenths", "8-borrowed"]) {
+      const first = activityForUnit(id)!.tasks[0]!;
+      assert.equal(first.kind, "harmony-listening", id);
+      assert.equal(evaluateActivity(first, first.solution).correct, true, id);
+      assert.equal(first.solution[0]!.length, 1, id);
+      assert.equal(first.clips.length, 2, id);
+      assert.equal(first.options.length, 2, id);
+    }
+    assert.equal(correct("5-cadences", [[0]], 0), true);
+    assert.equal(correct("5-cadences", [[1]], 0), false);
+    assert.equal(correct("7-pivot", [[0]], 0), true);
+    assert.equal(correct("7-secondary", [[1]], 0), true);
+    assert.equal(correct("8-sevenths", [[1]], 0), true);
+    assert.equal(correct("8-borrowed", [[1]], 0), true);
+  });
+
   it("adds contrasting harmony situations instead of one-answer construction drills", () => {
     assert.equal(activityForUnit("5-cadences")!.tasks.length, 3);
     assert.equal(correct("5-cadences", [[60, 64, 67]], 1), true, "IV–I plagal arrival");
