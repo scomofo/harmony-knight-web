@@ -62,7 +62,9 @@ it("cancels the pitch pair on stop or leaving the step and opens the listening e
   vi.mocked(stopTones).mockClear();
   click("Try this idea");
   expect(stopTones).toHaveBeenCalled();
-  expect(screen.getByText("Is the second note higher, lower, or the same pitch?")).toBeTruthy();
+  expect(
+    screen.getByText(/Does the second note sit higher, lower, or in exactly the same place/),
+  ).toBeTruthy();
   click("Hear the sounds");
   vi.mocked(stopTones).mockClear();
   view.unmount();
@@ -79,7 +81,7 @@ it("keeps all pitch playback muted while preserving the written comparison", () 
     click(name);
   }
   expect(playTeachingPlan).not.toHaveBeenCalled();
-  expect(screen.getByText(/plays a lower note, pauses, then plays a higher note/)).toBeTruthy();
+  expect(screen.getByText(/You do not need to name either note yet/)).toBeTruthy();
   click("Try this idea");
   expect(screen.getByRole("button", { name: "Ready for two quick checks" })).toBeTruthy();
 });
