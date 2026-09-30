@@ -72,7 +72,10 @@ it("accepts an alternative valid voice-leading repair and reports the original p
   fireEvent.change(notes[0]!, { target: { value: "64" } });
   fireEvent.change(notes[1]!, { target: { value: "65" } });
   click("Check my answer");
-  expect(screen.getByText(/Activity complete · 0 of 1/)).toBeTruthy();
+  click("Next task");
+  click("Show a worked answer");
+  click("Check my answer");
+  expect(screen.getByText(/Activity complete · 0 of 2/)).toBeTruthy();
 });
 
 it("plays a suspension with a tied preparation and stops audio when leaving the task", () => {
@@ -109,13 +112,17 @@ it("keeps recall locked until the activity is checked, including when a worked a
 
 it("supports silent completion and does not mark a worked answer as a first-check success", () => {
   useGameStore.getState().patchSettings({ muted: true });
+  const borrowed = activityForUnit("8-borrowed")!;
   activity("8-borrowed");
-  expect(screen.getByRole("button", { name: "Hear an example" }).hasAttribute("disabled")).toBe(
-    true,
-  );
-  click("Show a worked answer");
-  click("Check my answer");
-  expect(screen.getByText(/Activity complete · 0 of 1/)).toBeTruthy();
+  for (const name of ["Hear Example A", "Hear Example B"]) {
+    expect(screen.getByRole("button", { name }).hasAttribute("disabled")).toBe(true);
+  }
+  borrowed.tasks.forEach((_, index) => {
+    click("Show a worked answer");
+    click("Check my answer");
+    if (index < borrowed.tasks.length - 1) click("Next task");
+  });
+  expect(screen.getByText(new RegExp(`Activity complete · 0 of ${borrowed.tasks.length}`))).toBeTruthy();
   expect(useGameStore.getState().totalNotesPlayed).toBe(0);
   expect(useGameStore.getState().harmonyPoints).toBe(0);
 });
