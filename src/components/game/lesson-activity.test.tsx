@@ -122,7 +122,9 @@ it("supports silent completion and does not mark a worked answer as a first-chec
     click("Check my answer");
     if (index < borrowed.tasks.length - 1) click("Next task");
   });
-  expect(screen.getByText(new RegExp(`Activity complete · 0 of ${borrowed.tasks.length}`))).toBeTruthy();
+  expect(
+    screen.getByText(new RegExp(`Activity complete · 0 of ${borrowed.tasks.length}`)),
+  ).toBeTruthy();
   expect(useGameStore.getState().totalNotesPlayed).toBe(0);
   expect(useGameStore.getState().harmonyPoints).toBe(0);
 });
