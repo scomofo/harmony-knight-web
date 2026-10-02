@@ -308,7 +308,7 @@ export function LessonActivityPanel({
                     </option>
                   ))}
                 </select>
-                {task.rule !== "line" ? (
+                {task.rule !== "line" && !task.hideReference ? (
                   <p className="mt-2 text-sm text-[var(--color-muted)]">
                     {task.rule === "exact" ? "Reference" : "Bass"}: {noteName(task.bass[i]!)}
                   </p>

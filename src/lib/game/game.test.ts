@@ -227,7 +227,7 @@ describe("focused curriculum and saved learning", () => {
 
   it("shortens due assisted reviews and gives no extra scheduling credit for early repeats", () => {
     const completed = finish();
-    let repeat = {
+    const repeat = {
       ...completed,
       step: 3,
       answers: { 0: unit.checks[0]!.answer, 1: unit.checks[1]!.answer },

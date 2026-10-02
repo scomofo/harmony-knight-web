@@ -322,7 +322,7 @@ export function scaleExercise(grade = 3): Exercise {
   }
   return {
     type: "scale",
-    prompt: "Which major scale is this?",
+    prompt: `The starting note is ${correctKey.tonic}. Which major scale is this?`,
     notes: MAJOR_SCALE.map((s) => tonic + s),
     correctAnswer: correctKey.name,
     options: shuffle(options.map((o) => o.name)),

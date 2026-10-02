@@ -123,7 +123,18 @@ export function reviewActivity(unitId: string, round: number): LessonActivity | 
   const original = activityForUnit(unitId);
   if (!original) return;
   const source = original.tasks[round % original.tasks.length]!;
-  const shift = [2, 5, -2, 7][round % 4]!;
+  // Early exact tasks name a key or interval spelling. Move octaves only so
+  // the named concept and its authored accidentals remain valid.
+  const earlyExact =
+    source.kind === "voice" && source.rule === "exact" && Number(unitId.split("-")[0]) < 5;
+  const shift = earlyExact ? [12, -12, 24, 0][round % 4]! : [2, 5, -2, 7][round % 4]!;
+  const spelled = (midi: number) => {
+    const choice =
+      source.kind === "voice" ? source.choices.find((c) => c.midi + shift === midi) : undefined;
+    return earlyExact && choice
+      ? choice.label.replace(/-?\d+$/, String(Math.floor(midi / 12) - 1))
+      : noteName(midi);
+  };
   let task: ActivityTask;
   if (source.kind === "harmony-listening") {
     const move = (notes: number[]) => notes.map((n) => n + shift);
@@ -162,7 +173,7 @@ export function reviewActivity(unitId: string, round: number): LessonActivity | 
       ...source,
       choices: source.choices.map((c) => ({
         midi: c.midi + shift,
-        label: noteName(c.midi + shift),
+        label: spelled(c.midi + shift),
       })),
       solution: source.solution.map(move),
       initial: source.initial.map(move),
@@ -196,7 +207,9 @@ export function reviewActivity(unitId: string, round: number): LessonActivity | 
         exact:
           unitId === "10-development"
             ? `Invert the reference around ${noteName(tonic)}: turn each upward distance into the same downward distance.`
-            : "Transpose the reference up a perfect fifth (seven semitones).",
+            : Number(unitId.split("-")[0]) < 5
+              ? `Rebuild these pitches in order: ${base.solution[0]!.map(spelled).join(" · ")}. Compare the spacing with the original.`
+              : "Transpose the reference up a perfect fifth (seven semitones).",
       };
       task = {
         ...base,

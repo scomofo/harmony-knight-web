@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { useGameStore } from "@/lib/game/store";
 import { LessonFigure } from "./lesson-visual";
+import { activityForUnit } from "@/lib/game/activity-catalog";
 import { LessonScreen } from "./lesson-screen";
 
 it("shows the climbing-staff picture with letter names beside the lesson text", () => {
@@ -185,7 +186,36 @@ it("keeps the picture on the Try-it step and in the recall hint, not only on Lea
   expect(figure()).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Try this idea/ }));
   expect(figure()).toBeTruthy();
-  act(() => useGameStore.getState().advanceLearningUnit("1-staff"));
+  act(() => {
+    const task = activityForUnit("1-staff")!.tasks[0]!;
+    useGameStore
+      .getState()
+      .updateLearningActivity("1-staff", { type: "edit", draft: task.solution });
+    useGameStore.getState().updateLearningActivity("1-staff", { type: "check" });
+    useGameStore.getState().advanceLearningUnit("1-staff");
+  });
   expect(screen.getByText("Need the idea again?")).toBeTruthy();
   expect(figure()).toBeTruthy();
+});
+
+it("keeps augmented G-sharp alongside minor and diminished flats", () => {
+  const { container } = render(
+    <LessonFigure
+      visual={{
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 63, 66],
+          [60, 64, 68],
+        ],
+        spell: "flat",
+        noteSpell: { 68: "sharp" },
+        caption: "Mixed triads",
+        alt: "C diminished and C augmented",
+      }}
+    />,
+  );
+  expect(container.textContent).toContain("Gb");
+  expect(container.textContent).toContain("G#");
+  expect(container.textContent).not.toContain("Ab");
 });

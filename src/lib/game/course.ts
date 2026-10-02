@@ -13,6 +13,8 @@ export type CourseUnit = {
   minutes: number;
   goal: string;
   body: string;
+  /** Precise definitions preserved behind an optional refresher. */
+  reference?: string;
   example?: LessonExample;
   visual?: LessonVisual;
   tryIt: string;
@@ -209,6 +211,7 @@ function unit(
     minutes: level < 6 ? 3 : 5,
     goal,
     body: HUMANIZED_TEACHING[id] ?? section.body,
+    reference: HUMANIZED_TEACHING[id] && HUMANIZED_TEACHING[id] !== section.body ? section.body : undefined,
     example: section.example,
     visual: section.visual,
     tryIt: HUMANIZED_TRY_IT[id] ?? tryIt,

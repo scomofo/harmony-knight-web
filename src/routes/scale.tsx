@@ -14,7 +14,7 @@ function ScaleRoute() {
       title="Scales"
       topicId="scales"
       make={() => scaleExercise(grade)}
-      intro="Every major scale is the same shape from a different start. Listen for the first note."
+      intro="Every major scale is the same shape from a different start. The starting note is supplied; listen for the pattern."
       lessonLevel={3}
     />
   );

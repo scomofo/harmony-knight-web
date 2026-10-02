@@ -65,3 +65,38 @@ it("keeps practical review evidence separate, resumes partial work, and never ea
   s.revisitUnit(id, true);
   assert.equal(useGameStore.getState().practicalReviews[id]!.round, 1);
 });
+
+it("provides a valid bounded activity for every course unit", async () => {
+  const { COURSE_UNITS } = await import("./course.ts");
+  for (const unit of COURSE_UNITS) {
+    const activity = activityForUnit(unit.id);
+    assert.ok(activity, unit.id);
+    for (const task of activity.tasks)
+      assert.ok(evaluateActivity(task, task.solution).correct, unit.id);
+  }
+});
+it("requires both intervals and triads without removing study access", () => {
+  useGameStore.getState().resetProgress();
+  useGameStore.setState({ gradeLevel: 4 });
+  const answer = (topicId: string) =>
+    useGameStore
+      .getState()
+      .recordPractice({ midi: 60, correct: true, responseMs: 500, topicId, trackHeat: false });
+  for (let i = 0; i < 20; i++) answer("intervals");
+  assert.equal(useGameStore.getState().gradeLevel, 4);
+  for (let i = 0; i < 3; i++) answer("triads");
+  assert.equal(useGameStore.getState().gradeLevel, 5);
+});
+
+it("keeps named keys and minor-third spelling intact in early recall rounds", () => {
+  for (let round = 0; round < 8; round++) {
+    const interval = reviewActivity("4-intervals", round)!.tasks[0]!;
+    assert.equal(interval.kind, "voice");
+    if (interval.kind !== "voice") throw new Error("voice expected");
+    assert.match(interval.instruction, /C-?\d · Eb-?\d/);
+    assert.equal(interval.solution[0]![1]! - interval.solution[0]![0]!, 3);
+    const major = reviewActivity("3-major", round)!.tasks[0]!;
+    assert.match(major.title, /C major/);
+    assert.equal(major.solution[0]![0]! % 12, 0);
+  }
+});
