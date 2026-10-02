@@ -41,6 +41,8 @@ export type VoiceTask = ExerciseBase & {
     | "dorian";
   chords?: number[][];
   tonic?: number;
+  /** Note-building tasks have no lower reference voice. */
+  hideReference?: boolean;
 };
 export type ListeningSound = {
   midi: number;
@@ -63,11 +65,7 @@ export type HarmonyListeningTask = ExerciseBase & {
   writtenClue: string;
 };
 export type ActivityTask =
-  | ChordTask
-  | RhythmTask
-  | VoiceTask
-  | ListeningTask
-  | HarmonyListeningTask;
+  ChordTask | RhythmTask | VoiceTask | ListeningTask | HarmonyListeningTask;
 export type LessonActivity = { title: string; tasks: ActivityTask[] };
 export type ActivityFeedback = { correct: boolean; message: string };
 export type TaskProgress = {

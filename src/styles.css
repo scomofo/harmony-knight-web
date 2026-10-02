@@ -101,3 +101,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Self-hosted music symbols keep clefs legible without a system music font. */
+@font-face {
+  font-family: "Noto Music";
+  src: url("/fonts/noto-music.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}

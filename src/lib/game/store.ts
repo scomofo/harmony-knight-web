@@ -83,6 +83,7 @@ type GameState = {
   totalCorrectNotes: number;
   /** Rolling window of recent answers on this grade's own topics. */
   recentAtGrade: boolean[];
+  gradeTopicCorrect: Record<string, number>;
   lessonsRead: number[];
   unitProgress: Record<string, UnitProgress>;
   activityProgress: Record<string, ActivityProgress>;
@@ -210,25 +211,51 @@ function emptyMastery(topicId: string): SkillMastery {
  * window and whether the knight advanced.
  */
 function judgeGrade(
-  s: { gradeLevel: number; recentAtGrade: boolean[] },
+  s: { gradeLevel: number; recentAtGrade: boolean[]; gradeTopicCorrect?: Record<string, number> },
   topicId: string,
   correct: boolean,
-): { recentAtGrade: boolean[]; gradeLevel: number; leveledUp: boolean } {
+): {
+  recentAtGrade: boolean[];
+  gradeTopicCorrect: Record<string, number>;
+  gradeLevel: number;
+  leveledUp: boolean;
+} {
+  const evidence = { ...(s.gradeTopicCorrect ?? {}) };
   if (!topicCountsForGrade(topicId, s.gradeLevel)) {
-    return { recentAtGrade: s.recentAtGrade, gradeLevel: s.gradeLevel, leveledUp: false };
+    return {
+      gradeTopicCorrect: evidence,
+      recentAtGrade: s.recentAtGrade,
+      gradeLevel: s.gradeLevel,
+      leveledUp: false,
+    };
   }
+  if (correct) evidence[topicId] = Math.min(3, (evidence[topicId] ?? 0) + 1);
+  const required =
+    s.gradeLevel === 3 ? ["keys", "scales"] : s.gradeLevel === 4 ? ["intervals", "triads"] : [];
+  const covered = required.every((topic) => (evidence[topic] ?? 0) >= 3);
   const threshold = GRADE_THRESHOLDS[s.gradeLevel];
   const window = threshold?.minSessionAttempts ?? 20;
   const recent = [...(s.recentAtGrade ?? []), correct].slice(-window);
   if (
     threshold &&
+    covered &&
     s.gradeLevel < MAX_GRADE &&
     recent.length >= threshold.minSessionAttempts &&
     recent.filter(Boolean).length / recent.length >= threshold.minSessionAccuracy
   ) {
-    return { recentAtGrade: [], gradeLevel: s.gradeLevel + 1, leveledUp: true };
+    return {
+      gradeTopicCorrect: {},
+      recentAtGrade: [],
+      gradeLevel: s.gradeLevel + 1,
+      leveledUp: true,
+    };
   }
-  return { recentAtGrade: recent, gradeLevel: s.gradeLevel, leveledUp: false };
+  return {
+    gradeTopicCorrect: evidence,
+    recentAtGrade: recent,
+    gradeLevel: s.gradeLevel,
+    leveledUp: false,
+  };
 }
 
 function bumpQuest(quests: Quest[], mode: QuestMode, amount = 1): Quest[] {
@@ -248,6 +275,7 @@ const initial = {
   totalNotesPlayed: 0,
   totalCorrectNotes: 0,
   recentAtGrade: [] as boolean[],
+  gradeTopicCorrect: {} as Record<string, number>,
   lessonsRead: [] as number[],
   unitProgress: {} as Record<string, UnitProgress>,
   activityProgress: {} as Record<string, ActivityProgress>,
@@ -516,7 +544,11 @@ export const useGameStore = create<GameState>()(
         const heat = s.heatmap[midi] ?? { attempts: 0, correct: 0 };
         const totalNotes = s.totalNotesPlayed + 1;
         const totalCorrect = s.totalCorrectNotes + (correct ? 1 : 0);
-        const { recentAtGrade, gradeLevel, leveledUp } = judgeGrade(s, topicId, correct);
+        const { recentAtGrade, gradeTopicCorrect, gradeLevel, leveledUp } = judgeGrade(
+          s,
+          topicId,
+          correct,
+        );
         const isNoteReading = topicId === "note-reading-c4-b4";
         const heatmap =
           trackHeat && isNoteReading
@@ -534,6 +566,7 @@ export const useGameStore = create<GameState>()(
           totalNotesPlayed: totalNotes,
           totalCorrectNotes: totalCorrect,
           recentAtGrade,
+          gradeTopicCorrect,
           lastActiveAt: new Date().toISOString(),
           harmonyPoints: s.harmonyPoints + points,
           mastery: { ...s.mastery, [topicId]: nextMastery },
@@ -560,6 +593,7 @@ export const useGameStore = create<GameState>()(
           harmonyPoints: s.harmonyPoints + (hit ? 8 : 0),
           quests: hit ? bumpQuest(s.quests, "realtime") : s.quests,
           recentAtGrade: judged.recentAtGrade,
+          gradeTopicCorrect: judged.gradeTopicCorrect,
           gradeLevel: judged.gradeLevel,
         });
         return { leveledUp: judged.leveledUp, newGrade: judged.gradeLevel };
@@ -572,6 +606,7 @@ export const useGameStore = create<GameState>()(
           harmonyPoints: s.harmonyPoints + points,
           quests: valid ? bumpQuest(s.quests, "duel") : s.quests,
           recentAtGrade: judged.recentAtGrade,
+          gradeTopicCorrect: judged.gradeTopicCorrect,
           gradeLevel: judged.gradeLevel,
         });
         return { leveledUp: judged.leveledUp, newGrade: judged.gradeLevel };
@@ -639,6 +674,7 @@ export const useGameStore = create<GameState>()(
           ...saved,
           settings: { ...current.settings, ...saved?.settings },
           unitProgress: saved?.unitProgress ?? {},
+          gradeTopicCorrect: saved?.gradeTopicCorrect ?? {},
           activityProgress: saved?.activityProgress ?? {},
           practicalReviews: saved?.practicalReviews ?? {},
           conceptPractice: saved?.conceptPractice ?? {},
@@ -685,10 +721,15 @@ export type GradeProgress = {
   /** Correct answers still required if every remaining answer is right. */
   remaining: number;
   maxed: boolean;
+  missingTopics: string[];
 };
 
 /** How close the knight is to the next grade, for the hall and summaries. */
-export function gradeProgress(s: { gradeLevel: number; recentAtGrade: boolean[] }): GradeProgress {
+export function gradeProgress(s: {
+  gradeLevel: number;
+  recentAtGrade: boolean[];
+  gradeTopicCorrect?: Record<string, number>;
+}): GradeProgress {
   const threshold = GRADE_THRESHOLDS[s.gradeLevel];
   const recent = s.recentAtGrade ?? [];
   if (!threshold || s.gradeLevel >= MAX_GRADE) {
@@ -700,6 +741,7 @@ export function gradeProgress(s: { gradeLevel: number; recentAtGrade: boolean[] 
       neededAccuracy: 1,
       remaining: 0,
       maxed: true,
+      missingTopics: [],
     };
   }
   const correct = recent.filter(Boolean).length;
@@ -714,5 +756,11 @@ export function gradeProgress(s: { gradeLevel: number; recentAtGrade: boolean[] 
     neededAccuracy: threshold.minSessionAccuracy,
     remaining,
     maxed: false,
+    missingTopics: (s.gradeLevel === 3
+      ? ["keys", "scales"]
+      : s.gradeLevel === 4
+        ? ["intervals", "triads"]
+        : []
+    ).filter((topic) => (s.gradeTopicCorrect?.[topic] ?? 0) < 3),
   };
 }

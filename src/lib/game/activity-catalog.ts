@@ -88,7 +88,9 @@ const voice = (
   bass: number[],
   solution: number[],
   instruction: string,
-  options: Partial<Pick<VoiceTask, "choices" | "positions" | "chords" | "initial">> = {},
+  options: Partial<
+    Pick<VoiceTask, "choices" | "positions" | "chords" | "initial" | "hideReference">
+  > = {},
 ): VoiceTask => ({
   kind: "voice",
   id,
@@ -108,6 +110,249 @@ const voice = (
 /** Fixed, authored miniatures keep saved drafts stable. Open-ended tasks accept multiple valid answers. */
 export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
   ...LISTENING_ACTIVITIES,
+  "1-alphabet": {
+    title: "Continue the alphabet",
+    tasks: [
+      voice(
+        "1-alphabet",
+        "Continue the alphabet",
+        "exact",
+        [48, 48, 48],
+        [69, 71, 72],
+        "Choose A4, B4, C5: letter names repeat after G.",
+        {
+          choices: choices(
+            [...new Set([...[69, 71, 72], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2", "Note 3"],
+          initial: [[60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "1-staff": {
+    title: "Read upward by steps",
+    tasks: [
+      voice(
+        "1-staff",
+        "Read upward by steps",
+        "exact",
+        [48, 48, 48],
+        [64, 65, 67],
+        "Match the first three notes in the picture: E4 F4 G4. Each neighbouring staff line or space advances one letter.",
+        {
+          choices: choices(
+            [...new Set([...[64, 65, 67], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2", "Note 3"],
+          initial: [[60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "1-landmarks": {
+    title: "Find three landmarks",
+    tasks: [
+      voice(
+        "1-landmarks",
+        "Find three landmarks",
+        "exact",
+        [48, 48, 48],
+        [60, 67, 53],
+        "Choose middle C (C4), treble G (G4), bass F (F3). These are anchors, not a rising melody.",
+        {
+          choices: choices(
+            [...new Set([...[60, 67, 53], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2", "Note 3"],
+          initial: [[60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "1-steps": {
+    title: "Compare half and whole steps",
+    tasks: [
+      voice(
+        "1-steps",
+        "Compare half and whole steps",
+        "exact",
+        [48, 48, 48],
+        [64, 65, 67],
+        "Build E4 F4 G4. E to F is a half step; F to G is a whole step.",
+        {
+          choices: choices(
+            [...new Set([...[64, 65, 67], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2", "Note 3"],
+          initial: [[60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "3-major": {
+    title: "Build C major",
+    tasks: [
+      voice(
+        "3-major",
+        "Build C major",
+        "exact",
+        [48, 48, 48, 48, 48, 48, 48, 48],
+        [60, 62, 64, 65, 67, 69, 71, 72],
+        "Build C D E F G A B C. E\u2013F and B\u2013C are the half steps.",
+        {
+          choices: choices(
+            [...new Set([...[60, 62, 64, 65, 67, 69, 71, 72], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: [
+            "Note 1",
+            "Note 2",
+            "Note 3",
+            "Note 4",
+            "Note 5",
+            "Note 6",
+            "Note 7",
+            "Note 8",
+          ],
+          initial: [[60, 60, 60, 60, 60, 60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "3-signatures": {
+    title: "Apply one sharp",
+    tasks: [
+      voice(
+        "3-signatures",
+        "Apply one sharp",
+        "exact",
+        [48, 48, 48, 48, 48, 48, 48, 48],
+        [67, 69, 71, 72, 74, 76, 78, 79],
+        "Build G A B C D E F-sharp G. The key signature changes F to F-sharp.",
+        {
+          choices: choices(
+            [...new Set([...[67, 69, 71, 72, 74, 76, 78, 79], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: [
+            "Note 1",
+            "Note 2",
+            "Note 3",
+            "Note 4",
+            "Note 5",
+            "Note 6",
+            "Note 7",
+            "Note 8",
+          ],
+          initial: [[60, 60, 60, 60, 60, 60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "3-circle": {
+    title: "Travel by fifths",
+    tasks: [
+      voice(
+        "3-circle",
+        "Travel by fifths",
+        "exact",
+        [48, 48, 48],
+        [60, 67, 74],
+        "Choose C4 G4 D5: successive fifths, neighbouring keys on the circle.",
+        {
+          choices: choices(
+            [...new Set([...[60, 67, 74], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2", "Note 3"],
+          initial: [[60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "3-minor": {
+    title: "Create a leading tone",
+    tasks: [
+      voice(
+        "3-minor",
+        "Create a leading tone",
+        "exact",
+        [48, 48, 48, 48, 48, 48, 48, 48],
+        [69, 71, 72, 74, 76, 77, 80, 81],
+        "Build A B C D E F G-sharp A: harmonic minor raises degree seven.",
+        {
+          choices: choices(
+            [...new Set([...[69, 71, 72, 74, 76, 77, 80, 81], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: [
+            "Note 1",
+            "Note 2",
+            "Note 3",
+            "Note 4",
+            "Note 5",
+            "Note 6",
+            "Note 7",
+            "Note 8",
+          ],
+          initial: [[60, 60, 60, 60, 60, 60, 60, 60]],
+        },
+      ),
+    ],
+  },
+  "4-intervals": {
+    title: "Spell a minor third",
+    tasks: [
+      voice(
+        "4-intervals",
+        "Spell a minor third",
+        "exact",
+        [48, 48],
+        [60, 63],
+        "Choose C4 then Eb4: three letters inclusive and three semitones apart.",
+        {
+          choices: choices(
+            [...new Set([...[60, 63], 60, 61, 66])].sort((a, b) => a - b),
+            { 63: "Eb4" },
+          ),
+          hideReference: true,
+          positions: ["Note 1", "Note 2"],
+          initial: [[60, 60]],
+        },
+      ),
+    ],
+  },
+  "4-tension": {
+    title: "Compare interval spacing",
+    tasks: [
+      harmonyListen(
+        "tension",
+        "Hear two colours",
+        "Compare both clips. Which has half-step spacing? This asks about spacing, not whether the sound is good or bad.",
+        [
+          { label: "Clip A", chords: [[60, 67]] },
+          { label: "Clip B", chords: [[60, 61]] },
+        ],
+        1,
+        "Clip B contains C and Db, a half step apart. Context still shapes how settled an interval feels.",
+        "Clip A is a fifth; clip B is a half step.",
+      ),
+    ],
+  },
+
   "0-pulse": {
     title: "Build a steady pulse",
     tasks: [
@@ -276,8 +521,21 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         "Which ending sounds more finished?",
         "Hear both short progressions. One lands on tonic; the other stops on the dominant and leaves the phrase asking for more.",
         [
-          { label: "Example A", chords: [[55, 59, 62], [60, 64, 67]] },
-          { label: "Example B", chords: [[48, 52, 55], [53, 57, 60], [55, 59, 62]] },
+          {
+            label: "Example A",
+            chords: [
+              [55, 59, 62],
+              [60, 64, 67],
+            ],
+          },
+          {
+            label: "Example B",
+            chords: [
+              [48, 52, 55],
+              [53, 57, 60],
+              [55, 59, 62],
+            ],
+          },
         ],
         0,
         "Example A is the stronger close: G major resolves to C major. Example B stops on G, so it sounds open.",
@@ -305,7 +563,10 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [55, 59, 62],
         "Choose G3–B3–D4 after the C and F context. Ending on V is a half cadence: it sounds like a comma because the dominant still wants somewhere to go.",
         choices([53, 55, 57, 59, 60, 62, 64]),
-        [[48, 52, 55], [53, 57, 60]],
+        [
+          [48, 52, 55],
+          [53, 57, 60],
+        ],
       ),
     ],
   },
@@ -444,11 +705,23 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [
           {
             label: "Example A",
-            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [55, 59, 62]],
+            chords: [
+              [48, 52, 55],
+              [57, 60, 64],
+              [50, 54, 57, 60],
+              [55, 59, 62],
+              [55, 59, 62],
+            ],
           },
           {
             label: "Example B",
-            chords: [[48, 52, 55], [57, 60, 64], [50, 54, 57, 60], [55, 59, 62], [48, 52, 55]],
+            chords: [
+              [48, 52, 55],
+              [57, 60, 64],
+              [50, 54, 57, 60],
+              [55, 59, 62],
+              [48, 52, 55],
+            ],
           },
         ],
         0,
@@ -482,7 +755,10 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [52, 56, 59],
         "Choose E3–G#3–B3. G# is outside C major, but it points directly to A minor. If the music returns to C soon after, A minor was tonicized rather than established as a new key.",
         choices([52, 55, 56, 57, 59, 60, 64], { 56: "G#3" }),
-        [[48, 52, 55], [57, 60, 64]],
+        [
+          [48, 52, 55],
+          [57, 60, 64],
+        ],
       ),
       chord(
         "return-home",
@@ -490,7 +766,10 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [60, 64, 67],
         "Choose C4–E4–G4. Returning convincingly to C after E–Am helps you hear the earlier A minor as a local emphasis, not a full modulation.",
         choices([57, 59, 60, 62, 64, 67, 69]),
-        [[52, 56, 59], [57, 60, 64]],
+        [
+          [52, 56, 59],
+          [57, 60, 64],
+        ],
       ),
     ],
   },
@@ -502,8 +781,22 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         "Which progression gives G an extra dominant pull?",
         "Both examples move toward G and then C. One uses ordinary ii–V–I in C; the other changes D minor to D7 so F# leans into G.",
         [
-          { label: "Example A", chords: [[50, 53, 57], [55, 59, 62], [60, 64, 67]] },
-          { label: "Example B", chords: [[50, 54, 57, 60], [55, 59, 62], [60, 64, 67]] },
+          {
+            label: "Example A",
+            chords: [
+              [50, 53, 57],
+              [55, 59, 62],
+              [60, 64, 67],
+            ],
+          },
+          {
+            label: "Example B",
+            chords: [
+              [50, 54, 57, 60],
+              [55, 59, 62],
+              [60, 64, 67],
+            ],
+          },
         ],
         1,
         "Example B uses D7. Its F# is the leading tone of G, so G briefly receives dominant-style emphasis before the music returns to C.",
@@ -559,8 +852,22 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         "Which middle chord is borrowed from C minor?",
         "Both progressions begin and end on C major. In one, the middle chord is F major; in the other, A drops to Ab and the chord becomes F minor.",
         [
-          { label: "Example A", chords: [[48, 52, 55], [53, 57, 60], [48, 52, 55]] },
-          { label: "Example B", chords: [[48, 52, 55], [53, 56, 60], [48, 52, 55]] },
+          {
+            label: "Example A",
+            chords: [
+              [48, 52, 55],
+              [53, 57, 60],
+              [48, 52, 55],
+            ],
+          },
+          {
+            label: "Example B",
+            chords: [
+              [48, 52, 55],
+              [53, 56, 60],
+              [48, 52, 55],
+            ],
+          },
         ],
         1,
         "Example B borrows F minor from the parallel key, C minor. C remains home; only the colour of the middle chord changes.",
@@ -572,7 +879,10 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         [53, 56, 60],
         "F3–Ab3–C4 lowers A to Ab. Hear that one altered note change the colour while C can still remain the tonic.",
         choices([53, 55, 56, 57, 59, 60, 62], { 56: "Ab3" }),
-        [[48, 52, 55], [45, 48, 52]],
+        [
+          [48, 52, 55],
+          [45, 48, 52],
+        ],
       ),
       chord(
         "neapolitan",

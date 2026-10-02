@@ -196,7 +196,9 @@ export function reviewActivity(unitId: string, round: number): LessonActivity | 
         exact:
           unitId === "10-development"
             ? `Invert the reference around ${noteName(tonic)}: turn each upward distance into the same downward distance.`
-            : "Transpose the reference up a perfect fifth (seven semitones).",
+            : Number(unitId.split("-")[0]) < 5
+              ? `Rebuild these pitches in order: ${base.solution[0]!.map((n) => noteName(n)).join(" · ")}. Compare the spacing with the original.`
+              : "Transpose the reference up a perfect fifth (seven semitones).",
       };
       task = {
         ...base,

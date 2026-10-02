@@ -40,6 +40,7 @@ const schema = z.object({
   totalNotesPlayed: count,
   totalCorrectNotes: count,
   recentAtGrade: z.array(z.boolean()).max(100),
+  gradeTopicCorrect: z.record(id, z.number().int().min(0).max(3)).default({}),
   lessonsRead: z.array(grade).max(11),
   unitProgress: z.record(
     id,

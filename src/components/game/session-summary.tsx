@@ -33,7 +33,8 @@ export function SessionSummary({
   const gradeLevel = useGameStore((s) => s.gradeLevel);
   const recentAtGrade = useGameStore((s) => s.recentAtGrade);
   const highContrast = useGameStore((s) => s.settings.highContrast);
-  const trial = gradeProgress({ gradeLevel, recentAtGrade });
+  const gradeTopicCorrect = useGameStore((s) => s.gradeTopicCorrect);
+  const trial = gradeProgress({ gradeLevel, recentAtGrade, gradeTopicCorrect });
   const next = levelFor(gradeLevel + 1);
   return (
     <Dialog.Root open>
@@ -55,8 +56,16 @@ export function SessionSummary({
           </Dialog.Title>
           {leveledUp ? (
             <p className="mt-2 text-sm text-[var(--color-harmony)]">
-              Grade advanced to {newGrade}: {levelFor(newGrade ?? gradeLevel).title}. Read its
-              lesson in the hall.
+              Grade advanced to {newGrade}: {levelFor(newGrade ?? gradeLevel).title}. Explore its
+              lessons when you are ready. Drill rank records practice, not completion of every
+              lesson.
+            </p>
+          ) : null}
+          {trial.missingTopics.length ? (
+            <p className="mt-3 text-sm text-[var(--color-muted)]">
+              Next focus: {trial.missingTopics.join(" and ")}. Three correct answers in each,
+              alongside the accuracy window, cover this chapter’s core skills. You can stop now and
+              return later.
             </p>
           ) : null}
           <dl className="mt-5 grid grid-cols-3 gap-3 text-center">

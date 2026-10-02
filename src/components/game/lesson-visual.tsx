@@ -91,6 +91,7 @@ const letterFor = (midi: number, spell: Spell) =>
 
 export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; width?: number }) {
   const spell: Spell = visual.spell ?? "sharp";
+  const spelling = (midi: number): Spell => visual.noteSpell?.[midi] ?? spell;
   const columns = visual.notes.map((n) => (Array.isArray(n) ? n : [n]));
   const staves: StaffKind[] = visual.clef === "grand" ? ["treble", "bass"] : [visual.clef];
   const staffTop = 30;
@@ -104,7 +105,7 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
     visual.clef === "grand" ? (midi >= 60 ? "treble" : "bass") : visual.clef;
   const yFor = (midi: number) => {
     const kind = staffFor(midi);
-    return bottomOf(kind) - (stepsFor(midi, spell) - BOTTOM_STEP[kind]) * HALF;
+    return bottomOf(kind) - (stepsFor(midi, spelling(midi)) - BOTTOM_STEP[kind]) * HALF;
   };
   // Letters go under the lowest note, so ledger-line notes never sit on top of them.
   const lowestY = Math.max(lastBottom, ...columns.flat().map(yFor));
@@ -145,7 +146,7 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
             fill={PARCHMENT}
             fillOpacity={0.85}
             fontSize={kind === "treble" ? 44 : 40}
-            fontFamily="Georgia, serif"
+            fontFamily="Noto Music, serif"
           >
             {kind === "treble" ? "𝄞" : "𝄢"}
           </text>
@@ -155,7 +156,8 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
         const x = xFor(index);
         const glyph = chord.length > 1 ? CHORD_GLYPH : GLYPH;
         const sorted = [...chord].sort((a, b) => a - b);
-        const label = visual.labels?.[index] ?? sorted.map((m) => letterFor(m, spell)).join(" ");
+        const label =
+          visual.labels?.[index] ?? sorted.map((m) => letterFor(m, spelling(m))).join(" ");
         return (
           <g key={index}>
             {sorted.map((midi, i) => {
@@ -163,12 +165,15 @@ export function StaffDiagram({ visual, width = 360 }: { visual: StaffVisual; wid
               const y = yFor(midi);
               // A note a step above its neighbour is written to the right, as in print.
               const crowded =
-                i > 0 && stepsFor(midi, spell) - stepsFor(sorted[i - 1]!, spell) === 1;
+                i > 0 &&
+                stepsFor(midi, spelling(midi)) -
+                  stepsFor(sorted[i - 1]!, spelling(sorted[i - 1]!)) ===
+                  1;
               const nx = crowded ? x + glyph * 0.8 : x;
-              const accidental = isBlack(midi) ? (spell === "flat" ? "♭" : "♯") : null;
+              const accidental = isBlack(midi) ? (spelling(midi) === "flat" ? "♭" : "♯") : null;
               return (
                 <g key={`${midi}-${i}`}>
-                  {ledgerSteps(stepsFor(midi, spell), BOTTOM_STEP[kind]).map((s) => {
+                  {ledgerSteps(stepsFor(midi, spelling(midi)), BOTTOM_STEP[kind]).map((s) => {
                     const ly = bottomOf(kind) - (s - BOTTOM_STEP[kind]) * HALF;
                     return (
                       <line

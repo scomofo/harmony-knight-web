@@ -131,7 +131,9 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
               Before you start
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{unit.runway.note}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+              {unit.runway.note}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {unit.runway.unitIds.map((id) => {
                 const refresher = unitById(id);
@@ -155,6 +157,12 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
         {p.step === 0 ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             <p className="text-base leading-8">{unit.body}</p>
+            {unit.reference ? (
+              <details className="mt-4 text-sm">
+                <summary className="min-h-11 cursor-pointer">Definitions and worked detail</summary>
+                <p className="mt-2 leading-relaxed">{unit.reference}</p>
+              </details>
+            ) : null}
             <aside className="mt-5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-ink-3)] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-harmony)]">
                 Why musicians care

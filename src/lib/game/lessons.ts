@@ -57,6 +57,8 @@ export type LessonVisual = { caption: string; alt: string } & (
       gaps?: string[];
       /** Spell black keys as flats (Eb) instead of sharps (D#). */
       spell?: "sharp" | "flat";
+      /** Per-MIDI spelling overrides for mixed accidental figures. */
+      noteSpell?: Record<number, "sharp" | "flat">;
     }
   | {
       /** One octave or more of piano keys, with some keys lit. */
@@ -501,6 +503,7 @@ export const LESSONS: Lesson[] = [
           ],
           labels: ["major", "minor", "dim", "aug"],
           spell: "flat",
+          noteSpell: { 68: "sharp" },
           caption:
             "Four triads on C. Only the changed note moves each time: Eb makes it minor, Gb as well makes it diminished, and G# on the major triad makes it augmented.",
           alt: "Four three-note chords on C: C E G major, C E flat G minor, C E flat G flat diminished, and C E G sharp augmented.",
