@@ -120,7 +120,7 @@ export function SessionSummary({
               <p className="mt-2 text-xs text-[var(--color-muted)]">
                 {trial.answered === 0
                   ? `Answers in this level’s own drills count toward Level ${next.level}.`
-                  : `${Math.round(trial.neededAccuracy * 100)}% right across your last ${trial.needed} opens Level ${next.level}.`}
+                  : `${Math.round(trial.neededAccuracy * 100)}% right across your last ${trial.needed} ${gradeLevel === 3 || gradeLevel === 4 ? "plus three correct answers in each required strand " : ""}opens Level ${next.level}.`}
               </p>
             </div>
           ) : null}

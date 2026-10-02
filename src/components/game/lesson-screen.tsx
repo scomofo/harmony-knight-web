@@ -1,3 +1,4 @@
+import { SharedPhrase } from "@/components/shared-phrase";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Check, Home, RotateCcw, Volume2, Square } from "lucide-react";
@@ -125,6 +126,8 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
           </h2>
           <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">{unit.goal}</p>
         </header>
+
+        {unit.id === "0-pulse" && (p.step === 0 || done) ? <SharedPhrase /> : null}
 
         {p.step === 0 && unit.runway ? (
           <aside className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">

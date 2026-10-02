@@ -87,3 +87,16 @@ it("requires both intervals and triads without removing study access", () => {
   for (let i = 0; i < 3; i++) answer("triads");
   assert.equal(useGameStore.getState().gradeLevel, 5);
 });
+
+it("keeps named keys and minor-third spelling intact in early recall rounds", () => {
+  for (let round = 0; round < 8; round++) {
+    const interval = reviewActivity("4-intervals", round)!.tasks[0]!;
+    assert.equal(interval.kind, "voice");
+    if (interval.kind !== "voice") throw new Error("voice expected");
+    assert.match(interval.instruction, /C-?\d · Eb-?\d/);
+    assert.equal(interval.solution[0]![1]! - interval.solution[0]![0]!, 3);
+    const major = reviewActivity("3-major", round)!.tasks[0]!;
+    assert.match(major.title, /C major/);
+    assert.equal(major.solution[0]![0]! % 12, 0);
+  }
+});
