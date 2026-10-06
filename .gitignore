@@ -13,3 +13,4 @@ dist/
 AGENTS.md
 *.log
 .DS_Store
+.grok/dev-port
