@@ -18,6 +18,10 @@ const FIXTURE_ROOT = makeWorkspace('{"VITE_AUTH_ENABLED":"false"}');
 mkdirSync(join(FIXTURE_ROOT, "scripts"));
 const WRAPPER = join(FIXTURE_ROOT, "scripts/with-app-env.mjs");
 copyFileSync(join(projectRoot(), "scripts/with-app-env.mjs"), WRAPPER);
+copyFileSync(
+  join(projectRoot(), "scripts/dev-ports.mjs"),
+  join(FIXTURE_ROOT, "scripts/dev-ports.mjs"),
+);
 const CLEAN_ENV = { ...process.env };
 delete CLEAN_ENV.VITE_AUTH_ENABLED;
 const PRINT_FLAG = "process.stdout.write(String(process.env.VITE_AUTH_ENABLED));";
