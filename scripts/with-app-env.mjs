@@ -19,6 +19,7 @@
  * Vite picks the values up because `loadEnv` prefix-matches entries already in
  * `process.env`, which is why the merge has to happen before Vite starts.
  */
+import { resolveDevPort } from "./dev-ports.mjs";
 import { spawn } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
@@ -104,27 +105,35 @@ export function isMainModule(moduleUrl) {
   }
 }
 
-
-// package.json dev scripts use POSIX-shell ${PORT:-NNNN} defaults, which
-// cmd.exe passes through literally on Windows. Expand it here (the
-// cross-platform choke point) instead: where a real shell already expanded
-// it, or no such pattern is present, this is a no-op.
-function expandPortDefault(arg) {
-  const m = /^\$\{PORT:-(\d+)\}$/.exec(arg);
-  if (!m) return arg;
-  const envPort = (process.env.PORT || "").trim();
-  return /^\d+$/.test(envPort) ? envPort : m[1];
-}
-
-function main(argv) {
-  const [command, ...rawArgs] = argv;
-  const args = rawArgs.map(expandPortDefault);
+async function main(argv) {
+  const [command, ...args] = argv;
   if (!command) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
-  const child = spawn(command, args, { stdio: "inherit", env, shell: process.platform === "win32" });
+  if (command === "vite" && ["dev", "serve"].includes(args[0])) {
+    const selected = await resolveDevPort({ root: projectRoot(), args: args.slice(1), env });
+    if (selected.reuse) {
+      console.log(`[dev] reusing http://127.0.0.1:${selected.port}/`);
+      return;
+    }
+    args.splice(
+      0,
+      args.length,
+      "dev",
+      ...selected.args,
+      "--port",
+      String(selected.port),
+      "--strictPort",
+    );
+    env.PORT = String(selected.port);
+  }
+  const child = spawn(command, args, {
+    stdio: "inherit",
+    env,
+    shell: process.platform === "win32",
+  });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => child.kill(signal));
@@ -139,5 +148,8 @@ function main(argv) {
 }
 
 if (isMainModule(import.meta.url)) {
-  main(process.argv.slice(2));
+  main(process.argv.slice(2)).catch((error) => {
+    console.error(`[with-app-env] ${error.message}`);
+    process.exitCode = 1;
+  });
 }

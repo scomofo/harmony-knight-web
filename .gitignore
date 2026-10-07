@@ -14,3 +14,7 @@ AGENTS.md
 *.log
 .DS_Store
 .grok/dev-port
+.grok/dev-token
+.grok/dev-port.*.tmp
+.grok/dev.pid
+.grok/dev.log
