@@ -2,7 +2,7 @@ import { SharedPhrase } from "@/components/shared-phrase";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Check, Home, RotateCcw, Volume2, Square } from "lucide-react";
-import { stopTones } from "@/lib/game/audio";
+import { playSuccess, stopTones } from "@/lib/game/audio";
 import { examplePlan } from "@/lib/game/teaching-playback";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { levelFor } from "@/lib/game/curriculum";
@@ -70,6 +70,9 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
   useEffect(() => {
     heading.current?.focus();
     stopTones();
+    if (p.step === 4) {
+      playSuccess();
+    }
   }, [p.step]);
   useEffect(() => () => stopTones(), []);
 
@@ -414,7 +417,7 @@ function ExampleAudio({ example }: { example: LessonExample }) {
         <div className="flex flex-wrap gap-3" role="group" aria-label="Hear each note separately">
           {example.sequence.noteLabels.map((label, index) => (
             <Button
-              key={label}
+              key={`${label}-${index}`}
               variant="outline"
               disabled={player.muted}
               onClick={() => play(index)}
