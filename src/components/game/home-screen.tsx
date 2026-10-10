@@ -11,11 +11,13 @@ import {
   Settings,
   Swords,
 } from "lucide-react";
+import { playSuccess } from "@/lib/game/audio";
 import { levelFor, studiesFor, type AppRoute } from "@/lib/game/curriculum";
 import { COURSE_UNITS, unitsForLevel } from "@/lib/game/course";
 import { dueUnits, nextUnit, weekDays } from "@/lib/game/learning";
 import { gradeProgress, questRoute, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
+import { KnightBadges } from "./badges";
 import { ConfidenceSlider } from "./confidence-slider";
 import { KnightCrest } from "./crest";
 import { NoteReviewCard } from "./note-review-card";
@@ -294,6 +296,8 @@ export function HomeScreen() {
           />
         </nav>
 
+        <KnightBadges />
+
         <details
           key={String(focus)}
           open={!focus}
@@ -357,7 +361,13 @@ export function HomeScreen() {
                       {q.title} · {q.progressCount}/{q.targetCount}
                     </Link>
                     {q.progressCount >= q.targetCount && !q.claimed ? (
-                      <Button size="sm" onClick={() => progress.claimQuest(q.id)}>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          progress.claimQuest(q.id);
+                          playSuccess();
+                        }}
+                      >
                         Claim {q.rewardHarmonyPoints}
                       </Button>
                     ) : q.claimed ? (
