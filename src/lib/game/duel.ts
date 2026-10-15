@@ -99,7 +99,17 @@ export function validateMove(args: {
     ) {
       violations.push(currInterval === 7 ? "parallelFifths" : "parallelOctaves");
     }
-    if (similar && (currInterval === 7 || currInterval === 0) && prevInterval !== currInterval) {
+    // Hidden (direct) fifths/octaves need similar motion into the perfect
+    // interval AND a leap in the upper voice. Arriving by step in the upper
+    // voice is the standard exception the lessons teach ("do not leap into a
+    // fifth or octave"), so a stepwise upper voice — even with both voices
+    // stepping — is legal. userDir is in semitones: a step is |dir| <= 2.
+    if (
+      similar &&
+      (currInterval === 7 || currInterval === 0) &&
+      prevInterval !== currInterval &&
+      Math.abs(userDir) > 2
+    ) {
       violations.push("hiddenFifthsOrOctaves");
     }
   }

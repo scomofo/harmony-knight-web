@@ -67,11 +67,13 @@ describe("focused curriculum and saved learning", () => {
     return p;
   }
 
-  it("provides 44 complete lessons with 88 unambiguous checks across all 11 chapters", () => {
-    assert.equal(COURSE_UNITS.length, 44);
-    assert.equal(new Set(COURSE_UNITS.map((u) => u.id)).size, 44);
-    assert.equal(COURSE_UNITS.flatMap((u) => u.checks).length, 88);
-    for (const level of CURRICULUM) assert.equal(unitsForLevel(level.level).length, 4);
+  it("provides 45 complete lessons with 90 unambiguous checks across all 11 chapters", () => {
+    assert.equal(COURSE_UNITS.length, 45);
+    assert.equal(new Set(COURSE_UNITS.map((u) => u.id)).size, 45);
+    assert.equal(COURSE_UNITS.flatMap((u) => u.checks).length, 90);
+    // Four units per chapter, plus the standalone extensions unit in chapter 8.
+    for (const level of CURRICULUM)
+      assert.equal(unitsForLevel(level.level).length, level.level === 8 ? 5 : 4);
     for (const u of COURSE_UNITS) {
       assert.ok(u.body.length > 120 && u.tryIt.length > 70 && u.goal.length > 10, u.id);
       assert.ok(u.musicianConnection.length > 60, `${u.id} needs a useful musician connection`);

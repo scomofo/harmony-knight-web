@@ -41,6 +41,40 @@ describe("two-voice counterpoint judgments", () => {
       true,
     );
   });
+  it("still rejects hidden fifths when the upper voice leaps into the fifth", () => {
+    // Cantus steps C4 -> D4 while the upper voice leaps E4 -> A4 into the fifth.
+    const result = validateMove({
+      previousCantusNote: { midi: 60 },
+      previousUserNote: { midi: 64 },
+      cantusNote: { midi: 62 },
+      userNote: { midi: 69 },
+    });
+    assert.ok(result.violations.includes("hiddenFifthsOrOctaves"));
+    assert.equal(result.isValid, false);
+  });
+  it("allows similar motion into a fifth when the upper voice arrives by step", () => {
+    // The taught exception: cantus leaps down C4 -> G3, upper voice steps
+    // E4 -> D4 down into the fifth. Legal — no leap in the upper voice.
+    const result = validateMove({
+      previousCantusNote: { midi: 60 },
+      previousUserNote: { midi: 64 },
+      cantusNote: { midi: 55 },
+      userNote: { midi: 62 },
+    });
+    assert.deepEqual(result.violations, []);
+    assert.equal(result.isValid, true);
+  });
+  it("allows similar motion into an octave when both voices move by step", () => {
+    // Cantus steps B3 -> C4, upper voice steps Bb4 -> C5 into the octave.
+    const result = validateMove({
+      previousCantusNote: { midi: 59 },
+      previousUserNote: { midi: 70 },
+      cantusNote: { midi: 60 },
+      userNote: { midi: 72 },
+    });
+    assert.deepEqual(result.violations, []);
+    assert.equal(result.isValid, true);
+  });
   it("keeps safe keys and ghost corrections consistent with the validator", () => {
     for (const midi of [60, 62, 64, 65, 67, 69, 71, 72]) {
       const args = {

@@ -54,7 +54,9 @@ export function rateHit(delta: number): HitWindow {
   const abs = Math.abs(delta);
   if (abs <= 0.05) return "perfect";
   if (abs <= 0.1) return "great";
-  if (abs <= 0.16) return "good";
+  // The outer edge of "good" IS the accept window: one shared constant, so a
+  // tap the highway accepts can never grade as a miss.
+  if (abs <= HIT_WINDOW) return "good";
   return "miss";
 }
 

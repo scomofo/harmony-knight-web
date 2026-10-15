@@ -66,6 +66,7 @@ const MUSICIAN_CONNECTIONS: Record<string, string> = {
   "7-tonicization": "Sometimes music briefly shines a spotlight on a chord without truly changing key. Learning to separate tonicization from modulation keeps you from declaring a new key every time one accidental appears.",
   "7-secondary": "Secondary dominants are one of the most common ways tonal music adds chromatic energy. They momentarily give an ordinary diatonic chord the gravitational pull of a tonic by approaching it with its own dominant.",
   "8-sevenths": "Adding a seventh turns a basic triad into a chord with more colour and often a stronger tendency to move. In jazz, pop, blues and classical harmony, the exact kind of seventh is a major part of the chord’s identity.",
+  "8-extensions": "Extended chords are the sound of jazz harmony, soul ballads and a lot of film scoring: maj9 and 13 chords let a progression feel lush without travelling anywhere new. Once you hear extensions as colour rather than new harmony, dense-looking chord symbols become much less intimidating.",
   "8-borrowed": "Borrowed chords let a progression keep the same home note while borrowing colour from a parallel mode. That is why a single unexpected flat or minor chord can change the emotional shade without actually changing the key.",
   "8-odd-meter": "Odd meters become much easier when you stop counting a long string of identical beats and feel smaller groups instead. Players usually internalize 5 or 7 as combinations such as 3+2 or 2+2+3.",
   "8-polyrhythm": "A polyrhythm is two different ways of dividing the same span of time. The trick is not to count faster; it is to feel a shared cycle and place each part at its own evenly spaced points inside that cycle.",
@@ -125,6 +126,7 @@ const HUMANIZED_TEACHING: Record<string, string> = {
   "7-tonicization": "Not every chromatic chord means the whole piece changed key. Sometimes harmony briefly treats one ordinary chord as if it were a miniature tonic, gives it a dominant, then returns to the original key. That short spotlight is tonicization. A full modulation needs stronger evidence: cadence, duration and continued emphasis in the new key.",
   "7-secondary": "Read V/V from right to left. In C major, the target V is G; the dominant of G is D, so D or D7 can act as V/V. The F# in D major is not a random chromatic note—it is the leading tone that pulls into G. Once you hear the destination, the slash notation starts to describe a sound rather than an equation.",
   "8-sevenths": "A seventh chord adds one more third above a triad, and that extra note changes both colour and motion. Cmaj7, C7, Cm7 and Cm7b5 differ by only a few semitones, but their functions can be very different. Pay particular attention to the symbol: plain '7' means a minor seventh above a major triad, while 'maj7' explicitly asks for the larger seventh.",
+  "8-extensions": "Keep stacking thirds past the seventh and the chord keeps growing into the next octave: the 9th, the 11th, the 13th. Cmaj9 — C E G B D — is the plain triad wearing perfume: the same chord with a richer scent. Extensions change a chord's colour without changing its job, so a G13 still pulls toward C like any dominant, just in fancier clothes. In practice, players rarely voice the full stack; they keep the notes that colour the chord and drop the ones that only crowd it.",
   "8-borrowed": "A borrowed chord changes the colour of a key without necessarily changing its home note. In C major, F minor borrows Ab from C minor; that single altered note can change the shade of the progression while C still feels like tonic. The Neapolitan takes this further with a major chord on the lowered second degree, often steering strongly toward V.",
   "8-odd-meter": "Five and seven become much easier when you feel them as smaller groups rather than one long count. Five might be 3+2 or 2+3; seven might be 2+2+3. The pulse underneath can stay perfectly even—the asymmetry comes from where the accents make the groups begin.",
   "8-polyrhythm": "Three-against-two sounds complicated until both parts share one grid. Divide the span into six equal pieces: the three-part lands on 1, 3 and 5, while the two-part lands on 1 and 4. Practise each row alone, then listen for the larger cycle where both parts meet again.",
@@ -1031,6 +1033,50 @@ export const COURSE_UNITS: CourseUnit[] = [
         "C E G B",
         ["C E G Bb", "C Eb G Bb"],
         "The maj7 symbol specifies a major seventh, B, above C.",
+      ),
+    ],
+  ),
+  unit(
+    8,
+    "extensions",
+    {
+      heading: "Extensions: 9ths, 11ths, 13ths",
+      body: "A seventh chord is a stack of thirds; keep stacking and the chord grows past the octave. The 9th is the 2nd scale degree an octave up, the 11th the 4th, the 13th the 6th. Cmaj9 is C E G B D (0, 4, 7, 11, 14 semitones); C9 swaps B for Bb (0, 4, 7, 10, 14). The full stack to the 13th, C E G B D F A, is theoretical: real voicings omit members, usually the 5th and the plain 11th, whose F sits a half step above the third E and rubs — jazz players often raise it to #11 instead. Extensions change a chord's colour, not its function: a G13 still resolves to C like any dominant.",
+      visual: {
+        kind: "staff",
+        clef: "treble",
+        notes: [
+          [60, 64, 67, 71, 74],
+          [60, 64, 67, 71, 74, 77, 81],
+        ],
+        labels: ["Cmaj9", "Cmaj13"],
+        caption:
+          "Cmaj9 stacks thirds past the octave: C E G B D. Keep stacking to the 13th and F and A join — the full stack that real voicings trim down.",
+        alt: "Two stacked chords on C: C E G B D labelled Cmaj9, and C E G B D F A labelled Cmaj13.",
+      },
+      example: {
+        label: "Cmaj9, then G13 with the 5th and 11th left out",
+        notes: [
+          [60, 64, 67, 71, 74],
+          [55, 59, 65, 69, 76],
+        ],
+        mode: "progression",
+      },
+    },
+    "Spell, hear and build 9th, 11th and 13th extensions.",
+    "Play C E G B slowly, then add D on top: that extra note is the 9th. Lower B to Bb for C9. Finish with G B F A E — a G13 with the crowded middle left out — and resolve it to a plain C chord.",
+    [
+      q(
+        "The 9th of a C major chord is…",
+        "D",
+        ["B", "F", "A"],
+        "Count up nine letter names from C: the 9th is the 2nd scale degree an octave up — D.",
+      ),
+      q(
+        "Extensions change a chord's…",
+        "Color, not its function",
+        ["Function entirely", "Root note", "Key signature"],
+        "A G13 still resolves like G7 — the extensions are perfume, not structure.",
       ),
     ],
   ),
