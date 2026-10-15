@@ -276,13 +276,27 @@ export function keySignatureAccidentals(key: (typeof KEYS)[number]): string[] {
   return order.slice(0, key.accidentals) as unknown as string[];
 }
 
-/** Neighbours on the circle plus the relative minor — the closely related keys. */
+/**
+ * The closely related keys of a major key, as full key names, in the order
+ * Level 7 lists them from C: the dominant and subdominant majors (one step
+ * around the circle), then the relative minors of the tonic, the dominant
+ * and the subdominant. Together with the tonic that is every key whose
+ * signature matches or differs by one accidental. The tonic is not included.
+ */
 export function closelyRelatedKeys(tonic: string): string[] {
   const i = CIRCLE_OF_FIFTHS.indexOf(tonic);
   if (i < 0) return [];
-  const left = CIRCLE_OF_FIFTHS[(i + 11) % 12]!;
-  const right = CIRCLE_OF_FIFTHS[(i + 1) % 12]!;
-  return [left, right];
+  const right = CIRCLE_OF_FIFTHS[(i + 1) % 12]!; // dominant — one sharp more
+  const left = CIRCLE_OF_FIFTHS[(i + 11) % 12]!; // subdominant — one flat more
+  const relativeMinor = (majorTonic: string): string =>
+    (KEYS.find((k) => k.tonic === majorTonic)?.relative ?? "").replace(/ Minor$/, " minor");
+  return [
+    `${right} major`,
+    `${left} major`,
+    relativeMinor(tonic),
+    relativeMinor(right),
+    relativeMinor(left),
+  ];
 }
 
 export const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11, 12] as const;

@@ -37,7 +37,7 @@ export function CircleScreen() {
         make={make}
         intro={
           modulation
-            ? "Read the signature, or name a closely related key — one step around the circle."
+            ? "Read the signature, or name a closely related key — the same signature, or one accidental away."
             : "Read the sharps or flats on the staff, or count them, and name the major key."
         }
         lessonLevel={modulation ? 7 : 3}
@@ -51,7 +51,11 @@ export function CircleScreen() {
 
   const key = KEYS.find((k) => k.tonic === active && k.isMajor);
   const tonic = TONIC_MIDI[active] ?? 60;
-  const neighbours = closelyRelatedKeys(active);
+  // The map spotlights the two adjacent MAJORS on the circle; the full
+  // closely related family (relative minors included) is what the drill uses.
+  const neighbours = closelyRelatedKeys(active)
+    .filter((name) => name.endsWith(" major"))
+    .map((name) => name.replace(/ major$/, ""));
 
   return (
     <GameShell title="Circle of Fifths">

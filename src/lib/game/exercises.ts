@@ -337,22 +337,26 @@ export function scaleExercise(grade = 3): Exercise {
 
 export function relatedKeyExercise(): Exercise {
   const home = pick(CIRCLE_OF_FIFTHS.slice(0, 6).concat(CIRCLE_OF_FIFTHS.slice(10)));
+  // The full family Level 7 teaches — dominant and subdominant majors plus
+  // the relative minors — any of them can be the answer now.
   const related = closelyRelatedKeys(home);
   const correct = pick(related);
-  const far = shuffle(CIRCLE_OF_FIFTHS.filter((k) => k !== home && !related.includes(k))).slice(
-    0,
-    3,
-  );
-  const homeKey = KEYS.find((k) => k.tonic === home);
+  const allKeyNames = KEYS.flatMap((k) => [
+    `${k.tonic} major`,
+    k.relative.replace(/ Minor$/, " minor"),
+  ]);
+  const far = shuffle(
+    allKeyNames.filter((n) => n !== `${home} major` && !related.includes(n)),
+  ).slice(0, 3);
   return {
     type: "modulation",
     prompt: `Which key is a close neighbour of ${home} major?`,
     notes: [],
-    correctAnswer: `${correct} major`,
-    options: shuffle([correct, ...far].map((k) => `${k} major`)),
+    correctAnswer: correct,
+    options: shuffle([correct, ...far]),
     playback: "silent",
     metadata: { tonic: home, showStaff: false },
-    explain: `${home} major touches ${related.join(" and ")} major on the circle — one accidental apart — plus its relative ${homeKey?.relative ?? "minor"}. Those share the most chords, so pivot-chord modulation is smooth.`,
+    explain: `${home} major's close family is ${related.join(", ")} — the dominant and subdominant majors and the relative minors of all three: the same key signature or one accidental away. Those share the most chords, so pivot-chord modulation is smooth.`,
   };
 }
 

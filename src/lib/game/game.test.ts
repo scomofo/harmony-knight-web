@@ -480,9 +480,59 @@ describe("music theory helpers", () => {
     assert.deepEqual(keySignatureAccidentals(KEYS[0]!), []);
   });
 
-  it("finds closely related keys one step around the circle", () => {
-    assert.deepEqual(closelyRelatedKeys("C").sort(), ["F", "G"]);
-    assert.deepEqual(closelyRelatedKeys("F").sort(), ["Bb", "C"]);
+  it("finds the full closely related family Level 7 teaches", () => {
+    // The lesson's own enumeration from C major, in the lesson's order.
+    assert.deepEqual(closelyRelatedKeys("C"), [
+      "G major",
+      "F major",
+      "A minor",
+      "E minor",
+      "D minor",
+    ]);
+    // Flat side: F's family spans Bb major down to G minor.
+    assert.deepEqual(closelyRelatedKeys("F").sort(), [
+      "A minor",
+      "Bb major",
+      "C major",
+      "D minor",
+      "G minor",
+    ]);
+    // Sharp side: spellings come from the key table (C#, G#, F# minors).
+    assert.deepEqual(closelyRelatedKeys("E"), [
+      "B major",
+      "A major",
+      "C# minor",
+      "G# minor",
+      "F# minor",
+    ]);
+  });
+
+  it("gives every major key five distinct close relatives, itself excluded", () => {
+    for (const k of KEYS) {
+      const family = closelyRelatedKeys(k.tonic);
+      assert.equal(family.length, 5, k.name);
+      assert.equal(new Set(family).size, 5, k.name);
+      assert.ok(!family.includes(`${k.tonic} major`), k.name);
+    }
+  });
+
+  it("places every relative minor inside its major's family", () => {
+    // The minor side of the family: a minor key is always closely related
+    // to its relative major, so minor tonics are covered through them.
+    for (const k of KEYS) {
+      const minorName = k.relative.replace(/ Minor$/, " minor");
+      assert.ok(
+        closelyRelatedKeys(k.tonic).includes(minorName),
+        `${minorName} missing from ${k.name}'s family`,
+      );
+    }
+  });
+
+  it("keeps distant keys out of the family", () => {
+    // The lesson's own check question: E major is NOT closely related to C.
+    assert.ok(!closelyRelatedKeys("C").includes("E major"));
+    // The parallel minor sits three flats away — outside the family too.
+    assert.ok(!closelyRelatedKeys("C").includes("C minor"));
   });
 
   it("builds diatonic triads with the right qualities in C major", () => {
@@ -597,9 +647,35 @@ describe("exercise generators", () => {
     repeat(20, () => {
       const ex = relatedKeyExercise();
       const home = ex.metadata?.tonic as string;
-      const answer = ex.correctAnswer.replace(" major", "");
-      assert.ok(closelyRelatedKeys(home).includes(answer));
+      assert.ok(closelyRelatedKeys(home).includes(ex.correctAnswer));
     });
+  });
+
+  it("drills the whole family, relative minors included", () => {
+    const seenForC = new Set<string>();
+    let sawMinorAnswer = false;
+    repeat(2000, () => {
+      const ex = relatedKeyExercise();
+      const home = ex.metadata?.tonic as string;
+      const family = closelyRelatedKeys(home);
+      assert.ok(
+        family.includes(ex.correctAnswer),
+        `${ex.correctAnswer} is not closely related to ${home}`,
+      );
+      // Distractors are never family members and never the home key itself.
+      for (const opt of ex.options) {
+        assert.ok(
+          opt === ex.correctAnswer || (!family.includes(opt) && opt !== `${home} major`),
+          `${opt} should not be a distractor for ${home}`,
+        );
+      }
+      if (ex.correctAnswer.endsWith(" minor")) sawMinorAnswer = true;
+      if (home === "C") seenForC.add(ex.correctAnswer);
+    });
+    // Minor keys really do come up as answers now…
+    assert.ok(sawMinorAnswer);
+    // …and for C major every one of the five taught relatives gets drilled.
+    assert.deepEqual([...seenForC].sort(), closelyRelatedKeys("C").sort());
   });
 });
 
