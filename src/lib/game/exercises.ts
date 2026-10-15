@@ -286,7 +286,9 @@ export function keySignatureExercise(maxAccidentals = 4): Exercise {
         ? "C major is the open plain — no sharps, no flats. Its relative minor is A minor."
         : correct.kind === "sharp"
           ? `${correct.name}: ${accWord}. The last sharp is one semitone below the tonic. Relative minor: ${correct.relative}.`
-          : `${correct.name}: ${accWord}. The second-to-last flat names the key. Relative minor: ${correct.relative}.`,
+          : correct.accidentals === 1
+            ? `${correct.name}: ${accWord}. One flat is the exception: the single flat itself names the key — one flat is always F major. Relative minor: ${correct.relative}.`
+            : `${correct.name}: ${accWord}. The second-to-last flat names the key. Relative minor: ${correct.relative}.`,
   };
 }
 

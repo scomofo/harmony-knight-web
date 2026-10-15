@@ -53,9 +53,13 @@ export function Staff({
   const glyphSize = 26 + (1 - confidence) * 10;
 
   const lines = [0, 1, 2, 3, 4];
+  // Ledger lines: one per line position from the staff edge out to the note —
+  // the same iteration StaffDiagram uses. Line positions below the staff are
+  // steps 0, −2, … and above it 12, 14, … (the bottom line is step 2), and a
+  // note in the space just past a line position still needs that line drawn.
   const ledger: number[] = [];
-  if (steps < 2) ledger.push(e4Y + lineGap);
-  if (steps > 10) ledger.push(staffTop - lineGap);
+  for (let s = 0; s >= steps; s -= 2) ledger.push(e4Y - (s - 2) * (lineGap / 2));
+  for (let s = 12; s <= steps; s += 2) ledger.push(e4Y - (s - 2) * (lineGap / 2));
 
   return (
     <div className="relative flex flex-col items-center">
@@ -118,18 +122,20 @@ export function Staff({
               bass clef
             </text>
           ) : null}
-          {ledger.map((y) => (
-            <line
-              key={y}
-              x1={noteX - 22}
-              x2={noteX + 22}
-              y1={y}
-              y2={y}
-              stroke="var(--color-parchment)"
-              strokeOpacity={0.45 + staffOpacity * 0.4}
-              strokeWidth={1.2}
-            />
-          ))}
+          {staffOpacity > 0.02
+            ? ledger.map((y) => (
+                <line
+                  key={y}
+                  x1={noteX - 22}
+                  x2={noteX + 22}
+                  y1={y}
+                  y2={y}
+                  stroke="var(--color-parchment)"
+                  strokeOpacity={0.22 + staffOpacity * 0.55}
+                  strokeWidth={1.2}
+                />
+              ))
+            : null}
           {sharp ? (
             <text
               x={noteX - 32}

@@ -13,7 +13,7 @@ const choices = (midis: number[], spelling: Record<number, string> = {}): NoteCh
   midis.map((midi) => ({ midi, label: spelling[midi] ?? noteName(midi) }));
 const chromatic = choices(
   Array.from({ length: 13 }, (_, i) => 60 + i),
-  { 63: "Eb4", 66: "Gb4", 70: "Bb4" },
+  { 61: "Db4", 63: "Eb4", 66: "Gb4", 70: "Bb4" },
 );
 const white = choices([60, 62, 64, 65, 67, 69, 71, 72]);
 const eighths = ["1", "1 &", "2", "2 &", "3", "3 &", "4", "4 &"];
