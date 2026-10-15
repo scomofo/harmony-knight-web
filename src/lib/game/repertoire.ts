@@ -119,6 +119,20 @@ export const REPERTOIRE: Record<string, RepertoireMoment> = {
       ],
     },
   },
+  "8-extensions": {
+    name: "Homeward Loop",
+    note: "The loop puts on its best clothes: Cmaj9–Am9–Fmaj9–G13. The route home is unchanged — every chord is a familiar one with colour stacked on top.",
+    example: {
+      label: "Homeward Loop · extended colour",
+      mode: "progression",
+      notes: [
+        [48, 52, 55, 59, 62],
+        [45, 48, 52, 55, 59],
+        [53, 57, 60, 64, 67],
+        [55, 59, 62, 65, 69, 76],
+      ],
+    },
+  },
   "8-borrowed": {
     name: "Homeward Loop",
     note: "Borrow one note from C minor: F becomes Fm. The loop stays recognizable while Ab changes the colour of the trip home.",

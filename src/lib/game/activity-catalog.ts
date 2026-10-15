@@ -844,6 +844,51 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
       ),
     ],
   },
+  "8-extensions": {
+    title: "Hear extension colour, then build it",
+    tasks: [
+      harmonyListen(
+        "hear-maj7-vs-maj9",
+        "Which C chord reaches up to the 9th?",
+        "Both chords grow from the same C-major stack. One stops at the major seventh; the other adds D, the 9th, on top.",
+        [
+          { label: "Example A", chords: [[60, 64, 67, 71]] },
+          { label: "Example B", chords: [[60, 64, 67, 71, 74]] },
+        ],
+        1,
+        "Example B is Cmaj9: the added D is the 9th, the 2nd degree an octave up. Example A stops at B natural and is Cmaj7.",
+        "Listen to the top of the stack: the chord with one more note reaching higher is the extended one.",
+      ),
+      chord(
+        "major9",
+        "Cmaj9",
+        [60, 64, 67, 71, 74],
+        "C4–E4–G4–B4–D5: major triad, major seventh, then the 9th on top.",
+        choices(Array.from({ length: 17 }, (_, i) => 60 + i), {
+          61: "Db4",
+          63: "Eb4",
+          66: "Gb4",
+          70: "Bb4",
+          73: "Db5",
+          75: "Eb5",
+        }),
+      ),
+      chord(
+        "dominant9",
+        "C9",
+        [60, 64, 67, 70, 74],
+        "C4–E4–G4–Bb4–D5: dominant seventh, then the 9th on top.",
+        choices(Array.from({ length: 17 }, (_, i) => 60 + i), {
+          61: "Db4",
+          63: "Eb4",
+          66: "Gb4",
+          70: "Bb4",
+          73: "Db5",
+          75: "Eb5",
+        }),
+      ),
+    ],
+  },
   "8-borrowed": {
     title: "Hear borrowed colour, then build it",
     tasks: [
