@@ -1,4 +1,6 @@
 import { COURSE_UNITS, unitById, type CourseUnit } from "./course.ts";
+import type { CheckQuestion } from "./lessons.ts";
+import { generateRecallPair } from "./recall-gen.ts";
 
 export type UnitProgress = {
   /** Learn, try, question 1, question 2, summary. */
@@ -27,10 +29,25 @@ export function localDayKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+/**
+ * The pair of recall checks a learner is actually served for this unit in
+ * their current state — the single source the lesson screen renders, the
+ * answer validator checks against, and the scheduler validates. First pass
+ * (and any non-review revisit) serves the authored pair. During a review the
+ * pair is generated for the unit's concept, seeded by the already-persisted
+ * reviewCount, so it is fresh each round yet stable across a mid-review
+ * refresh; units without a generator keep their authored pair (see
+ * recall-gen.ts). Pure in (unit, progress): no new state is stored.
+ */
+export function servedChecks(unit: CourseUnit, progress: UnitProgress): CheckQuestion[] {
+  if (!progress.reviewing) return unit.checks;
+  return generateRecallPair(unit.id, progress.reviewCount) ?? unit.checks;
+}
+
 /** Finite, untimed steps; a revealed answer cannot be overwritten to inflate recall. */
 export function answerUnit(unit: CourseUnit, progress: UnitProgress, answer: string): UnitProgress {
   const index = progress.step - 2;
-  const question = unit.checks[index];
+  const question = servedChecks(unit, progress)[index];
   if (!question || progress.answers[index] !== undefined || !question.options.includes(answer))
     return progress;
   return { ...progress, answers: { ...progress.answers, [index]: answer } };
@@ -42,19 +59,20 @@ export function advanceUnit(
   now = new Date(),
 ): UnitProgress {
   if (progress.step >= 4) return progress;
+  const checks = servedChecks(unit, progress);
   if (
     progress.step >= 2 &&
-    !unit.checks[progress.step - 2]?.options.includes(progress.answers[progress.step - 2]!)
+    !checks[progress.step - 2]?.options.includes(progress.answers[progress.step - 2]!)
   )
     return progress;
   if (progress.step < 3) return { ...progress, step: progress.step + 1 };
-  if (!unit.checks.every((q, i) => q.options.includes(progress.answers[i]!))) return progress;
+  if (!checks.every((q, i) => q.options.includes(progress.answers[i]!))) return progress;
 
   const first = !progress.completedAt;
   const due =
     progress.nextReviewAt !== null && new Date(progress.nextReviewAt).getTime() <= now.getTime();
   const recalled =
-    !progress.assisted && unit.checks.every((q, i) => q.answer === progress.answers[i]);
+    !progress.assisted && checks.every((q, i) => q.answer === progress.answers[i]);
   // Rereading or early repeats do not lengthen the review interval or farm review credit.
   const schedule = first || due;
   const intervalDays = schedule
