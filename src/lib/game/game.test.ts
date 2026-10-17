@@ -46,6 +46,7 @@ import { REPERTOIRE } from "./repertoire.ts";
 import {
   advanceUnit,
   answerUnit,
+  courseComplete,
   dueUnits,
   freshUnitProgress,
   localDayKey,
@@ -267,6 +268,14 @@ describe("focused curriculum and saved learning", () => {
     assert.equal(nextUnit({ [fugue.id]: finish() }, fugue.id)?.id, "10-development");
     const completed = Object.fromEntries(COURSE_UNITS.map((u) => [u.id, finish()]));
     assert.equal(nextUnit(completed), undefined);
+  });
+
+  it("derives course completion only when every unit has completed", () => {
+    assert.equal(courseComplete({}), false);
+    const almost = Object.fromEntries(COURSE_UNITS.slice(0, -1).map((u) => [u.id, finish()]));
+    assert.equal(courseComplete(almost), false);
+    const all = Object.fromEntries(COURSE_UNITS.map((u) => [u.id, finish()]));
+    assert.equal(courseComplete(all), true);
   });
 
   it("awards completion once, preserves checkpoints, and keeps learning separate from grade trials", () => {

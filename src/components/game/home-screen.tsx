@@ -14,7 +14,7 @@ import {
 import { playSuccess } from "@/lib/game/audio";
 import { levelFor, studiesFor, type AppRoute } from "@/lib/game/curriculum";
 import { COURSE_UNITS, unitsForLevel } from "@/lib/game/course";
-import { dueUnits, nextUnit, weekDays } from "@/lib/game/learning";
+import { courseComplete, dueUnits, nextUnit, weekDays } from "@/lib/game/learning";
 import { gradeProgress, questRoute, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { KnightBadges } from "./badges";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 export function HomeScreen() {
   const progress = useGameStore();
   const next = nextUnit(progress.unitProgress, progress.activeUnitId);
+  const courseDone = courseComplete(progress.unitProgress);
   const due = dueUnits(progress.unitProgress);
   const completed = COURSE_UNITS.filter((u) => progress.unitProgress[u.id]?.completedAt).length;
   const days = weekDays();
@@ -133,6 +134,34 @@ export function HomeScreen() {
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
+          </section>
+        ) : courseDone ? (
+          <section
+            aria-label="Course complete"
+            className="rounded-[var(--radius-xl)] border border-[var(--color-harmony)] bg-[var(--color-ink-2)] p-5 sm:p-6"
+          >
+            <p className="text-sm text-[var(--color-harmony)]">
+              All {COURSE_UNITS.length} lessons complete
+            </p>
+            <h2 className="mt-2 font-[var(--font-display)] text-3xl leading-tight tracking-[-0.03em]">
+              You finished the learning path.
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
+              From your first note to your own ideas, every lesson is done. What keeps it yours is
+              using it: a short recall when a lesson comes due, or a few notes of practice. Due
+              recalls appear right here — and there is no streak to lose.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link to="/practice" search={{ mode: undefined }}>
+                  Practise your notes
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link to="/curriculum">Revisit the learning path</Link>
+              </Button>
+            </div>
           </section>
         ) : (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-harmony)] bg-[var(--color-ink-2)] p-5">
