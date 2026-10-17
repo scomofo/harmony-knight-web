@@ -2,13 +2,13 @@
 
 A music theory learning app designed around short, focused sessions for adults, including adults with ADHD. Learn one idea, try it, recall it, and return to your saved place. Optional note-reading games and a duel with the Discord Sentinel build fluency alongside the learning path.
 
-This is the web remake of the Flutter game in [scomofo/harmony-knight](https://github.com/scomofo/harmony-knight). Progress lives in `localStorage` — no account required.
+This is the web remake of [scomofo/harmony-knight](https://github.com/scomofo/harmony-knight), the original Vite + React version. Progress lives in `localStorage` — no account required.
 
 ## Playable surface
 
 - **Onboarding** — one screen, an optional low/high listening example, and a direct start into the first lesson
 - **Home** — one recommended next or unfinished lesson, weekly learning days without a daily streak, lesson recall when due, and access to note practice. Focus mode collapses optional game challenges and hides score counters.
-- **Learning path** — 44 focused lessons across 11 chapters, with 88 recall questions. Each lesson has Learn → Try it → Recall → Done steps, user-controlled audio where relevant, practical tasks, and explanations after each answer. All teaching is open regardless of game grade. `/lesson/:level?unit=<stable-id>` links to an exact lesson; level remains zero-based for existing links.
+- **Learning path** — 45 focused lessons across 11 chapters, with 90 recall questions. Each lesson has Learn → Try it → Recall → Done steps, user-controlled audio where relevant, practical tasks, and explanations after each answer. All teaching is open regardless of game grade. `/lesson/:level?unit=<stable-id>` links to an exact lesson; level remains zero-based for existing links.
 - **Practice** — treble and bass staff + Figurenotes, written sharps, landmark notes (Bass F, Middle C, Treble G), spaced repetition, saved weak-note focus, due-review rounds, pause/resume and optional Fever Mode
 - **Strike** — realtime named-lane highway
 - **Duel** — first-species blends against the Discord Sentinel (ghost tone on clash)
@@ -157,9 +157,9 @@ Dev server binds `0.0.0.0:8086`. Production preview uses `npm run preview`.
 
 Use Node 24. GitHub Actions runs a clean `npm ci`, `npm test`, type checking and a production
 build on pull requests and pushes to main, with read-only repository permissions and no
-deployment or database credentials.
+deployment credentials.
 
-`npm test` runs the script tests (`test:template`), game/app-data/auth tests (`test:unit`),
+`npm test` runs the script tests (`test:template`), game tests (`test:unit`),
 then React interaction tests in jsdom (`test:ui`). `test:game` runs just the game logic.
 The inherited script tests use isolated app-env and branding fixtures instead of assuming
 this clone has an app-builder workspace. Four authoring-document checks skip with an

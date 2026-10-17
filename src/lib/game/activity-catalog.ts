@@ -141,7 +141,7 @@ export const LESSON_ACTIVITIES: Record<string, LessonActivity> = {
         "exact",
         [48, 48, 48],
         [64, 65, 67],
-        "Match the first three notes in the picture: E4 F4 G4. Each neighbouring staff line or space advances one letter.",
+        "Build E4 F4 G4 — the three notes this unit's step pattern uses. Each neighbouring staff line or space advances one letter.",
         {
           choices: choices(
             [...new Set([...[64, 65, 67], 60, 61, 66])].sort((a, b) => a - b),

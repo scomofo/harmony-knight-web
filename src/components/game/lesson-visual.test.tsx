@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { useGameStore } from "@/lib/game/store";
+import { staffStepsFromC4 } from "@/lib/game/music";
 import { LessonFigure } from "./lesson-visual";
 import { activityForUnit } from "@/lib/game/activity-catalog";
 import { LessonScreen } from "./lesson-screen";
@@ -218,4 +219,85 @@ it("keeps augmented G-sharp alongside minor and diminished flats", () => {
   expect(container.textContent).toContain("Gb");
   expect(container.textContent).toContain("G#");
   expect(container.textContent).not.toContain("Ab");
+});
+
+// StaffDiagram geometry at the default width (360): staff lines span
+// x 24..336 and a single note column sits at x 210, so its ledger lines are
+// the short strokes starting at x 192. Line gap is 14 (a staff step is 7).
+const DIAGRAM_BOTTOM_Y = 86; // bottom staff line of a single staff
+const DIAGRAM_BOTTOM_STEP = { treble: 2, bass: -10 } as const;
+
+function diagramLedgerYs(container: HTMLElement): number[] {
+  return Array.from(container.querySelectorAll("line"))
+    .filter((el) => Number(el.getAttribute("x1")) === 192)
+    .map((el) => Number(el.getAttribute("y1")))
+    .sort((a, b) => a - b);
+}
+
+/** Every line position between the staff edge and the note, inclusive. */
+function expectedDiagramLedgerYs(steps: number, bottomStep: number, bottomY: number): number[] {
+  const ys: number[] = [];
+  for (let s = bottomStep - 2; s >= steps; s -= 2) ys.push(bottomY - (s - bottomStep) * 7);
+  for (let s = bottomStep + 10; s <= steps; s += 2) ys.push(bottomY - (s - bottomStep) * 7);
+  return ys.sort((a, b) => a - b);
+}
+
+it("draws the exact ledger-line set for MIDI 36-96 in treble and bass (StaffDiagram)", () => {
+  for (const clef of ["treble", "bass"] as const) {
+    for (let midi = 36; midi <= 96; midi++) {
+      const { container, unmount } = render(
+        <LessonFigure
+          visual={{ kind: "staff", clef, notes: [midi], caption: "One note.", alt: "One note" }}
+        />,
+      );
+      expect(diagramLedgerYs(container), `${clef} ${midi}`).toEqual(
+        expectedDiagramLedgerYs(
+          staffStepsFromC4(midi),
+          DIAGRAM_BOTTOM_STEP[clef],
+          DIAGRAM_BOTTOM_Y,
+        ),
+      );
+      unmount();
+    }
+  }
+});
+
+it("spells a flat on the natural above it when counting ledger lines (Ab3)", () => {
+  const { container } = render(
+    <LessonFigure
+      visual={{
+        kind: "staff",
+        clef: "treble",
+        notes: [56],
+        spell: "flat",
+        caption: "A flat below the staff.",
+        alt: "A flat below the staff",
+      }}
+    />,
+  );
+  // Ab3 sits at A3's step (-2): ledger lines through step 0 and step -2.
+  expect(diagramLedgerYs(container)).toEqual([100, 114]);
+});
+
+it("places grand-staff ledger lines on the staff each note belongs to", () => {
+  const { container } = render(
+    <LessonFigure
+      visual={{
+        kind: "staff",
+        clef: "grand",
+        notes: [60, 36],
+        caption: "Middle C and low C.",
+        alt: "Middle C and low C on a grand staff",
+      }}
+    />,
+  );
+  const lines = Array.from(container.querySelectorAll("line"));
+  const ledgers = lines
+    .filter((el) => Number(el.getAttribute("x2")) - Number(el.getAttribute("x1")) === 36)
+    .map((el) => Number(el.getAttribute("y1")))
+    .sort((a, b) => a - b);
+  // Ten staff lines plus three ledger lines: middle C below the treble
+  // staff (y 100), and C2 below the bass staff (y 254 and 268).
+  expect(lines.length).toBe(13);
+  expect(ledgers).toEqual([100, 254, 268]);
 });
