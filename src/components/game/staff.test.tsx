@@ -7,7 +7,7 @@ import { BASS_CLEF_STEP_OFFSET, staffStepsFromC4 } from "@/lib/game/music";
 // the short strokes centred on the note at x 132..176.
 const NOTE_X = 280 * 0.55;
 const LINE_GAP = 14;
-const E4_Y = 36 + 4 * LINE_GAP; // bottom staff line (step 2)
+const E4_Y = 40 + 4 * LINE_GAP; // bottom staff line (step 2)
 
 type RenderedStaff = {
   ledgerYs: number[];
@@ -48,9 +48,9 @@ function expectedLedgerYs(steps: number): number[] {
 }
 
 describe("interactive Staff geometry", () => {
-  it("places the notehead and the exact ledger-line set for MIDI 41-84 in both clefs", () => {
+  it("places the notehead and the exact ledger-line set for MIDI 36-96 in both clefs", () => {
     for (const clef of ["treble", "bass"] as const) {
-      for (let midi = 41; midi <= 84; midi++) {
+      for (let midi = 36; midi <= 96; midi++) {
         const steps =
           staffStepsFromC4(midi) + (clef === "bass" ? BASS_CLEF_STEP_OFFSET : 0);
         const { ledgerYs, noteY } = renderStaff(midi, clef);
@@ -73,6 +73,40 @@ describe("interactive Staff geometry", () => {
       E4_Y - 6 * LINE_GAP,
       E4_Y - 5 * LINE_GAP,
     ]);
+  });
+
+  it("keeps every practice-pool note fully inside the viewport, as the practice screen renders it", () => {
+    // The practice pool (practice.ts buildNotePool, all grades): the bass
+    // landmarks 53–59 plus every note 60–72. The practice screen renders
+    // <Staff midi confidence /> — no clef or height props — so each note must
+    // fit the default 280×168 viewport at any confidence: ledger lines, the
+    // notehead glyph box below 0.92 confidence, head + stem at/above it.
+    const pool = [53, 55, 57, 59, ...Array.from({ length: 13 }, (_, i) => 60 + i)];
+    for (const confidence of [0, 0.5, 0.91, 0.92, 1]) {
+      for (const midi of pool) {
+        const { container, unmount } = render(<Staff midi={midi} confidence={confidence} />);
+        for (const line of Array.from(container.querySelectorAll("line"))) {
+          const y = Number(line.getAttribute("y1"));
+          expect(y, `midi ${midi} @ ${confidence} line`).toBeGreaterThanOrEqual(0);
+          expect(y, `midi ${midi} @ ${confidence} line`).toBeLessThanOrEqual(168);
+        }
+        const glyph = container.querySelector("foreignObject");
+        if (glyph) {
+          const y = Number(glyph.getAttribute("y"));
+          const h = Number(glyph.getAttribute("height"));
+          expect(y, `midi ${midi} @ ${confidence} glyph top`).toBeGreaterThanOrEqual(0);
+          expect(y + h, `midi ${midi} @ ${confidence} glyph bottom`).toBeLessThanOrEqual(168);
+        }
+        const head = container.querySelector('g[transform*="rotate(-18)"]');
+        if (head) {
+          const ty = Number(head.getAttribute("transform")?.split(",")[1]?.split(")")[0]);
+          // Drawn extent: the stem reaches 32 above the centre, the head 8 below.
+          expect(ty - 32, `midi ${midi} @ ${confidence} stem top`).toBeGreaterThanOrEqual(0);
+          expect(ty + 8, `midi ${midi} @ ${confidence} head bottom`).toBeLessThanOrEqual(168);
+        }
+        unmount();
+      }
+    }
   });
 
   it("keeps ledger lines on the staff's confidence fade", () => {

@@ -23,6 +23,7 @@ vi.mock("@/lib/game/audio", () => {
       return { elapsed: () => ((Date.now() - start) / 1000) * speed, stop };
     }),
     playChord: vi.fn(),
+    playChosenNote: vi.fn(),
     playClick: vi.fn(),
     playHit: vi.fn(),
     playLevelUp: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@/lib/game/audio", () => {
     playVoicePhrase: vi.fn(),
     stopTones: stop,
     setMasterGain: vi.fn(),
+    resumeAudio: vi.fn(),
     unlockAudio: vi.fn(),
   };
 });

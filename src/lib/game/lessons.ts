@@ -123,6 +123,12 @@ const IV = voiceNear(diatonicTriad(60, 3), 65);
 const V = voiceNear(diatonicTriad(60, 4), 65);
 const vi = voiceNear(diatonicTriad(60, 5), 65);
 
+/**
+ * The reference layer. Section bodies here are preserved as the optional
+ * in-lesson refresher (CourseUnit.reference); they are NOT the taught body.
+ * The live teaching text is HUMANIZED_TEACHING in course.ts, which overrides
+ * every unit. To change what a lesson teaches, edit course.ts.
+ */
 export const LESSONS: Lesson[] = [
   {
     level: 0,
@@ -380,7 +386,7 @@ export const LESSONS: Lesson[] = [
       },
       {
         heading: "Sharps and flats in order",
-        body: "A key signature applies its sharps or flats to those letter names in every octave. Sharps appear in the order F C G D A E B; flats reverse it: B E A D G C F. In major sharp keys, go a semitone above the last sharp to find the tonic (home note). In major flat keys, the second-to-last flat names the key. The exception is F major: its single flat is Bb. A signature alone cannot distinguish a major key from its relative minor.",
+        body: "A key signature applies its sharps or flats to those letter names in every octave. Sharps appear in the order F C G D A E B — memorize it with “Father Charles Goes Down And Ends Battle”; flats reverse it: B E A D G C F — “Battle Ends And Down Goes Charles' Father”. In major sharp keys, go a semitone above the last sharp to find the tonic (home note). In major flat keys, the second-to-last flat names the key. The exception is F major: its single flat is Bb. A signature alone cannot distinguish a major key from its relative minor.",
         example: {
           label: "G major — one sharp, F#",
           notes: [67, 69, 71, 72, 74, 76, 78, 79],

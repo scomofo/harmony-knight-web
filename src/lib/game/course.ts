@@ -80,7 +80,15 @@ const MUSICIAN_CONNECTIONS: Record<string, string> = {
   "10-post-tonal": "Pitch-class tools deliberately ignore octave so you can study interval patterns in a compact way. They are useful for seeing relationships in music where traditional key-centred labels no longer explain what is happening."
 };
 
-const HUMANIZED_TEACHING: Record<string, string> = {
+/**
+ * The LIVE teaching text. Every unit's taught body comes from this record
+ * (see the `unit()` builder below); the section bodies in lessons.ts are the
+ * REFERENCE copy, shown only behind the optional refresher. Editing
+ * lessons.ts does not change what learners are taught — edit here.
+ * Guarded by course-teaching.test.ts: every unit must have an entry, and a
+ * unit's body must be its entry.
+ */
+export const HUMANIZED_TEACHING: Record<string, string> = {
   "0-pitch":
     "You already know more about pitch than the word makes it sound. Think of a kettle rising to a squeal, a truck rumbling past, or someone sliding their voice upward on a question. Pitch is simply where a sound sits from low to high. It is not the same as loudness: a whisper can be high and a shout can be low. In the example, listen only for which note sits higher. You do not need to name either note yet.",
   "0-dynamics":
@@ -356,7 +364,7 @@ export const COURSE_UNITS: CourseUnit[] = [
     "steps",
     {
       heading: "Half steps, sharps and flats",
-      body: "A half step (semitone) moves to the next piano key, black or white. A whole step is two half steps. A sharp (#) raises a note by a semitone; a flat (b) lowers it; a natural cancels an accidental. E–F and B–C are already half steps: there is no black key between them. C# and Db sound the same on an equal-tempered piano, but their spelling tells you their musical job.",
+      body: "A half step (semitone) moves to the next piano key, black or white. A whole step is two half steps. A sharp (#) raises a note by a semitone; a flat (b) lowers it; a natural (♮) cancels a sharp or flat, back to the white key. E–F and B–C are already half steps: there is no black key between them. C# and Db sound the same on an equal-tempered piano, but their spelling tells you their musical job.",
       example: {
         label: "C–C# (half step), C–D (whole step)",
         notes: [60, 61, 60, 62],

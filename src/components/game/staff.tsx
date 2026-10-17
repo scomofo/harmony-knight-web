@@ -46,7 +46,10 @@ export function Staff({
   // Bass: G2 is the bottom line, 12 steps lower — so shift the note up by 12.
   const steps = staffStepsFromC4(midi) + (activeClef === "bass" ? BASS_CLEF_STEP_OFFSET : 0);
   const lineGap = 14;
-  const staffTop = 36;
+  // Top padding: at full confidence the drawn stem reaches 32px above the
+  // notehead, and the highest practice-pool note on the bass staff (B3,
+  // centre y = staffTop - 7) needs those 32px inside the viewport.
+  const staffTop = 40;
   const e4Y = staffTop + 4 * lineGap;
   const noteY = e4Y - (steps - 2) * (lineGap / 2);
   const noteX = width * 0.55;
