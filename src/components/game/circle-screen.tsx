@@ -26,15 +26,16 @@ export function CircleScreen() {
   const modulation = grade >= 7;
 
   if (mode === "quiz") {
-    const make = (): Exercise => {
-      if (modulation && Math.random() < 0.5) return relatedKeyExercise();
-      return keySignatureExercise(grade >= 7 ? 6 : 4);
+    const make = (rng: () => number): Exercise => {
+      if (modulation && rng() < 0.5) return relatedKeyExercise(rng);
+      return keySignatureExercise(grade >= 7 ? 6 : 4, rng);
     };
     return (
       <QuizScreen
         title={modulation ? "Keys & neighbours" : "Key signatures"}
         topicId={modulation ? "modulation" : "keys"}
         make={make}
+        seedKey={modulation ? "modulation" : "keys"}
         intro={
           modulation
             ? "Read the signature, or name a closely related key — the same signature, or one accidental away."

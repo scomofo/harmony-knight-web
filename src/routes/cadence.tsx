@@ -13,7 +13,8 @@ function CadenceRoute() {
     <QuizScreen
       title="Cadences"
       topicId="harmony"
-      make={() => harmonyExercise(grade)}
+      make={(rng) => harmonyExercise(grade, rng)}
+      seedKey="harmony"
       intro="Every phrase starts from I so your ear has a home. Name the chord, or name how the phrase closes."
       lessonLevel={5}
     />

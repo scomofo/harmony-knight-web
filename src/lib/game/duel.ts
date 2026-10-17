@@ -31,11 +31,15 @@ export function counterpointQuality(semitones: number): IntervalQuality {
   return Math.abs(semitones) % 12 === 5 ? "dissonance" : classifyInterval(semitones);
 }
 
-function randInt(max: number) {
-  return Math.floor(Math.random() * max);
+function randInt(max: number, rng: () => number) {
+  return Math.floor(rng() * max);
 }
 
-export function generateCantusFirmus(gradeLevel = 0, opts?: { firstDuel?: boolean }): DuelNote[] {
+export function generateCantusFirmus(
+  gradeLevel = 0,
+  opts?: { firstDuel?: boolean; rng?: () => number },
+): DuelNote[] {
+  const rng = opts?.rng ?? Math.random;
   // First meeting: the same C–E–G they already know from practice.
   if (opts?.firstDuel || gradeLevel === 0) {
     if (opts?.firstDuel) {
@@ -44,7 +48,7 @@ export function generateCantusFirmus(gradeLevel = 0, opts?: { firstDuel?: boolea
     const notes: DuelNote[] = [{ midi: 60 }];
     let idx = 0;
     for (let i = 1; i < 3; i++) {
-      const step = Math.random() < 0.5 ? -1 : 1;
+      const step = rng() < 0.5 ? -1 : 1;
       idx = Math.max(0, Math.min(4, idx + step));
       notes.push({ midi: C_MAJOR[idx]! });
     }
@@ -53,12 +57,12 @@ export function generateCantusFirmus(gradeLevel = 0, opts?: { firstDuel?: boolea
   }
 
   const length =
-    gradeLevel <= 2 ? 4 + randInt(3) : gradeLevel <= 5 ? 6 + randInt(3) : 8 + randInt(5);
+    gradeLevel <= 2 ? 4 + randInt(3, rng) : gradeLevel <= 5 ? 6 + randInt(3, rng) : 8 + randInt(5, rng);
   const scale =
     gradeLevel <= 2
       ? C_MAJOR
       : gradeLevel <= 5
-        ? Math.random() < 0.5
+        ? rng() < 0.5
           ? C_MAJOR
           : A_MINOR
         : Array.from({ length: 13 }, (_, i) => 60 + i);
@@ -68,8 +72,8 @@ export function generateCantusFirmus(gradeLevel = 0, opts?: { firstDuel?: boolea
   notes.push({ midi: scale[0]! });
   for (let i = 1; i < length - 1; i++) {
     const maxStep = gradeLevel < 3 ? 2 : 3;
-    let step = randInt(maxStep * 2 + 1) - maxStep;
-    if (step === 0) step = Math.random() < 0.5 ? -1 : 1;
+    let step = randInt(maxStep * 2 + 1, rng) - maxStep;
+    if (step === 0) step = rng() < 0.5 ? -1 : 1;
     idx = Math.max(0, Math.min(scale.length - 1, idx + step));
     notes.push({ midi: scale[idx]! });
   }

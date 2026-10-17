@@ -13,7 +13,8 @@ function TriadRoute() {
     <QuizScreen
       title="Triads"
       topicId="triads"
-      make={() => triadExercise(grade)}
+      make={(rng) => triadExercise(grade, rng)}
+      seedKey="triads"
       intro={
         grade <= 4
           ? "Major or minor. The third decides: bright or dark."

@@ -13,7 +13,8 @@ function ScaleRoute() {
     <QuizScreen
       title="Scales"
       topicId="scales"
-      make={() => scaleExercise(grade)}
+      make={(rng) => scaleExercise(grade, rng)}
+      seedKey="scales"
       intro="Every major scale is the same shape from a different start. The starting note is supplied; listen for the pattern."
       lessonLevel={3}
     />
