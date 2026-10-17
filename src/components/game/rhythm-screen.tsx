@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { BookOpen, Volume2 } from "lucide-react";
 import { playClick, playHit, playLevelUp, playRhythmPattern, stopTones } from "@/lib/game/audio";
 import { rhythmExercise, RHYTHMS, type Exercise } from "@/lib/game/exercises";
+import { sessionRng, todayKey } from "@/lib/game/study-session";
 import { BEAT_MS, RHYTHM_BPM, noteValueName, scoreTaps, type TapScore } from "@/lib/game/rhythm";
 import { gradeProgress, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,13 @@ type TapPhase = "idle" | "countin" | "tapping" | "scored";
 export function RhythmScreen() {
   const store = useGameStore();
   const grade = store.gradeLevel;
-  const [ex, setEx] = useState<Exercise>(() => rhythmExercise(grade));
+  // Seeded session stream (day + "rhythm" + session index): the day's
+  // first rhythm session is reproducible; each restart deals a fresh one.
+  const dayRef = useRef(todayKey());
+  const sessionIndexRef = useRef(0);
+  const streamRef = useRef<(() => number) | null>(null);
+  if (streamRef.current === null) streamRef.current = sessionRng("rhythm", 0, dayRef.current);
+  const [ex, setEx] = useState<Exercise>(() => rhythmExercise(grade, streamRef.current!));
   const [picked, setPicked] = useState<string | null>(null);
   const [phase, setPhase] = useState<TapPhase>("idle");
   const [count, setCount] = useState(0);
@@ -120,7 +127,7 @@ export function RhythmScreen() {
     setTaps([]);
     setTapScore(null);
     transition("idle");
-    setEx(rhythmExercise(useGameStore.getState().gradeLevel));
+    setEx(rhythmExercise(useGameStore.getState().gradeLevel, streamRef.current!));
   };
 
   const choose = (option: string) => {
@@ -468,6 +475,8 @@ export function RhythmScreen() {
           leveledUp={leveled != null}
           newGrade={leveled ?? undefined}
           onAgain={() => {
+            sessionIndexRef.current += 1;
+            streamRef.current = sessionRng("rhythm", sessionIndexRef.current, dayRef.current);
             closed.current = false;
             pausedRef.current = false;
             setPaused(false);

@@ -14,6 +14,7 @@ import {
 } from "@/lib/game/audio";
 import type { Exercise } from "@/lib/game/exercises";
 import { ignoreGameKey } from "@/lib/game/input";
+import { sessionRng, todayKey } from "@/lib/game/study-session";
 import { gradeProgress, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils";
 const DEFAULT_QUIZ_GOAL = 12;
 
 /** Play an exercise the way its generator asked for. */
-function playExercise(ex: Exercise) {
+export function playExercise(ex: Exercise) {
   const mode =
     ex.playback ?? (ex.notes.length > 2 ? "chord" : ex.notes.length === 2 ? "sequence" : "single");
   if (mode === "silent") return;
@@ -62,10 +63,14 @@ export function QuizScreen({
   goal = DEFAULT_QUIZ_GOAL,
   lessonLevel,
   onExit,
+  seedKey,
+  endless = false,
 }: {
   title: string;
-  topicId: string;
-  make: () => Exercise;
+  /** Fixed topic, or the topic of each exercise (mixed sessions). */
+  topicId: string | ((ex: Exercise) => string);
+  /** Deal the next exercise, drawing from the session's rng stream. */
+  make: (rng: () => number) => Exercise;
   play?: (ex: Exercise) => void;
   /** One line of framing above the question. */
   intro?: string;
@@ -76,9 +81,24 @@ export function QuizScreen({
   /** Curriculum level whose lesson explains this drill. */
   lessonLevel?: number;
   onExit?: () => void;
+  /**
+   * When set, the session's questions are dealt from a seeded stream —
+   * seed = (day, seedKey, session index) — so the day's first session on
+   * this screen is reproducible and "Train again" deals a fresh one.
+   * Without it, questions deal from Math.random as before.
+   */
+  seedKey?: string;
+  /** No finish line: the session runs until the learner ends it. */
+  endless?: boolean;
 }) {
   const store = useGameStore();
-  const [ex, setEx] = useState<Exercise>(() => make());
+  const [sessionIndex, setSessionIndex] = useState(0);
+  const dayRef = useRef(todayKey());
+  const streamFor = (index: number) =>
+    seedKey ? sessionRng(seedKey, index, dayRef.current) : Math.random;
+  const streamRef = useRef<(() => number) | null>(null);
+  if (streamRef.current === null) streamRef.current = streamFor(0);
+  const [ex, setEx] = useState<Exercise>(() => make(streamRef.current!));
   const [picked, setPicked] = useState<string | null>(null);
   const [session, setSession] = useState({ total: 0, correct: 0, points: 0, streak: 0 });
   const [summary, setSummary] = useState(false);
@@ -134,7 +154,7 @@ export function QuizScreen({
       midi: ex.notes[0] ?? 60,
       correct,
       responseMs: Date.now() - askedAt.current,
-      topicId,
+      topicId: typeof topicId === "function" ? topicId(ex) : topicId,
       trackHeat: false,
     });
     if (outcome.leveledUp) {
@@ -153,10 +173,10 @@ export function QuizScreen({
   const continueQuestion = () => {
     if (!answered.current || closed.current || pausedRef.current) return;
     stopTones();
-    if (session.total >= goal) return finish();
+    if (!endless && session.total >= goal) return finish();
     answered.current = false;
     setPicked(null);
-    setEx(make());
+    setEx(make(streamRef.current!));
   };
 
   useEffect(() => {
@@ -184,7 +204,12 @@ export function QuizScreen({
     setLeveled(null);
     setSession({ total: 0, correct: 0, points: 0, streak: 0 });
     setPicked(null);
-    setEx(make());
+    // A restarted session is the day's next session on this screen:
+    // reseed so it deals fresh questions, reproducibly.
+    const nextIndex = sessionIndex + 1;
+    setSessionIndex(nextIndex);
+    streamRef.current = streamFor(nextIndex);
+    setEx(make(streamRef.current));
   };
 
   const revealed = picked != null;
@@ -215,7 +240,9 @@ export function QuizScreen({
         <div className="flex items-center justify-between text-xs text-[var(--color-muted)]">
           <span className="font-mono tabular-nums">
             {session.correct}/{session.total} · question{" "}
-            {Math.min(session.total + (revealed ? 0 : 1), goal)} of {goal}
+            {endless
+              ? session.total + (revealed ? 0 : 1)
+              : `${Math.min(session.total + (revealed ? 0 : 1), goal)} of ${goal}`}
           </span>
           {session.streak >= 3 ? (
             <span className="text-[var(--color-ember)]">Streak {session.streak}</span>
@@ -241,12 +268,14 @@ export function QuizScreen({
         {paused ? (
           <p role="status">Paused. Your question and feedback are saved for this session.</p>
         ) : null}
-        <div className="h-1 overflow-hidden rounded-full bg-[var(--color-ink-3)]">
-          <div
-            className="h-full rounded-full bg-[var(--color-harmony)] transition-[width] duration-[var(--motion-fast)]"
-            style={{ width: `${(session.total / goal) * 100}%` }}
-          />
-        </div>
+        {endless ? null : (
+          <div className="h-1 overflow-hidden rounded-full bg-[var(--color-ink-3)]">
+            <div
+              className="h-full rounded-full bg-[var(--color-harmony)] transition-[width] duration-[var(--motion-fast)]"
+              style={{ width: `${(session.total / goal) * 100}%` }}
+            />
+          </div>
+        )}
 
         <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-6">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
@@ -330,7 +359,7 @@ export function QuizScreen({
         </p>
         {revealed ? (
           <Button onClick={continueQuestion} disabled={paused || summary}>
-            {session.total >= goal ? "Finish session" : "Continue"}
+            {!endless && session.total >= goal ? "Finish session" : "Continue"}
           </Button>
         ) : null}
         <Button

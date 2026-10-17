@@ -13,7 +13,8 @@ function IntervalRoute() {
     <QuizScreen
       title="Intervals"
       topicId="intervals"
-      make={() => intervalExerciseForGrade(grade)}
+      make={(rng) => intervalExerciseForGrade(grade, rng)}
+      seedKey="intervals"
       intro={
         grade <= 4
           ? "Five intervals to start: 2nd, 3rd, 4th, 5th, octave. Hear two notes, name the distance."
