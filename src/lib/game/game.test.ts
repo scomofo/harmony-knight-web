@@ -51,6 +51,7 @@ import {
   freshUnitProgress,
   localDayKey,
   nextUnit,
+  servedChecks,
   weekDays,
 } from "./learning.ts";
 
@@ -219,7 +220,7 @@ describe("focused curriculum and saved learning", () => {
     for (const expected of [3, 7]) {
       const reviewAt = new Date(p.nextReviewAt!);
       p = { ...p, step: 2, answers: {}, reviewing: true };
-      for (const q of unit.checks) {
+      for (const q of servedChecks(unit, p)) {
         p = answerUnit(unit, p, q.answer);
         p = advanceUnit(unit, p, reviewAt);
       }
@@ -230,10 +231,12 @@ describe("focused curriculum and saved learning", () => {
 
   it("shortens due assisted reviews and gives no extra scheduling credit for early repeats", () => {
     const completed = finish();
+    // Due reviews serve the generated pair, so the review answers it.
+    const served = servedChecks(unit, { ...completed, reviewing: true });
     const repeat = {
       ...completed,
       step: 3,
-      answers: { 0: unit.checks[0]!.answer, 1: unit.checks[1]!.answer },
+      answers: { 0: served[0]!.answer, 1: served[1]!.answer },
       reviewing: true,
     };
     const early = advanceUnit(unit, repeat, now);
@@ -252,7 +255,7 @@ describe("focused curriculum and saved learning", () => {
         intervalDays: 7,
         answers: {
           ...repeat.answers,
-          1: unit.checks[1]!.options.find((a) => a !== unit.checks[1]!.answer)!,
+          1: served[1]!.options.find((a) => a !== served[1]!.answer)!,
         },
       },
       new Date(completed.nextReviewAt!),

@@ -39,10 +39,10 @@ function ensureOption<T extends { name: string }>(options: T[], correct: T): T[]
 
 /* ---------------------------------------------------------------- Level 0 */
 
-export function pitchHighLow(): Exercise {
-  const base = 60 + Math.floor(Math.random() * 8);
-  const higher = Math.random() < 0.5;
-  const offset = (3 + Math.floor(Math.random() * 5)) * (higher ? 1 : -1);
+export function pitchHighLow(rng: () => number = Math.random): Exercise {
+  const base = 60 + Math.floor(rng() * 8);
+  const higher = rng() < 0.5;
+  const offset = (3 + Math.floor(rng() * 5)) * (higher ? 1 : -1);
   return {
     type: "pitch",
     prompt: "Is the second tone higher or lower?",
@@ -56,12 +56,12 @@ export function pitchHighLow(): Exercise {
   };
 }
 
-export function dynamicsLoudSoft(): Exercise {
-  const loud = Math.random() < 0.5;
+export function dynamicsLoudSoft(rng: () => number = Math.random): Exercise {
+  const loud = rng() < 0.5;
   return {
     type: "dynamics",
     prompt: "Is this tone loud or soft?",
-    notes: [60 + Math.floor(Math.random() * 12)],
+    notes: [60 + Math.floor(rng() * 12)],
     correctAnswer: loud ? "Loud (forte)" : "Soft (piano)",
     options: ["Loud (forte)", "Soft (piano)"],
     playback: "single",
@@ -80,25 +80,25 @@ const TIMBRE_EXPLAIN: Record<(typeof TIMBRES)[number], string> = {
   Reed: "Reed: two slightly detuned voices beating together — like an accordion or oboe.",
 };
 
-export function timbreExercise(): Exercise {
-  const correct = pick(TIMBRES);
+export function timbreExercise(rng: () => number = Math.random): Exercise {
+  const correct = pick(TIMBRES, rng);
   return {
     type: "timbre",
     prompt: "Which colour of sound is this?",
-    notes: [60 + Math.floor(Math.random() * 7)],
+    notes: [60 + Math.floor(rng() * 7)],
     correctAnswer: correct,
-    options: shuffle([...TIMBRES]),
+    options: shuffle([...TIMBRES], rng),
     playback: "single",
     metadata: { timbre: correct },
     explain: TIMBRE_EXPLAIN[correct],
   };
 }
 
-export function sensoryExercise(): Exercise {
-  const roll = Math.random();
-  if (roll < 0.34) return pitchHighLow();
-  if (roll < 0.67) return dynamicsLoudSoft();
-  return timbreExercise();
+export function sensoryExercise(rng: () => number = Math.random): Exercise {
+  const roll = rng();
+  if (roll < 0.34) return pitchHighLow(rng);
+  if (roll < 0.67) return dynamicsLoudSoft(rng);
+  return timbreExercise(rng);
 }
 
 /* ---------------------------------------------------------------- Level 4 */
@@ -122,10 +122,11 @@ export type IntervalDirection = "ascending" | "descending" | "harmonic";
 
 export function intervalExercise(
   maxSemitones = 12,
-  opts: { directions?: IntervalDirection[]; allowed?: number[] } = {},
+  opts: { directions?: IntervalDirection[]; allowed?: number[]; rng?: () => number } = {},
 ): Exercise {
+  const rng = opts.rng ?? Math.random;
   const directions = opts.directions ?? ["ascending"];
-  const direction = pick(directions);
+  const direction = pick(directions, rng);
   const intervals = Object.entries(INTERVAL_NAMES)
     .map(([k, v]) => ({ semitones: Number(k), name: v }))
     .filter(
@@ -134,9 +135,9 @@ export function intervalExercise(
         i.semitones <= maxSemitones &&
         (!opts.allowed || opts.allowed.includes(i.semitones)),
     );
-  const correct = pick(intervals);
-  const base = 60 + Math.floor(Math.random() * 8);
-  const options = ensureOption(shuffle(intervals).slice(0, 4), correct);
+  const correct = pick(intervals, rng);
+  const base = 60 + Math.floor(rng() * 8);
+  const options = ensureOption(shuffle(intervals, rng).slice(0, 4), correct);
   const notes =
     direction === "descending"
       ? [base + correct.semitones, base]
@@ -151,7 +152,7 @@ export function intervalExercise(
           : "What interval is this?",
     notes,
     correctAnswer: correct.name,
-    options: shuffle(options.map((o) => o.name)),
+    options: shuffle(options.map((o) => o.name), rng),
     hint: "Listen, then name the distance.",
     playback: direction === "harmonic" ? "chord" : "sequence",
     explain: INTERVAL_EXPLAIN[correct.semitones],
@@ -160,17 +161,18 @@ export function intervalExercise(
 }
 
 /** Grade-aware interval drill: fewer, more distinct intervals early on. */
-export function intervalExerciseForGrade(grade: number): Exercise {
+export function intervalExerciseForGrade(grade: number, rng: () => number = Math.random): Exercise {
   if (grade <= 4) {
-    return intervalExercise(12, { allowed: [2, 4, 5, 7, 12], directions: ["ascending"] });
+    return intervalExercise(12, { allowed: [2, 4, 5, 7, 12], directions: ["ascending"], rng });
   }
   if (grade <= 6) {
     return intervalExercise(12, {
       allowed: [1, 2, 3, 4, 5, 7, 9, 12],
       directions: ["ascending", "descending"],
+      rng,
     });
   }
-  return intervalExercise(12, { directions: ["ascending", "descending", "harmonic"] });
+  return intervalExercise(12, { directions: ["ascending", "descending", "harmonic"], rng });
 }
 
 export type TriadQuality = "Major" | "Minor" | "Augmented" | "Diminished";
@@ -190,18 +192,18 @@ const TRIAD_EXPLAIN: Record<TriadQuality, string> = {
     "Diminished: two minor 3rds (3 + 3). The fifth is squeezed — tense and wanting to move.",
 };
 
-export function triadExercise(grade = 4): Exercise {
+export function triadExercise(grade = 4, rng: () => number = Math.random): Exercise {
   const qualities: TriadQuality[] =
     grade <= 4 ? ["Major", "Minor"] : ["Major", "Minor", "Augmented", "Diminished"];
-  const correct = pick(qualities);
-  const root = pick(C_MAJOR.slice(0, 6));
+  const correct = pick(qualities, rng);
+  const root = pick(C_MAJOR.slice(0, 6), rng);
   const [third, fifth] = TRIAD_INTERVALS[correct];
   return {
     type: "triad",
     prompt: "What quality is this triad?",
     notes: [root, root + third, root + fifth],
     correctAnswer: correct,
-    options: shuffle(["Major", "Minor", "Augmented", "Diminished"]),
+    options: shuffle(["Major", "Minor", "Augmented", "Diminished"], rng),
     playback: "chord",
     explain: `${TRIAD_EXPLAIN[correct]} Root: ${noteName(root)}.`,
   };
@@ -245,17 +247,17 @@ export function rhythmPatternsForGrade(grade: number): RhythmPattern[] {
   return RHYTHMS;
 }
 
-export function rhythmExercise(grade = 2): Exercise {
+export function rhythmExercise(grade = 2, rng: () => number = Math.random): Exercise {
   const pool = rhythmPatternsForGrade(grade);
-  const correct = pick(pool);
-  const options = ensureOption(shuffle(pool).slice(0, 4), correct);
+  const correct = pick(pool, rng);
+  const options = ensureOption(shuffle(pool, rng).slice(0, 4), correct);
   const total = correct.beats.reduce((a, b) => a + b, 0);
   return {
     type: "rhythm",
     prompt: `Which rhythm did you hear? (${correct.meter})`,
     notes: [60],
     correctAnswer: correct.name,
-    options: shuffle(options.map((o) => o.name)),
+    options: shuffle(options.map((o) => o.name), rng),
     playback: "silent",
     metadata: { beats: correct.beats, meter: correct.meter },
     explain: `${correct.name}: ${correct.beats.join(" + ")} = ${total} beats in ${correct.meter}. ${correct.body}`,
@@ -264,21 +266,24 @@ export function rhythmExercise(grade = 2): Exercise {
 
 /* ---------------------------------------------------------------- Level 3 */
 
-export function keySignatureExercise(maxAccidentals = 4): Exercise {
+export function keySignatureExercise(
+  maxAccidentals = 4,
+  rng: () => number = Math.random,
+): Exercise {
   const pool = KEYS.filter((k) => k.isMajor && k.accidentals <= maxAccidentals);
-  const correct = pick(pool);
-  const options = ensureOption(shuffle(pool).slice(0, 4), correct);
+  const correct = pick(pool, rng);
+  const options = ensureOption(shuffle(pool, rng).slice(0, 4), correct);
   const accWord =
     correct.kind === "none"
       ? "no sharps or flats"
       : `${correct.accidentals} ${correct.kind}${correct.accidentals === 1 ? "" : "s"}`;
-  const showStaff = Math.random() < 0.6;
+  const showStaff = rng() < 0.6;
   return {
     type: "key",
     prompt: showStaff ? "Which major key is this signature?" : `Which major key has ${accWord}?`,
     notes: [],
     correctAnswer: correct.name,
-    options: shuffle(options.map((o) => o.name)),
+    options: shuffle(options.map((o) => o.name), rng),
     playback: "silent",
     metadata: { tonic: correct.tonic, showStaff },
     explain:
@@ -292,12 +297,12 @@ export function keySignatureExercise(maxAccidentals = 4): Exercise {
   };
 }
 
-export function scaleExercise(grade = 3): Exercise {
+export function scaleExercise(grade = 3, rng: () => number = Math.random): Exercise {
   const majors = KEYS.filter((k) => k.isMajor && k.accidentals <= (grade <= 3 ? 2 : 4));
-  const useMinor = grade >= 5 && Math.random() < 0.4;
-  const correctKey = pick(majors);
+  const useMinor = grade >= 5 && rng() < 0.4;
+  const correctKey = pick(majors, rng);
   const tonic = TONIC_MIDI[correctKey.tonic] ?? 60;
-  const options = ensureOption(shuffle(majors).slice(0, 4), correctKey);
+  const options = ensureOption(shuffle(majors, rng).slice(0, 4), correctKey);
   if (useMinor) {
     // Natural minor built on the relative minor of the chosen key.
     const relTonic = tonic - 3;
@@ -311,7 +316,7 @@ export function scaleExercise(grade = 3): Exercise {
       explain: `${correctKey.relative}, natural minor: the third step is lowered, so the scale sounds darker. Pattern: W H W W H W W.`,
     };
   }
-  if (grade >= 5 && Math.random() < 0.4) {
+  if (grade >= 5 && rng() < 0.4) {
     return {
       type: "scale",
       prompt: "Major or natural minor?",
@@ -327,7 +332,7 @@ export function scaleExercise(grade = 3): Exercise {
     prompt: `The starting note is ${correctKey.tonic}. Which major scale is this?`,
     notes: MAJOR_SCALE.map((s) => tonic + s),
     correctAnswer: correctKey.name,
-    options: shuffle(options.map((o) => o.name)),
+    options: shuffle(options.map((o) => o.name), rng),
     playback: "sequence",
     explain: `${correctKey.name} starts on ${noteName(tonic)}. Every major scale uses the same pattern — whole, whole, half, whole, whole, whole, half.`,
   };
@@ -335,25 +340,26 @@ export function scaleExercise(grade = 3): Exercise {
 
 /* ---------------------------------------------------------------- Level 7 */
 
-export function relatedKeyExercise(): Exercise {
-  const home = pick(CIRCLE_OF_FIFTHS.slice(0, 6).concat(CIRCLE_OF_FIFTHS.slice(10)));
+export function relatedKeyExercise(rng: () => number = Math.random): Exercise {
+  const home = pick(CIRCLE_OF_FIFTHS.slice(0, 6).concat(CIRCLE_OF_FIFTHS.slice(10)), rng);
   // The full family Level 7 teaches — dominant and subdominant majors plus
   // the relative minors — any of them can be the answer now.
   const related = closelyRelatedKeys(home);
-  const correct = pick(related);
+  const correct = pick(related, rng);
   const allKeyNames = KEYS.flatMap((k) => [
     `${k.tonic} major`,
     k.relative.replace(/ Minor$/, " minor"),
   ]);
   const far = shuffle(
     allKeyNames.filter((n) => n !== `${home} major` && !related.includes(n)),
+    rng,
   ).slice(0, 3);
   return {
     type: "modulation",
     prompt: `Which key is a close neighbour of ${home} major?`,
     notes: [],
     correctAnswer: correct,
-    options: shuffle([correct, ...far]),
+    options: shuffle([correct, ...far], rng),
     playback: "silent",
     metadata: { tonic: home, showStaff: false },
     explain: `${home} major's close family is ${related.join(", ")} — the dominant and subdominant majors and the relative minors of all three: the same key signature or one accidental away. Those share the most chords, so pivot-chord modulation is smooth.`,
@@ -372,29 +378,29 @@ const ROMAN_EXPLAIN: Record<RomanNumeral, string> = {
   "vii°": "vii° — the leading-tone chord, diminished. Tense; it behaves like V.",
 };
 
-export function romanNumeralExercise(grade = 5): Exercise {
+export function romanNumeralExercise(grade = 5, rng: () => number = Math.random): Exercise {
   const degrees = grade <= 5 ? [0, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
-  const degree = pick(degrees);
+  const degree = pick(degrees, rng);
   const numeral = ROMAN_NUMERALS[degree]!;
   const tonic = 60;
   const chord = voiceNear(diatonicTriad(tonic, degree), 65);
   const optionSet = degrees.map((d) => ROMAN_NUMERALS[d]!);
-  const options = shuffle(optionSet).slice(0, 4);
+  const options = shuffle(optionSet, rng).slice(0, 4);
   if (!options.includes(numeral)) options[0] = numeral;
   return {
     type: "roman",
     prompt: "In C major, which chord is this?",
     notes: [...voiceNear(diatonicTriad(tonic, 0), 65), ...chord],
     correctAnswer: numeral,
-    options: shuffle(options),
+    options: shuffle(options, rng),
     playback: "progression",
     metadata: { chords: [voiceNear(diatonicTriad(tonic, 0), 65), chord] },
     explain: `${ROMAN_EXPLAIN[numeral]} You heard I first, then the chord in question.`,
   };
 }
 
-export function cadenceExercise(): Exercise {
-  const correct = pick(CADENCES);
+export function cadenceExercise(rng: () => number = Math.random): Exercise {
+  const correct = pick(CADENCES, rng);
   const tonic = 60;
   const chords = correct.degrees.map((d) => voiceNear(diatonicTriad(tonic, d), 65));
   return {
@@ -402,15 +408,15 @@ export function cadenceExercise(): Exercise {
     prompt: "Which cadence closes this phrase?",
     notes: chords.flat(),
     correctAnswer: correct.name,
-    options: shuffle(CADENCES.map((c) => c.name)),
+    options: shuffle(CADENCES.map((c) => c.name), rng),
     playback: "progression",
     metadata: { chords: [voiceNear(diatonicTriad(tonic, 0), 65), ...chords] },
     explain: `${correct.name}. ${correct.feel}`,
   };
 }
 
-export function harmonyExercise(grade = 5): Exercise {
-  return Math.random() < 0.5 ? romanNumeralExercise(grade) : cadenceExercise();
+export function harmonyExercise(grade = 5, rng: () => number = Math.random): Exercise {
+  return rng() < 0.5 ? romanNumeralExercise(grade, rng) : cadenceExercise(rng);
 }
 
 export { noteName };

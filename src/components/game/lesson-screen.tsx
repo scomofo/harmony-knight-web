@@ -7,7 +7,7 @@ import { examplePlan } from "@/lib/game/teaching-playback";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
 import { levelFor } from "@/lib/game/curriculum";
 import { unitById, unitsForLevel, type CourseUnit } from "@/lib/game/course";
-import { freshUnitProgress, nextUnit } from "@/lib/game/learning";
+import { freshUnitProgress, nextUnit, servedChecks } from "@/lib/game/learning";
 import { activityForUnit } from "@/lib/game/activity-catalog";
 import { reviewActivity } from "@/lib/game/practical-review";
 import { activityComplete } from "@/lib/game/activities";
@@ -53,15 +53,22 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
   const revisit = useGameStore((s) => s.revisitUnit);
   const markHintUsed = useGameStore((s) => s.useLearningHint);
   const p = saved ?? freshUnitProgress();
+  // The served pair is a pure function of progress; at the summary step the
+  // episode has ended (reviewing flips false), so keep the pair this episode
+  // actually served for the "recalled" count.
+  const liveChecks = servedChecks(unit, p);
+  const episodeChecks = useRef(liveChecks);
+  if (p.step < 4) episodeChecks.current = liveChecks;
+  const checks = p.step >= 4 ? episodeChecks.current : liveChecks;
   const heading = useRef<HTMLHeadingElement>(null);
   const units = unitsForLevel(unit.level);
   const position = units.findIndex((u) => u.id === unit.id) + 1;
   const questionIndex = p.step - 2;
-  const question = unit.checks[questionIndex];
+  const question = checks[questionIndex];
   const picked = p.answers[questionIndex];
   const next = nextUnit(allProgress, unit.id);
   const done = p.step === 4;
-  const correct = unit.checks.filter((q, i) => p.answers[i] === q.answer).length;
+  const correct = checks.filter((q, i) => p.answers[i] === q.answer).length;
   const repertoire = repertoireForUnit(unit.id);
 
   useEffect(() => {
@@ -124,7 +131,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
                   ? "Try a fresh example"
                   : "Make it musical"
                 : p.step >= 2
-                  ? `Recall ${questionIndex + 1} of ${unit.checks.length}`
+                  ? `Recall ${questionIndex + 1} of ${checks.length}`
                   : unit.title}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">{unit.goal}</p>
@@ -265,7 +272,7 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
                   {question.why}
                 </p>
                 <Button className="w-full sm:w-auto" onClick={() => advance(unit.id)}>
-                  {questionIndex === unit.checks.length - 1 ? "Save and finish" : "Next check"}
+                  {questionIndex === checks.length - 1 ? "Save and finish" : "Next check"}
                   <ArrowRight className="size-4" />
                 </Button>
               </div>
@@ -286,9 +293,9 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
             <p className="mt-4 text-base leading-relaxed">
               {p.assisted
                 ? "You worked through the ideas with a refresher. Try the next recall without help when you feel ready."
-                : correct === unit.checks.length
+                : correct === checks.length
                   ? "Both ideas recalled correctly."
-                  : `${correct} of ${unit.checks.length} recalled before the explanation. You worked through the corrections; that counts as learning.`}
+                  : `${correct} of ${checks.length} recalled before the explanation. You worked through the corrections; that counts as learning.`}
             </p>
             <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
               {p.nextReviewAt

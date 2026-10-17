@@ -5,7 +5,7 @@ import { evaluateActivity } from "./activities.ts";
 import { reviewActivity, conceptStatus } from "./practical-review.ts";
 import { useGameStore } from "./store.ts";
 import { unitById } from "./course.ts";
-import { freshUnitProgress } from "./learning.ts";
+import { freshUnitProgress, servedChecks } from "./learning.ts";
 
 it("authors valid fresh practical reviews for every interactive concept and keeps rounds stable", () => {
   for (const id of Object.keys(LESSON_ACTIVITIES))
@@ -46,7 +46,7 @@ it("keeps practical review evidence separate, resumes partial work, and never ea
     "Worth another practice",
   );
   s.advanceLearningUnit(id);
-  for (const q of unitById(id)!.checks) {
+  for (const q of servedChecks(unitById(id)!, useGameStore.getState().unitProgress[id]!)) {
     s.answerLearningUnit(id, q.answer);
     s.advanceLearningUnit(id);
   }
