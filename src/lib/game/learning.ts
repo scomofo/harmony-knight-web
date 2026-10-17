@@ -92,6 +92,11 @@ export function nextUnit(
   return COURSE_UNITS.find((unit) => !progress[unit.id]?.completedAt);
 }
 
+/** The course is finished when every unit has a completion on record. */
+export function courseComplete(progress: Record<string, UnitProgress>): boolean {
+  return COURSE_UNITS.every((unit) => progress[unit.id]?.completedAt);
+}
+
 export function dueUnits(progress: Record<string, UnitProgress>, now = new Date()): CourseUnit[] {
   return COURSE_UNITS.filter((unit) => {
     const p = progress[unit.id];
