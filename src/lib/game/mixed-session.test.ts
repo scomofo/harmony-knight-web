@@ -169,3 +169,179 @@ it("dealing is even and non-clumping across a long session", () => {
   const distinct = new Set(served.map((d) => JSON.stringify(d.exercise)));
   assert.ok(distinct.size >= 120, `${distinct.size} distinct exercises in 210 deals`);
 });
+
+/* --------------------------------------- adaptivity Phase 1: weighting */
+
+import { selectBoost, studyWeight } from "./mixed-session.ts";
+import type { TopicId } from "./curriculum.ts";
+
+type Weights = Partial<Record<TopicId, number>>;
+
+function studyCounts(session: MixedSession, n: number) {
+  const counts = new Map<string, number>();
+  for (const { study } of draw(session, n)) {
+    counts.set(study.route, (counts.get(study.route) ?? 0) + 1);
+  }
+  return counts;
+}
+
+it("NeutralWeightsIdentity: neutral weights deal the unweighted session, item for item", () => {
+  const neutral: Weights = {
+    sensory: 1,
+    rhythm: 1,
+    scales: 1,
+    keys: 1,
+    intervals: 1,
+    triads: 1,
+    harmony: 1,
+    modulation: 1,
+  };
+  for (const [grade, sessionIndex] of [
+    [2, 0],
+    [7, 0],
+    [10, 3],
+  ] as const) {
+    const plain = createMixedSession({ grade }, { day: DAY, sessionIndex })!;
+    const empty = createMixedSession({ grade, weights: {} }, { day: DAY, sessionIndex })!;
+    const weighted = createMixedSession({ grade, weights: neutral }, { day: DAY, sessionIndex })!;
+    const seq = (s: MixedSession) => draw(s, 60).map((d) => JSON.stringify(d.exercise));
+    const plainSeq = seq(plain);
+    assert.deepEqual(seq(weighted), plainSeq, `grade ${grade} index ${sessionIndex}`);
+    assert.deepEqual(seq(empty), plainSeq, `grade ${grade} index ${sessionIndex} (empty)`);
+  }
+});
+
+it("ExtraSlotCap + FullCoverageBag: one extra slot per bag, nobody loses theirs", () => {
+  // Grade 10 pool is 7 studies; a weighted bag is 8. 80 draws = 10 bags.
+  const session = createMixedSession(
+    { grade: 10, weights: { intervals: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  const counts = studyCounts(session, 80);
+  assert.equal(counts.get("/interval"), 20, "boosted study: exactly 2 per bag");
+  for (const route of ["/sensory", "/rhythm", "/scale", "/circle", "/triad", "/cadence"]) {
+    assert.equal(counts.get(route), 10, `${route}: its guaranteed slot, every bag`);
+  }
+  // A weight barely above neutral earns the same single extra slot —
+  // the weight selects, the cap sizes.
+  const gentle = createMixedSession(
+    { grade: 10, weights: { intervals: 1.25 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  assert.equal(studyCounts(gentle, 80).get("/interval"), 20);
+});
+
+it("ExtraSlotCap holds with several weak topics — one boost, chosen by weight then pool order", () => {
+  // Two topics at the maximum weight: only one extra slot exists, and
+  // the tie breaks toward the study earliest in curriculum order
+  // (Intervals sits before Triads in the pool) — deterministically.
+  const tied = createMixedSession(
+    { grade: 10, weights: { intervals: 2, triads: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  const tiedCounts = studyCounts(tied, 80);
+  assert.equal(tiedCounts.get("/interval"), 20);
+  assert.equal(tiedCounts.get("/triad"), 10);
+  // A strictly heavier topic beats an earlier lighter one.
+  const heavier = createMixedSession(
+    { grade: 10, weights: { intervals: 1.5, triads: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  const heavierCounts = studyCounts(heavier, 80);
+  assert.equal(heavierCounts.get("/triad"), 20);
+  assert.equal(heavierCounts.get("/interval"), 10);
+});
+
+it("selectBoost names the driving topic and stays null at neutral", () => {
+  const studies = mixedStudiesFor({ grade: 10 });
+  assert.equal(selectBoost(studies, undefined), null);
+  assert.equal(selectBoost(studies, {}), null);
+  assert.equal(selectBoost(studies, { intervals: 1 }), null);
+  const byModulation = selectBoost(studies, { modulation: 2, keys: 1.5 });
+  assert.equal(byModulation?.study.route, "/circle");
+  assert.equal(byModulation?.topicId, "modulation");
+  const circle = studies.find((s) => s.route === "/circle")!;
+  assert.equal(studyWeight(circle, { keys: 1.5 }), 1.5);
+  assert.equal(studyWeight(circle, { modulation: 2 }), 2);
+  assert.equal(studyWeight(circle, undefined), 1);
+});
+
+it("PoolsAreGiven: weights reweight the pool the gate produced — nothing more", () => {
+  const allWeak: Weights = {
+    sensory: 2,
+    rhythm: 2,
+    scales: 2,
+    keys: 2,
+    intervals: 2,
+    triads: 2,
+    harmony: 2,
+    modulation: 2,
+  };
+  for (let grade = 2; grade <= 10; grade++) {
+    const session = createMixedSession({ grade, weights: allWeak }, { day: DAY, sessionIndex: 0 })!;
+    const pool = new Set(mixedStudiesFor({ grade }).map((s) => s.route));
+    for (const { study } of draw(session, 60)) {
+      assert.ok(pool.has(study.route), `grade ${grade}: ${study.route} is in the gated pool`);
+    }
+  }
+  // Weighting a locked study cannot pull it into a low-grade pool…
+  const low = createMixedSession(
+    { grade: 2, weights: { triads: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  assert.deepEqual(
+    [...studyCounts(low, 40).keys()].sort(),
+    ["/rhythm", "/sensory"],
+  );
+  // …and weights cannot open a session the gate keeps closed.
+  assert.equal(createMixedSession({ grade: 1, weights: allWeak }, { day: DAY, sessionIndex: 0 }), null);
+});
+
+it("StableWithinEpisode: the boost is frozen at creation, whatever changes later", () => {
+  const weights: Weights = { intervals: 2 };
+  const session = createMixedSession({ grade: 10, weights }, { day: DAY, sessionIndex: 0 })!;
+  // Mutating the weights record after creation — as answering questions
+  // would mutate the save — must not re-weight the running session.
+  weights.intervals = 1;
+  weights.triads = 2;
+  const counts = studyCounts(session, 80);
+  assert.equal(counts.get("/interval"), 20, "the original boost still deals");
+  assert.equal(counts.get("/triad"), 10, "the later change does not");
+  // A fresh session from an identical weights object replays exactly.
+  const replay = createMixedSession(
+    { grade: 10, weights: { intervals: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  const again = createMixedSession(
+    { grade: 10, weights: { intervals: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  assert.deepEqual(
+    draw(replay, 60).map((d) => JSON.stringify(d.exercise)),
+    draw(again, 60).map((d) => JSON.stringify(d.exercise)),
+  );
+});
+
+it("a weighted session stays varied and never clumps past a run of two", () => {
+  const session = createMixedSession(
+    { grade: 10, weights: { intervals: 2 } },
+    { day: DAY, sessionIndex: 0 },
+  )!;
+  const served = draw(session, 210);
+  const counts = new Map<string, number>();
+  let run = 1;
+  let maxRun = 1;
+  for (let i = 0; i < served.length; i++) {
+    const route = served[i]!.study.route;
+    counts.set(route, (counts.get(route) ?? 0) + 1);
+    if (i > 0) {
+      run = served[i - 1]!.study.route === route ? run + 1 : 1;
+      maxRun = Math.max(maxRun, run);
+    }
+  }
+  assert.equal(counts.size, 7, "every unlocked study still appears");
+  for (const [route, count] of counts) {
+    assert.ok(count >= 25, `${route} dealt ${count} times in 210 (floor holds under weighting)`);
+  }
+  assert.ok(maxRun <= 2, `longest same-study run is ${maxRun} with a boost active`);
+});

@@ -1,9 +1,12 @@
 import { useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { playRhythmPattern } from "@/lib/game/audio";
+import { topicPlainName, topicWeights } from "@/lib/game/adapt";
 import {
   createMixedSession,
   mixedStudiesFor,
+  selectBoost,
+  type MixedBoost,
   type MixedSession,
 } from "@/lib/game/mixed-session";
 import { RHYTHM_BPM } from "@/lib/game/rhythm";
@@ -22,14 +25,30 @@ import { GameShell } from "./shell";
  * mix from the top, and the pool is whatever `studiesFor` had unlocked
  * when the visit began. Below two unlocked studies there is no mix —
  * the screen says exactly that, and names what is unlocked so far.
+ *
+ * Adaptivity Phase 1: the weights are computed once, from the mastery
+ * records as they stand when the visit begins, and frozen into the
+ * session alongside it — answers given during the session never
+ * re-weight it mid-flight. When a weight is actually raised, the intro
+ * says so in one plain line naming the topic; at neutral there is no
+ * line and the session is the unweighted one.
  */
 export function MixedScreen() {
   const grade = useGameStore((s) => s.gradeLevel);
-  const sessionRef = useRef<MixedSession | null | undefined>(undefined);
-  if (sessionRef.current === undefined) {
-    sessionRef.current = createMixedSession({ grade }, { day: todayKey(), sessionIndex: 0 });
+  const mastery = useGameStore((s) => s.mastery);
+  const setupRef = useRef<{ session: MixedSession | null; boost: MixedBoost | null } | undefined>(
+    undefined,
+  );
+  if (setupRef.current === undefined) {
+    const weights = topicWeights(mastery);
+    const session = createMixedSession({ grade, weights }, { day: todayKey(), sessionIndex: 0 });
+    setupRef.current = {
+      session,
+      boost: session ? selectBoost(session.studies, weights) : null,
+    };
   }
-  const session = sessionRef.current;
+  const session = setupRef.current.session;
+  const boost = setupRef.current.boost;
 
   if (!session) {
     const unlocked = mixedStudiesFor({ grade });
@@ -78,7 +97,12 @@ export function MixedScreen() {
       make={() => session.next().exercise}
       play={play}
       endless
-      intro="Every study you have unlocked, shuffled into one session. No finish line — end whenever you are done."
+      intro={
+        "Every study you have unlocked, shuffled into one session. No finish line — end whenever you are done." +
+        (boost
+          ? ` More ${topicPlainName(boost.topicId)} this session — they've been shaky lately.`
+          : "")
+      }
       visual={(ex) =>
         ex.type === "key" && ex.metadata?.showStaff ? (
           <KeySignature tonic={String(ex.metadata?.tonic ?? "C")} />
