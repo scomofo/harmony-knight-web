@@ -696,15 +696,6 @@ export const useGameStore = create<GameState>()(
   ),
 );
 
-export function masteryStars(m?: SkillMastery): number {
-  if (!m || m.recentCorrect.length === 0) return 0;
-  const recent = m.recentCorrect.filter(Boolean).length / m.recentCorrect.length;
-  if (recent >= 0.8 && m.bestConfidence >= 0.8) return 3;
-  if (recent >= 0.8 && m.bestConfidence >= 0.6) return 2;
-  if (recent >= 0.8) return 1;
-  return 0;
-}
-
 export function questRoute(mode: QuestMode, grade = 0): AppRoute {
   if (mode === "duel") return "/duel";
   if (mode === "realtime") return "/realtime";

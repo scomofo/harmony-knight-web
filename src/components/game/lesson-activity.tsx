@@ -1,10 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowRight, RotateCcw, Square, Volume2 } from "lucide-react";
+import { ArrowRight, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   activityComplete,
   taskProgress,
-  type ActivityTask,
   type LessonActivity,
 } from "@/lib/game/activities";
 import {
@@ -129,7 +128,7 @@ export function LessonActivityPanel({
       {task.kind === "harmony-listening" ? (
         <div className="space-y-4">
           <div role="group" aria-label="Harmony examples" className="flex flex-wrap gap-2">
-            {task.clips.map((clip, i) => (
+            {task.clips.map((clip) => (
               <Button
                 key={clip.label}
                 variant="secondary"

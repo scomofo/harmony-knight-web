@@ -16,10 +16,13 @@ export function KnightBadges() {
 
   const completedLessons = COURSE_UNITS.filter((u) => store.unitProgress[u.id]?.completedAt).length;
 
-  // Check if any level has all 4 units completed
-  const hasCompletedChapter = Array.from({ length: 11 }, (_, level) =>
-    COURSE_UNITS.filter((u) => u.level === level).every((u) => store.unitProgress[u.id]?.completedAt),
-  ).some(Boolean);
+  // Check if any level has all of its units completed. Levels and their sizes
+  // come from the course data — most levels have 4 units, level 8 has 5.
+  const levels = [...new Set(COURSE_UNITS.map((u) => u.level))];
+  const hasCompletedChapter = levels.some((level) => {
+    const units = COURSE_UNITS.filter((u) => u.level === level);
+    return units.length > 0 && units.every((u) => store.unitProgress[u.id]?.completedAt);
+  });
 
   const badges: Badge[] = [
     {
@@ -33,10 +36,10 @@ export function KnightBadges() {
     {
       id: "chapter-champ",
       title: "Chapter Champion",
-      description: "Complete all 4 lessons in any chapter",
+      description: "Complete every lesson in a chapter",
       icon: Trophy,
       earned: hasCompletedChapter,
-      progressText: hasCompletedChapter ? "Unlocked" : "4 lessons needed",
+      progressText: hasCompletedChapter ? "Unlocked" : "Finish a whole chapter",
     },
     {
       id: "sentinel-slayer",
