@@ -13,6 +13,7 @@ import {
   type TurnResult,
 } from "@/lib/game/duel";
 import { noteName } from "@/lib/game/music";
+import { sessionRng } from "@/lib/game/study-session";
 import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { HarmonyMeter } from "./harmony-meter";
@@ -31,7 +32,10 @@ export function DuelScreen() {
   const startMeter = beginner ? 0.4 : 0.2;
   const winAt = beginner ? 0.5 : 0.7;
 
-  const [cantus, setCantus] = useState(() => generateCantusFirmus(store.gradeLevel, { firstDuel }));
+  const duelIndexRef = useRef(0);
+  const [cantus, setCantus] = useState(() =>
+    generateCantusFirmus(store.gradeLevel, { firstDuel, rng: sessionRng("duel", 0) }),
+  );
   const [user, setUser] = useState<DuelNote[]>([]);
   const [history, setHistory] = useState<TurnResult[]>([]);
   const [meter, setMeter] = useState(startMeter);
@@ -96,6 +100,7 @@ export function DuelScreen() {
     const nextBeginner = store.gradeLevel <= 1;
     const next = generateCantusFirmus(store.gradeLevel, {
       firstDuel: store.duelWins === 0,
+      rng: sessionRng("duel", (duelIndexRef.current += 1)),
     });
     setCantus(next);
     setUser([]);

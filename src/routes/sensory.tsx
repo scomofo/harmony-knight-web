@@ -11,7 +11,8 @@ function SensoryRoute() {
     <QuizScreen
       title="Listening"
       topicId="sensory"
-      make={sensoryExercise}
+      make={(rng) => sensoryExercise(rng)}
+      seedKey="sensory"
       intro="Sound before sight. Higher or lower, loud or soft, which colour. Every tap answers with a tone."
       goal={10}
     />

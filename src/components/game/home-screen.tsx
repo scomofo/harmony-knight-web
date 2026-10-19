@@ -161,6 +161,9 @@ export function HomeScreen() {
               <Button asChild size="lg" variant="secondary">
                 <Link to="/curriculum">Revisit the learning path</Link>
               </Button>
+              <Button asChild size="lg" variant="secondary">
+                <Link to="/mixed">Mixed practice session</Link>
+              </Button>
             </div>
           </section>
         ) : (
@@ -377,6 +380,9 @@ export function HomeScreen() {
                   <Link to={s.to}>{s.label}</Link>
                 </Button>
               ))}
+              <Button variant="outline" asChild>
+                <Link to="/mixed">Mixed practice</Link>
+              </Button>
             </div>
             <div>
               <h3 className="font-medium">Optional daily challenges</h3>

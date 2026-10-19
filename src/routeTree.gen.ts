@@ -16,6 +16,7 @@ import { Route as CurriculumRouteImport } from './routes/curriculum'
 import { Route as DuelRouteImport } from './routes/duel'
 import { Route as HeatmapRouteImport } from './routes/heatmap'
 import { Route as IntervalRouteImport } from './routes/interval'
+import { Route as MixedRouteImport } from './routes/mixed'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as RealtimeRouteImport } from './routes/realtime'
@@ -60,6 +61,11 @@ const HeatmapRoute = HeatmapRouteImport.update({
 const IntervalRoute = IntervalRouteImport.update({
   id: '/interval',
   path: '/interval',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MixedRoute = MixedRouteImport.update({
+  id: '/mixed',
+  path: '/mixed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/duel': typeof DuelRoute
   '/heatmap': typeof HeatmapRoute
   '/interval': typeof IntervalRoute
+  '/mixed': typeof MixedRoute
   '/onboarding': typeof OnboardingRoute
   '/practice': typeof PracticeRoute
   '/realtime': typeof RealtimeRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/duel': typeof DuelRoute
   '/heatmap': typeof HeatmapRoute
   '/interval': typeof IntervalRoute
+  '/mixed': typeof MixedRoute
   '/onboarding': typeof OnboardingRoute
   '/practice': typeof PracticeRoute
   '/realtime': typeof RealtimeRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/duel': typeof DuelRoute
   '/heatmap': typeof HeatmapRoute
   '/interval': typeof IntervalRoute
+  '/mixed': typeof MixedRoute
   '/onboarding': typeof OnboardingRoute
   '/practice': typeof PracticeRoute
   '/realtime': typeof RealtimeRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/duel'
     | '/heatmap'
     | '/interval'
+    | '/mixed'
     | '/onboarding'
     | '/practice'
     | '/realtime'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/duel'
     | '/heatmap'
     | '/interval'
+    | '/mixed'
     | '/onboarding'
     | '/practice'
     | '/realtime'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/duel'
     | '/heatmap'
     | '/interval'
+    | '/mixed'
     | '/onboarding'
     | '/practice'
     | '/realtime'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   DuelRoute: typeof DuelRoute
   HeatmapRoute: typeof HeatmapRoute
   IntervalRoute: typeof IntervalRoute
+  MixedRoute: typeof MixedRoute
   OnboardingRoute: typeof OnboardingRoute
   PracticeRoute: typeof PracticeRoute
   RealtimeRoute: typeof RealtimeRoute
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/interval'
       fullPath: '/interval'
       preLoaderRoute: typeof IntervalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mixed': {
+      id: '/mixed'
+      path: '/mixed'
+      fullPath: '/mixed'
+      preLoaderRoute: typeof MixedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   DuelRoute: DuelRoute,
   HeatmapRoute: HeatmapRoute,
   IntervalRoute: IntervalRoute,
+  MixedRoute: MixedRoute,
   OnboardingRoute: OnboardingRoute,
   PracticeRoute: PracticeRoute,
   RealtimeRoute: RealtimeRoute,
