@@ -43,8 +43,8 @@ The course covers Western music-theory foundations through advanced concepts. **
 include 81 interactive tasks**, alongside 90 conceptual recall checks. Every creative chapter
 also offers an optional, unscored real-world transfer prompt with an accessible alternative.
 
-| Interactive family                  | What learners do                                                                                                                                                                                                         |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Interactive family                  | What learners do                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Listening · 17 tasks                | Compare pitch direction, equal pitches and relative loudness; match four timbres against replayable references. Written clues support guided completion while muted and do not count as independent listening success.     |
 | Chords · 29 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths and borrowed chords. Hear their voicing on its own or after a chord context.                   |
 | Rhythm · 11 tasks                   | Toggle attacks or accents on an untimed subdivision grid. Build durations, dotted rhythms, tied offbeat entries, meter groupings and both parts of 3:2; hear the result together.                                          |
