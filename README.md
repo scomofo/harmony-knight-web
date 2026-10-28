@@ -39,23 +39,29 @@ The hall and Note progress screen show notes that **need work**, are **due now**
 
 ## Learning path and return flow
 
-The course covers Western music-theory foundations through advanced concepts. **31 lessons
-include 52 interactive tasks**, alongside the 88 conceptual recall checks. Notation reflection
-and open composition prompts outside these exercise families remain self-guided.
+The course covers Western music-theory foundations through advanced concepts. **All 45 lessons
+include 81 interactive tasks**, alongside 90 conceptual recall checks. Every creative chapter
+also offers an optional, unscored real-world transfer prompt with an accessible alternative.
 
-| Interactive family                  | What learners do                                                                                                                                                                                                           |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Listening · 10 tasks                | Compare pitch direction, equal pitches and relative loudness; match four timbres against replayable references. Written clues support guided completion while muted and do not count as independent listening success.     |
-| Chords · 19 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths and borrowed chords. Hear their voicing on its own or after a chord context.                   |
+| Interactive family                  | What learners do                                                                                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Listening · 17 tasks                | Compare pitch direction, equal pitches and relative loudness; match four timbres against replayable references. Written clues support guided completion while muted and do not count as independent listening success.     |
+| Chords · 29 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths and borrowed chords. Hear their voicing on its own or after a chord context.                   |
 | Rhythm · 11 tasks                   | Toggle attacks or accents on an untimed subdivision grid. Build durations, dotted rhythms, tied offbeat entries, meter groupings and both parts of 3:2; hear the result together.                                          |
-| Melody and voice leading · 12 tasks | Edit a phrase above a bass or reference line. Repair parallels, create contrary motion, close a cadence, prepare a suspension, control a passing tone, shape a line, transpose/invert a subject and write a Dorian phrase. |
+| Melody and voice leading · 24 tasks | Edit a phrase above a bass or reference line. Repair parallels, create contrary motion, close a cadence, prepare a suspension, control a passing tone, shape a line, transpose/invert a subject and write a Dorian phrase. |
 
 Each task provides written feedback, playback of the learner's answer and an example,
 and progressive help: a clue, highlighted places to inspect, then an optional worked answer.
 Corrections preserve the prior draft for before/after listening. Using help marks the attempt
 assisted. Drafts, task position, feedback, first-check outcomes and
 assistance are saved across reloads. Correct all tasks (with help if needed) before recall;
-retries preserve the original first-check result and award no extra XP. Existing saves
+retries preserve the original first-check result and award no extra XP. Completion remains
+available after mistakes and help, but the learning status distinguishes **Completed with
+support**, **Completed independently**, and **Secure independently**. Initial independent
+completion requires correct unaided practical first checks and recall. Security additionally
+requires a later fresh practical-review round with every first check correct, no help, and both
+served recall answers correct. Rereading does not erase that saved evidence; legacy completions
+are conservatively labelled supported rather than being retroactively marked secure. Existing saves
 already in Recall or Done keep their place. Note palettes and native selects work with
 keyboard or pointer; rhythm buttons support native Space activation. Audio is optional.
 
@@ -90,7 +96,11 @@ fragments do not assess complete SATB scores, full species compositions or music
   points or advance a game grade.
 - Completed concepts come back for recall after one day. Successful due recalls increase
   spacing to 3, 7, 15, then at most 30 days. Wrong or assisted due recalls return after one
-  day. Early repeats do not lengthen the interval or add due-review credit.
+  day. Early repeats do not lengthen the interval or add due-review credit. Due cards describe
+  the actual fresh practical tasks plus two recall questions, with no fixed minute promise.
+- After 48 hours away, multiple due reviews are triaged to one oldest-due recommendation with a
+  clear stopping point. **Show all due reviews** remains available. Deferral is presentation-only:
+  it changes no completion, due date, interval or review credit.
 - Learning days use the device's local calendar and a Monday-based week. A break creates no
   recovery debt, resets no learning, and removes no earned points.
 - Focus mode defaults on. Existing saves keep grades, points, confidence, note history,
@@ -117,7 +127,9 @@ End, restart and navigation cancel pending session work and scheduled audio.
 Content lives in `src/lib/game/course.ts` (focused lessons and checks),
 `src/lib/game/lessons.ts` (retained overview teaching and examples), and
 `src/lib/game/curriculum.ts` (game levels, topics, unlocks).
-`src/lib/game/learning.ts` owns lesson state transitions and review scheduling;
+`src/lib/game/learning.ts` owns lesson state transitions and the isolated fixed review policy;
+`src/lib/game/mastery.ts` evaluates independent completion and fresh-review security;
+`src/lib/game/review-plan.ts` owns workload copy and presentation-only return triage;
 `src/lib/game/store.ts` persists progress alongside the existing save.
 `src/lib/game/activity-catalog.ts` authors the interactive tasks; `activities.ts` owns
 their judgments and progress transitions. `lesson-activity.tsx` renders the three editors.
@@ -178,8 +190,10 @@ they sound; no moving animation or automatic scrolling is required. Stopping, ed
 muting, switching tasks and hiding the tab cancel playback. Listening questions label their
 sounds neutrally so the playback display does not reveal the answer.
 
-Reviews for the 31 interactive lessons now start with a fresh practical task before the two
-written checks. Listening rounds vary pitch/register, rhythm rounds vary patterns or grouping,
+Reviews for all 45 interactive lessons start with fresh practical tasks before the two written
+checks. Twenty units also generate bounded fresh written-recall pairs; the other 25 retain their
+authored checks as an explicit fallback. The generated families and taught-scope caps live in
+`src/lib/game/recall-gen.ts`. Listening rounds vary pitch/register, rhythm rounds vary patterns or grouping,
 chord rounds transfer voicings while preserving their quality and bass position, and
 voice-leading rounds vary register while retaining their stated rules. Each round is
 deterministic and persisted, so reloading does not change the answer or clear a mistake.
@@ -191,12 +205,17 @@ Every chapter has a creative payoff at `/create/:chapter` (zero-based): call/res
 a musical postcard, a groove, a tonal melody, chord colours, phrase endings, a dialogue
 between voices, changing key, seventh-chord grooves, a tiny duet, and theme/answer.
 Learners edit notes, rests, rhythm cells, chords and tempo as appropriate, save named pieces,
-and replay or reopen their collection. Drafts save during editing. These open creations
-earn no grade or mastery credit and do not claim to validate a complete composition.
-They are available from each chapter in the learning path and after finishing its lessons.
+and replay or reopen their collection. Drafts save during editing. Each chapter also offers an
+optional real-world prompt, a small rubric, a non-instrument alternative and one saved reflection.
+These prompts have no timer or upload and stop after one attempt and one sentence. Creations and
+self-reflections earn no grade or independent-security credit and do not claim to validate a
+complete composition, performance or instrumental skill. They are available from each chapter in
+the learning path and after finishing its lessons.
 
-Settings includes JSON progress export/import covering lessons, practical reviews, concept
-history, settings, draft creations and saved music. Import validates file format, size, field
+Settings includes JSON progress export/import covering lessons, independent-security evidence,
+practical reviews, concept history, settings, draft creations, transfer reflections and saved
+music. The panel states that progress is browser-local, shows when an explicit export was last
+created, and never implies cloud backup or sync. Import validates file format, size, field
 ranges and lesson/task compatibility, then shows a summary. The learner explicitly confirms
 replacement, with a download of their current progress first. Invalid files and storage
 quota failures do not replace the live store. Backups are portable files; no account or

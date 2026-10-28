@@ -17,6 +17,7 @@ import { useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
 import { GameShell } from "./shell";
 import { LessonActivityPanel } from "./lesson-activity";
+import { LearningStatus } from "./learning-status";
 import { LessonFigure } from "./lesson-visual";
 import { cn } from "@/lib/utils";
 
@@ -287,15 +288,23 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
         {done ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-harmony)] bg-[var(--color-ink-2)] p-5 sm:p-6">
             <div className="flex items-center gap-2 text-[var(--color-harmony)]">
-              <Check className="size-5" />
+              <Check className="size-5" aria-hidden="true" />
               <span>Lesson completed · {unit.title}</span>
             </div>
-            <p className="mt-4 text-base leading-relaxed">
+            <LearningStatus progress={p} showDate className="mt-4 text-base" />
+            <p className="mt-3 text-base leading-relaxed">
+              {p.securedAt
+                ? "A later practical task and both recall answers were completed correctly without help. That independent evidence stays saved when you reread or practise with support."
+                : p.independentAt
+                  ? "Your initial practical work and recall were correct without help. A later fresh unaided review can confirm independent security."
+                  : "Completion is saved. Help, corrections or reopened teaching were part of this attempt; none of them blocks the next lesson."}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
               {p.assisted
-                ? "You worked through the ideas with a refresher. Try the next recall without help when you feel ready."
+                ? "You used support during this attempt."
                 : correct === checks.length
-                  ? "Both ideas recalled correctly."
-                  : `${correct} of ${checks.length} recalled before the explanation. You worked through the corrections; that counts as learning.`}
+                  ? "Both served recall answers were correct."
+                  : `${correct} of ${checks.length} served recall answers were correct before the explanation.`}
             </p>
             <p className="mt-3 text-base leading-relaxed text-[var(--color-muted)]">
               {p.nextReviewAt
@@ -348,7 +357,9 @@ function FocusedLesson({ unit }: { unit: CourseUnit }) {
               </Button>
               <Button variant="ghost" onClick={() => revisit(unit.id, true)}>
                 <RotateCcw className="size-4" />
-                Try recall again
+                {p.securedAt
+                  ? "Practise another fresh example"
+                  : "Try a fresh example without help"}
               </Button>
             </div>
           </section>
