@@ -172,26 +172,82 @@ const RUNWAYS: Record<string, { note: string; unitIds: string[] }> = {
     note: "This lesson assumes you can recognize perfect fifths and octaves. Refresh intervals first if those labels still take effort.",
     unitIds: ["4-intervals"],
   },
+  "6-motion": {
+    note: "Four-part motion is easier when intervals and inversions already feel familiar. Refresh those before tracking every voice at once.",
+    unitIds: ["4-intervals", "4-inversions"],
+  },
+  "6-decoration": {
+    note: "Decorated lines still need a consonant framework. Refresh chord tones and intervals first if the added notes make that framework hard to see.",
+    unitIds: ["4-triads", "4-intervals"],
+  },
+  "7-related": {
+    note: "Closely related keys are easier to compare when major-key signatures and scale degrees feel familiar. Refresh those before naming the whole family.",
+    unitIds: ["3-circle", "3-major"],
+  },
   "7-pivot": {
     note: "Pivot chords combine key relationships with chord function. Refresh the circle and Roman-numeral function if the setup feels crowded.",
+    unitIds: ["3-circle", "5-function"],
+  },
+  "7-tonicization": {
+    note: "Telling a temporary tonic from a modulation depends on hearing key relationships and dominant function. Refresh those before judging where the new centre settles.",
     unitIds: ["3-circle", "5-function"],
   },
   "7-secondary": {
     note: "Secondary dominants build directly on dominant function. If V does not yet feel like a pull toward I, revisit that idea before adding the slash notation.",
     unitIds: ["5-function", "5-cadences"],
   },
+  "8-sevenths": {
+    note: "Seventh chords add one more third to a triad. Refresh triad qualities and inversions if the extra note makes the whole chord hard to track.",
+    unitIds: ["4-triads", "4-inversions"],
+  },
+  "8-extensions": {
+    note: "Extensions reuse interval distance and triad structure. Refresh those before separating 9ths, 11ths and 13ths from the core chord.",
+    unitIds: ["4-triads", "4-intervals"],
+  },
+  "8-borrowed": {
+    note: "Borrowed colour makes more sense when diatonic function and the parallel minor are already available as comparison points.",
+    unitIds: ["5-function", "3-minor"],
+  },
+  "8-odd-meter": {
+    note: "Odd meters regroup the same durations and accents used in familiar meters. Refresh those basics if counting the subdivisions takes all your attention.",
+    unitIds: ["2-duration", "2-meter"],
+  },
+  "8-polyrhythm": {
+    note: "Polyrhythm layers two patterns over one shared pulse. Refresh meter and syncopation first if either layer is difficult to maintain alone.",
+    unitIds: ["2-meter", "2-syncopation"],
+  },
   "9-line": {
     note: "Counterpoint asks you to hear melody and interval at the same time. Refresh interval naming first if you are spending all your attention counting semitones.",
     unitIds: ["4-intervals", "5-melody"],
+  },
+  "9-close": {
+    note: "A clear close depends on recognizing perfect consonances inside a two-voice framework. Refresh intervals and consonance before shaping the cadence.",
+    unitIds: ["4-intervals", "6-voices"],
+  },
+  "9-moving-species": {
+    note: "Moving species adds decoration to a consonant closing framework. Refresh those before coordinating several moving notes against one bass note.",
+    unitIds: ["6-decoration", "4-intervals"],
+  },
+  "9-suspensions": {
+    note: "Suspensions coordinate decoration, controlled dissonance and resolution. Refresh decoration and four-part motion if preparation and resolution feel like separate rules.",
+    unitIds: ["6-decoration", "6-motion"],
   },
   "10-fugue": {
     note: "Fugue study assumes you can follow independent melodic lines. The counterpoint runway is worth revisiting before tracking several subject entries.",
     unitIds: ["9-line", "9-suspensions"],
   },
+  "10-development": {
+    note: "Development keeps a subject recognizable while melody and form change around it. Refresh melodic shape and counterpoint before comparing transformations.",
+    unitIds: ["9-line", "5-melody"],
+  },
+  "10-modes": {
+    note: "Modal colour is easier to hear against familiar major and minor scales. Refresh those scale families before tracking a deliberately altered degree.",
+    unitIds: ["3-major", "3-minor"],
+  },
   "10-post-tonal": {
     note: "Pitch-class work is easier once chromatic half steps and interval distance feel automatic. Refresh those first if the numbers seem disconnected from sound.",
     unitIds: ["1-steps", "4-intervals"],
-  }
+  },
 };
 
 const check = (level: number, index: number) => {
@@ -659,7 +715,7 @@ export const COURSE_UNITS: CourseUnit[] = [
         "E is the chord's third and sits in the bass.",
       ),
       q(
-        "Which fact determines a chord's inversion?",
+        "What fact determines a chord's inversion?",
         "Which chord member is in the bass",
         ["Which note is loudest", "Which note is written first in its name"],
         "Bass position determines inversion; the chord root keeps its identity.",
@@ -1405,3 +1461,4 @@ export function unitsForLevel(level: number): CourseUnit[] {
 export function unitById(id: string | null | undefined): CourseUnit | undefined {
   return COURSE_UNITS.find((u) => u.id === id);
 }
+
