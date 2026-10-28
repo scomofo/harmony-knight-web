@@ -14,6 +14,7 @@ import { useGameStore } from "@/lib/game/store";
 import { cn } from "@/lib/utils";
 import { GameShell } from "./shell";
 import { PlaybackOptions, useTeachingPlayer } from "./teaching-player";
+import { CHAPTER_TRANSFER } from "@/lib/game/transfer";
 
 export function CreationScreen({ chapter }: { chapter: number }) {
   const template = CHAPTER_CREATIONS[chapter];
@@ -27,6 +28,7 @@ export function CreationScreen({ chapter }: { chapter: number }) {
 }
 function Composer({ chapter }: { chapter: number }) {
   const template = CHAPTER_CREATIONS[chapter]!;
+  const transfer = CHAPTER_TRANSFER[chapter]!;
   const savedDraft = useGameStore((s) => s.creationDrafts[chapter]);
   const pieces = useGameStore((s) => s.creations);
   const draft = savedDraft ?? freshCreation(chapter);
@@ -261,6 +263,43 @@ function Composer({ chapter }: { chapter: number }) {
           <p className="text-sm">Sound is muted in Settings. You can keep composing and saving.</p>
         ) : null}
         {message ? <p role="status">{message}</p> : null}
+        <details className="rounded border border-[var(--color-border)] p-4">
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">
+            Optional real-world practice and reflection
+          </summary>
+          <div className="space-y-4 pt-3 text-sm leading-relaxed">
+            <p>{transfer.prompt}</p>
+            <p className="text-[var(--color-muted)]">
+              <span className="font-medium text-[var(--color-parchment)]">
+                Accessible alternative:{" "}
+              </span>
+              {transfer.alternative}
+            </p>
+            <div>
+              <h3 className="font-medium">A small rubric</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {transfer.rubric.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-[var(--color-muted)]">
+              Stop after one attempt and one sentence. This is unscored reflection, not a
+              performance test; it does not change independent security or game grade.
+            </p>
+            <label className="block">
+              {transfer.reflectionPrompt}
+              <textarea
+                aria-label="Real-world practice reflection"
+                maxLength={2000}
+                rows={3}
+                value={draft.transferReflection ?? ""}
+                onChange={(event) => edit({ transferReflection: event.target.value })}
+                className="mt-2 w-full rounded border border-[var(--color-border-strong)] bg-[var(--color-ink-2)] p-3"
+              />
+            </label>
+          </div>
+        </details>
         <section className="space-y-3 border-t border-[var(--color-border)] pt-5">
           <h3 className="text-xl">Your saved music</h3>
           {pieces.length ? (

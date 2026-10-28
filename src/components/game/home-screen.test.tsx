@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { HomeScreen } from "./home-screen";
 import { COURSE_UNITS } from "@/lib/game/course";
@@ -58,11 +58,31 @@ it("shows the completion state, not a next lesson, when the course is finished",
   ).toBeTruthy();
 });
 
+it("describes practical review workload and triages a returning queue without changing schedules", () => {
+  useGameStore.getState().resetProgress();
+  const old = new Date(Date.now() - 3 * 864e5).toISOString();
+  const unitProgress = completeAllUnits(old);
+  unitProgress[COURSE_UNITS[1]!.id]!.nextReviewAt = new Date(Date.now() - 4 * 864e5).toISOString();
+  const before = structuredClone(unitProgress);
+  useGameStore.setState({ unitProgress, lastActiveAt: old });
+  render(<HomeScreen />);
+  const due = screen.getByLabelText("Due for review");
+  expect(within(due).getByText(/Start with 1 of 45 due reviews/)).toBeTruthy();
+  expect(within(due).getAllByRole("link", { name: /Review this idea/ })).toHaveLength(1);
+  expect(within(due).getByRole("heading", { name: COURSE_UNITS[1]!.title })).toBeTruthy();
+  expect(
+    within(due).getByText("Fresh practical tasks + 2 recall questions · Untimed; stop anytime."),
+  ).toBeTruthy();
+  fireEvent.click(within(due).getByRole("button", { name: "Show all 45 due reviews" }));
+  expect(within(due).getAllByRole("link", { name: /Review this idea/ })).toHaveLength(45);
+  expect(useGameStore.getState().unitProgress).toEqual(before);
+});
+
 it("surfaces a due recall alongside the completion state", () => {
   useGameStore.getState().resetProgress();
   const yesterday = new Date(Date.now() - 864e5).toISOString();
   useGameStore.setState({ unitProgress: completeAllUnits(yesterday) });
   render(<HomeScreen />);
   expect(screen.getByLabelText("Course complete")).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Recall this idea/ })).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: /Review this idea/ }).length).toBeGreaterThan(0);
 });

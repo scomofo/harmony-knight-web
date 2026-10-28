@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -22,6 +23,8 @@ import { ConfidenceSlider } from "./confidence-slider";
 import { KnightCrest } from "./crest";
 import { NoteReviewCard } from "./note-review-card";
 import { cn } from "@/lib/utils";
+import { isReturning, reviewWorkload, triageDueUnits } from "@/lib/game/review-plan";
+import { LearningStatus } from "./learning-status";
 
 export function HomeScreen() {
   const progress = useGameStore();
@@ -38,7 +41,9 @@ export function HomeScreen() {
     next &&
     progress.unitProgress[next.id]?.step !== undefined &&
     progress.unitProgress[next.id]!.step < 4;
-  const returning = Date.now() - new Date(progress.lastActiveAt).getTime() >= 48 * 36e5;
+  const returning = isReturning(progress.lastActiveAt);
+  const [showAllDue, setShowAllDue] = useState(false);
+  const returnQueue = triageDueUnits(due, returning, showAllDue);
   const chapter = next ? unitsForLevel(next.level) : [];
 
   return (
@@ -228,29 +233,55 @@ export function HomeScreen() {
           </p>
         </section>
 
-        {due[0] ? (
-          <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">
-            <p className="text-sm text-[var(--color-harmony)]">
-              Keep an idea familiar · about 1 min
-            </p>
-            <h2 className="mt-2 font-[var(--font-display)] text-2xl">{due[0].title}</h2>
-            <p className="mt-2 text-base text-[var(--color-muted)]">
-              Two recall questions.{" "}
-              {due.length > 1
-                ? `${due.length} lessons are ready to revisit; choose just one.`
-                : "This lesson is ready to revisit."}
-            </p>
-            <Button asChild variant="secondary" className="mt-4">
-              <Link
-                to="/lesson/$level"
-                params={{ level: String(due[0].level) }}
-                search={{ unit: due[0].id }}
-                onClick={() => progress.revisitUnit(due[0]!.id, true)}
-              >
-                Recall this idea
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+        {returnQueue.visible[0] ? (
+          <section
+            aria-label="Due for review"
+            className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5"
+          >
+            <p className="text-sm text-[var(--color-harmony)]">Keep an idea familiar</p>
+            {returning && due.length > 1 ? (
+              <div className="mt-3 space-y-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                <p>
+                  Start with 1 of {due.length} due reviews; the rest can wait. Finish this one or
+                  stop sooner—no catch-up is required.
+                </p>
+                {!showAllDue ? (
+                  <Button variant="ghost" onClick={() => setShowAllDue(true)}>
+                    Show all {due.length} due reviews
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mt-2 space-y-5 divide-y divide-[var(--color-border)]">
+              {returnQueue.visible.map((unit) => (
+                <article key={unit.id} className="pt-3">
+                  <h2 className="font-[var(--font-display)] text-2xl">{unit.title}</h2>
+                  <LearningStatus
+                    progress={progress.unitProgress[unit.id]}
+                    className="mt-2 text-[var(--color-parchment)]"
+                  />
+                  <p className="mt-2 text-base text-[var(--color-muted)]">
+                    {reviewWorkload(unit.id)}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+                    {progress.unitProgress[unit.id]?.securedAt
+                      ? "Refresh retention at your own pace; help remains available."
+                      : "A fresh unaided practical and recall pass can confirm independent security. Help remains available."}
+                  </p>
+                  <Button asChild variant="secondary" className="mt-4">
+                    <Link
+                      to="/lesson/$level"
+                      params={{ level: String(unit.level) }}
+                      search={{ unit: unit.id }}
+                      onClick={() => progress.revisitUnit(unit.id, true)}
+                    >
+                      Review this idea
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                </article>
+              ))}
+            </div>
           </section>
         ) : null}
 
@@ -280,28 +311,28 @@ export function HomeScreen() {
                 {levelFor(next.level).chapterIntro}
               </p>
               <ol className="mt-3 divide-y divide-[var(--color-border)]">
-              {chapter.map((u, i) => (
-                <li key={u.id}>
-                  <Link
-                    to="/lesson/$level"
-                    params={{ level: String(u.level) }}
-                    search={{ unit: u.id }}
-                    className="flex min-h-14 items-center gap-3 py-3"
-                  >
-                    <span className="w-7 shrink-0 text-sm text-[var(--color-harmony)]">
-                      {progress.unitProgress[u.id]?.completedAt ? (
-                        <Check aria-label="Completed" className="size-4" />
-                      ) : (
-                        String(i + 1).padStart(2, "0")
-                      )}
-                    </span>
-                    <span className="flex-1 text-base">{u.title}</span>
-                    <span className="shrink-0 text-sm text-[var(--color-muted)]">
-                      {u.minutes} min
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                {chapter.map((u, i) => (
+                  <li key={u.id}>
+                    <Link
+                      to="/lesson/$level"
+                      params={{ level: String(u.level) }}
+                      search={{ unit: u.id }}
+                      className="flex min-h-14 items-center gap-3 py-3"
+                    >
+                      <span className="w-7 shrink-0 text-sm text-[var(--color-harmony)]">
+                        {progress.unitProgress[u.id]?.completedAt ? (
+                          <Check aria-label="Completed" className="size-4" />
+                        ) : (
+                          String(i + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      <span className="flex-1 text-base">{u.title}</span>
+                      <span className="shrink-0 text-sm text-[var(--color-muted)]">
+                        {u.minutes} min
+                      </span>
+                    </Link>
+                  </li>
+                ))}
               </ol>
               {levelFor(next.level).nextBridge ? (
                 <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
