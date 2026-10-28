@@ -715,7 +715,7 @@ export const COURSE_UNITS: CourseUnit[] = [
         "E is the chord's third and sits in the bass.",
       ),
       q(
-        "What fact determines a chord's inversion?",
+        "Which fact determines a chord's inversion?",
         "Which chord member is in the bass",
         ["Which note is loudest", "Which note is written first in its name"],
         "Bass position determines inversion; the chord root keeps its identity.",
@@ -1461,4 +1461,3 @@ export function unitsForLevel(level: number): CourseUnit[] {
 export function unitById(id: string | null | undefined): CourseUnit | undefined {
   return COURSE_UNITS.find((u) => u.id === id);
 }
-
