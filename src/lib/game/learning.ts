@@ -12,6 +12,11 @@ export type UnitProgress = {
   reviewCount: number;
   reviewing: boolean;
   assisted: boolean;
+  /** Initial completion evidence; legacy saves conservatively default to null. */
+  independentAt: string | null;
+  /** A qualifying later practical-review round; rereading never clears these fields. */
+  securedAt: string | null;
+  secureReviewRound: number | null;
 };
 
 export const freshUnitProgress = (): UnitProgress => ({
@@ -23,6 +28,9 @@ export const freshUnitProgress = (): UnitProgress => ({
   reviewCount: 0,
   reviewing: false,
   assisted: false,
+  independentAt: null,
+  securedAt: null,
+  secureReviewRound: null,
 });
 
 export function localDayKey(date = new Date()): string {
@@ -53,10 +61,36 @@ export function answerUnit(unit: CourseUnit, progress: UnitProgress, answer: str
   return { ...progress, answers: { ...progress.answers, [index]: answer } };
 }
 
+export type ReviewScheduleInput = {
+  previousIntervalDays: number;
+  first: boolean;
+  scheduled: boolean;
+  practicalFirstChecksPass: boolean;
+  recallCorrect: boolean;
+  assisted: boolean;
+};
+
+/** Current fixed policy, isolated without introducing an unvalidated adaptive algorithm. */
+export function reviewIntervalDays({
+  previousIntervalDays,
+  first,
+  scheduled,
+  practicalFirstChecksPass,
+  recallCorrect,
+  assisted,
+}: ReviewScheduleInput): number {
+  const previous = Math.min(30, Math.max(1, previousIntervalDays));
+  if (!scheduled) return previous;
+  const successful = practicalFirstChecksPass && recallCorrect && !assisted;
+  if (!successful || first) return 1;
+  return Math.min(30, Math.max(3, previous * 2 + 1));
+}
+
 export function advanceUnit(
   unit: CourseUnit,
   progress: UnitProgress,
   now = new Date(),
+  evidence: { practicalFirstChecksPass?: boolean } = {},
 ): UnitProgress {
   if (progress.step >= 4) return progress;
   const checks = servedChecks(unit, progress);
@@ -71,17 +105,16 @@ export function advanceUnit(
   const first = !progress.completedAt;
   const due =
     progress.nextReviewAt !== null && new Date(progress.nextReviewAt).getTime() <= now.getTime();
-  const recalled =
-    !progress.assisted && checks.every((q, i) => q.answer === progress.answers[i]);
   // Rereading or early repeats do not lengthen the review interval or farm review credit.
   const schedule = first || due;
-  const intervalDays = schedule
-    ? !recalled
-      ? 1
-      : first
-        ? 1
-        : Math.min(30, Math.max(3, progress.intervalDays * 2 + 1))
-    : progress.intervalDays;
+  const intervalDays = reviewIntervalDays({
+    previousIntervalDays: progress.intervalDays,
+    first,
+    scheduled: schedule,
+    practicalFirstChecksPass: evidence.practicalFirstChecksPass ?? true,
+    recallCorrect: checks.every((q, i) => q.answer === progress.answers[i]),
+    assisted: progress.assisted,
+  });
   return {
     ...progress,
     step: 4,

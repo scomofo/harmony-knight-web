@@ -128,6 +128,8 @@ export type CreationDraft = {
   chords: string[];
   tempo: number;
   savedId?: string;
+  /** Optional unscored real-world reflection; never used as mastery evidence. */
+  transferReflection?: string;
 };
 export type SavedCreation = CreationDraft & { id: string; chapter: number; updatedAt: string };
 export function freshCreation(chapter: number): CreationDraft {
@@ -157,6 +159,8 @@ export function validCreation(chapter: number, value: unknown): value is Creatio
   return (
     typeof d.title === "string" &&
     d.title.length <= 80 &&
+    (d.transferReflection === undefined ||
+      (typeof d.transferReflection === "string" && d.transferReflection.length <= 2000)) &&
     Number.isInteger(d.tempo) &&
     d.tempo >= 40 &&
     d.tempo <= 160 &&
