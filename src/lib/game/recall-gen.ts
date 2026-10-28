@@ -37,9 +37,8 @@ import type { CheckQuestion } from "./lessons.ts";
  *   0-pulse, 1-alphabet, 1-staff, 1-landmarks, 1-steps, 2-syncopation,
  *   4-inversions, 5-melody, 6-voices, 6-parallels, 6-motion, 6-decoration,
  *   7-pivot, 7-tonicization, 7-secondary, 8-sevenths, 8-extensions,
- *   8-borrowed, 8-odd-meter, 8-polyrhythm, 9-line, 9-close,
- *   9-moving-species, 9-suspensions, 10-fugue, 10-development, 10-modes,
- *   10-post-tonal
+ *   8-borrowed, 9-line, 9-close, 9-moving-species, 9-suspensions,
+ *   10-fugue, 10-development, 10-post-tonal
  * (no clean verified family exists for their concepts — pitch-class sets,
  * species rules, seventh-chord spelling and the like are derivable in
  * principle, but no audited family generates them, so their coverage stays
@@ -83,7 +82,8 @@ const NATURAL_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9,
 export function spellNote(fromLetter: string, letterSteps: number, targetPc: number): string {
   const letter = LETTERS[(LETTERS.indexOf(fromLetter) + letterSteps) % 7]!;
   const diff = (((targetPc - NATURAL_PC[letter]!) % 12) + 12) % 12;
-  const accidental = diff === 0 ? "" : diff === 1 ? "#" : diff === 11 ? "b" : diff === 2 ? "##" : "bb";
+  const accidental =
+    diff === 0 ? "" : diff === 1 ? "#" : diff === 11 ? "b" : diff === 2 ? "##" : "bb";
   return `${letter}${accidental}`;
 }
 
@@ -402,9 +402,17 @@ const signatureForms: Form[] = [
         ? "None"
         : `${key.accidentals} ${key.kind}${key.accidentals === 1 ? "" : "s"}`;
     const distractors = shuffle(
-      ["None", "1 sharp", "2 sharps", "1 flat", "2 flats", "3 sharps", "3 flats", "4 sharps", "4 flats"].filter(
-        (d) => d !== answer,
-      ),
+      [
+        "None",
+        "1 sharp",
+        "2 sharps",
+        "1 flat",
+        "2 flats",
+        "3 sharps",
+        "3 flats",
+        "4 sharps",
+        "4 flats",
+      ].filter((d) => d !== answer),
       rng,
     ).slice(0, 3);
     return mcq(
@@ -502,7 +510,15 @@ const minorForms: Form[] = [
       rng,
       `The ${parallel ? "parallel" : "relative"} minor of ${majorName(key.tonic)} is…`,
       answer,
-      [other, minorName(pick(KEYS_UP_TO_2.filter((k) => k.tonic !== key.tonic), rng).tonic)],
+      [
+        other,
+        minorName(
+          pick(
+            KEYS_UP_TO_2.filter((k) => k.tonic !== key.tonic),
+            rng,
+          ).tonic,
+        ),
+      ],
       parallel
         ? "Parallel keys share the same tonic note — only the key signature changes."
         : `${majorName(key.tonic)} and ${answer} share a key signature; the relative minor's tonic sits a minor third (three semitones) below the major tonic.`,
@@ -555,7 +571,11 @@ const intervalForms: Form[] = [
   (rng) => {
     const root = pick(WHITE_ROOTS, rng);
     const semitones = pick(INTERVAL_RECALL_SET, rng);
-    const target = spellNote(root.letter, INTERVAL_NUMBER[semitones]! - 1, pitchClass(root.midi + semitones));
+    const target = spellNote(
+      root.letter,
+      INTERVAL_NUMBER[semitones]! - 1,
+      pitchClass(root.midi + semitones),
+    );
     return mcq(
       rng,
       `${root.letter} up to ${target} is a…`,
@@ -637,7 +657,11 @@ const TRIAD_STEPS: Record<TriadQualityRecall, [number, number]> = {
   Minor: [3, 7],
 };
 
-function spellTriad(root: { letter: string; midi: number }, third: number, fifth: number): string[] {
+function spellTriad(
+  root: { letter: string; midi: number },
+  third: number,
+  fifth: number,
+): string[] {
   return [
     root.letter,
     spellNote(root.letter, 2, pitchClass(root.midi + third)),
@@ -656,7 +680,9 @@ const triadForms: Form[] = [
       [third, fifth - 1], // diminished fifth
       [third, fifth + 1], // augmented fifth
     ];
-    const variants = variantSteps.filter(([t, f]) => !/##|bb/.test(spellTriad(root, t, f).join(" ")));
+    const variants = variantSteps.filter(
+      ([t, f]) => !/##|bb/.test(spellTriad(root, t, f).join(" ")),
+    );
     return mcq(
       rng,
       `Which notes spell a ${root.letter} ${quality.toLowerCase()} triad?`,
@@ -671,7 +697,12 @@ const triadForms: Form[] = [
       rng,
       `A ${quality.toLowerCase()} triad is built by stacking…`,
       quality === "Major" ? "A major 3rd, then a minor 3rd" : "A minor 3rd, then a major 3rd",
-      ["A major 3rd, then a minor 3rd", "A minor 3rd, then a major 3rd", "Two major 3rds", "Two minor 3rds"],
+      [
+        "A major 3rd, then a minor 3rd",
+        "A minor 3rd, then a major 3rd",
+        "Two major 3rds",
+        "Two minor 3rds",
+      ],
       `Stacking thirds: ${quality === "Major" ? "major (4 semitones) then minor (3)" : "minor (3 semitones) then major (4)"} — the two add up to the perfect 5th (7) either way.`,
     );
   },
@@ -869,6 +900,130 @@ const relatedForms: Form[] = [
   },
 ];
 
+/* ----------------------------- Levels 8 and 10: bounded rhythm and mode recall */
+
+const ODD_GROUPINGS = [
+  { groups: [3, 2], unit: 4 },
+  { groups: [2, 3], unit: 4 },
+  { groups: [2, 2, 3], unit: 8 },
+  { groups: [2, 3, 2], unit: 8 },
+  { groups: [3, 2, 2], unit: 8 },
+] as const;
+const groupingLabel = (groups: readonly number[]) => groups.join(" + ");
+
+const oddMeterForms: Form[] = [
+  (rng) => {
+    const row = pick(ODD_GROUPINGS, rng);
+    const total = row.groups.reduce((sum, value) => sum + value, 0);
+    return mcq(
+      rng,
+      `A ${groupingLabel(row.groups)} grouping fills which meter?`,
+      `${total}/${row.unit}`,
+      ["5/4", "7/8", "6/8", "4/4"],
+      `${groupingLabel(row.groups)} adds to ${total}; the lower number names the ${row.unit === 4 ? "quarter" : "eighth"}-note unit.`,
+    );
+  },
+  (rng) => {
+    const total = pick([5, 7], rng);
+    const choices = ODD_GROUPINGS.filter(
+      (row) => row.groups.reduce((sum, value) => sum + value, 0) === total,
+    );
+    const row = pick(choices, rng);
+    return mcq(
+      rng,
+      `Which grouping can shape ${total}/${row.unit} into smaller, even pulses?`,
+      groupingLabel(row.groups),
+      total === 5 ? ["2 + 2 + 3", "4 + 4"] : ["3 + 2", "4 + 4"],
+      `${groupingLabel(row.groups)} adds to ${total}. The accents create unequal groups while the underlying pulses stay even.`,
+    );
+  },
+  (rng) =>
+    mcq(
+      rng,
+      "In 5/4 or 7/8, what stays even beneath the changing accent groups?",
+      "The underlying pulse",
+      ["The length of every accent group", "The tempo must speed up"],
+      "Odd meter comes from grouping an even pulse into unequal spans, not from making individual pulses uneven.",
+    ),
+];
+
+const polyrhythmForms: Form[] = [
+  (rng) => {
+    const part = pick([2, 3], rng);
+    return mcq(
+      rng,
+      `On the taught six-part grid for 3:2, where does the ${part}-part attack?`,
+      part === 2 ? "1 and 4" : "1, 3 and 5",
+      [part === 2 ? "1, 3 and 5" : "1 and 4", "1, 2, 3, 4, 5 and 6"],
+      `Six divided by ${part} gives an attack every ${6 / part} grid positions, starting on 1.`,
+    );
+  },
+  (rng) =>
+    mcq(
+      rng,
+      "In the taught 3:2 cycle, what do the two parts share?",
+      "The same overall six-part time span",
+      ["Attacks on every grid position", "The same number of attacks"],
+      "Three attacks and two attacks fit the same six-part span; both parts meet again at the start of the next cycle.",
+    ),
+  (rng) =>
+    mcq(
+      rng,
+      "After one six-part 3:2 cycle, where do both parts meet again?",
+      "At the start of the next cycle",
+      ["Halfway through the next cycle", "They never share an attack"],
+      "The shared grid starts both parts on position 1, so the next cycle brings them together there again.",
+    ),
+];
+
+const NATURAL_MINOR = [0, 2, 3, 5, 7, 8, 10];
+const MODE_CASES = [
+  {
+    mode: "Dorian",
+    baseline: "natural minor",
+    pattern: [0, 2, 3, 5, 7, 9, 10],
+    base: NATURAL_MINOR,
+  },
+  { mode: "Mixolydian", baseline: "major", pattern: [0, 2, 4, 5, 7, 9, 10], base: MAJOR_SCALE },
+] as const;
+const DEGREE_NAMES = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
+
+const modeForms: Form[] = [
+  (rng) => {
+    const row = pick(MODE_CASES, rng);
+    const degree = row.pattern.findIndex((value, index) => value !== row.base[index]);
+    const raised = row.pattern[degree]! > row.base[degree]!;
+    return mcq(
+      rng,
+      `Compared with ${row.baseline}, ${row.mode} has a…`,
+      `${raised ? "Raised" : "Lowered"} ${DEGREE_NAMES[degree]}`,
+      [`${raised ? "Lowered" : "Raised"} ${DEGREE_NAMES[degree]}`, "Raised fifth"],
+      `The ${DEGREE_NAMES[degree]} is ${raised ? "one semitone higher" : "one semitone lower"} than in ${row.baseline}; the other degrees stay the same.`,
+    );
+  },
+  (rng) => {
+    const dorian = MODE_CASES[0];
+    const degree = pick([2, 5], rng);
+    const pc = (62 + dorian.pattern[degree]!) % 12;
+    const answer = spellNote("D", degree, pc);
+    return mcq(
+      rng,
+      `In D Dorian, which note is the ${DEGREE_NAMES[degree]} above D?`,
+      answer,
+      degree === 2 ? ["F#", "E", "B"] : ["Bb", "F", "C"],
+      `D Dorian keeps the white-key collection but centres D. Its ${DEGREE_NAMES[degree]} is ${answer}.`,
+    );
+  },
+  (rng) =>
+    mcq(
+      rng,
+      "A melody uses the white-key collection but repeatedly ends on D and emphasizes D in the bass. Which tonal centre makes it D Dorian?",
+      "D",
+      ["C", "G"],
+      "A mode depends on its tonal centre as well as its note collection. D as home, with F and B natural above it, defines the lesson's D Dorian example.",
+    ),
+];
+
 /* ------------------------------------------------------------ the registry */
 
 /**
@@ -910,12 +1065,14 @@ export const RECALL_REGISTRY: Record<string, RecallGenerator> = {
   },
   "2-meter": {
     family: "rhythmExercise data (RHYTHMS meters)",
-    scope: "the taught meters 2/4, 3/4, 4/4 and the 6/8 grouping feel; bar patterns are the family's patterns that fill their bar",
+    scope:
+      "the taught meters 2/4, 3/4, 4/4 and the 6/8 grouping feel; bar patterns are the family's patterns that fill their bar",
     forms: meterForms,
   },
   "3-major": {
     family: "scaleExercise",
-    scope: "scaleExercise grade 3: major keys with at most 2 accidentals; step pattern and degrees 2–7",
+    scope:
+      "scaleExercise grade 3: major keys with at most 2 accidentals; step pattern and degrees 2–7",
     forms: majorScaleForms,
   },
   "3-signatures": {
@@ -930,7 +1087,8 @@ export const RECALL_REGISTRY: Record<string, RecallGenerator> = {
   },
   "3-minor": {
     family: "scaleExercise (minor forms)",
-    scope: "harmonic raise for A, E, B, D, G, C minor (clean spellings); parallel/relative for keys ≤3 accidentals; melodic raise",
+    scope:
+      "harmonic raise for A, E, B, D, G, C minor (clean spellings); parallel/relative for keys ≤3 accidentals; melodic raise",
     forms: minorForms,
   },
   "4-intervals": {
@@ -945,7 +1103,8 @@ export const RECALL_REGISTRY: Record<string, RecallGenerator> = {
   },
   "4-triads": {
     family: "triadExercise",
-    scope: "triadExercise(grade 4) qualities Major and Minor; augmented/diminished appear only as distractors, as the unit teaches them",
+    scope:
+      "triadExercise(grade 4) qualities Major and Minor; augmented/diminished appear only as distractors, as the unit teaches them",
     forms: triadForms,
   },
   "5-function": {
@@ -955,18 +1114,37 @@ export const RECALL_REGISTRY: Record<string, RecallGenerator> = {
   },
   "5-cadences": {
     family: "cadenceExercise",
-    scope: "the unit's taught cadences: Perfect and Plagal (all four names appear as options, as in cadenceExercise)",
+    scope:
+      "the unit's taught cadences: Perfect and Plagal (all four names appear as options, as in cadenceExercise)",
     forms: cadenceForms(["Perfect (V–I)", "Plagal (IV–I)"], false),
   },
   "5-open-endings": {
     family: "cadenceExercise",
-    scope: "the unit's taught cadences: Half and Deceptive, plus key-context scenarios (keys ≤2 accidentals)",
+    scope:
+      "the unit's taught cadences: Half and Deceptive, plus key-context scenarios (keys ≤2 accidentals)",
     forms: cadenceForms(["Half (I–V)", "Deceptive (V–vi)"], true),
   },
   "7-related": {
     family: "relatedKeyExercise",
-    scope: "the family's home pool (circle positions 0–5, 10–11) and its five-key family from closelyRelatedKeys",
+    scope:
+      "the family's home pool (circle positions 0–5, 10–11) and its five-key family from closelyRelatedKeys",
     forms: relatedForms,
+  },
+  "8-odd-meter": {
+    family: "taught odd-meter grouping arithmetic",
+    scope: "5/4 as 3+2 or 2+3; 7/8 as rotations of 2+2+3; even underlying pulses",
+    forms: oddMeterForms,
+  },
+  "8-polyrhythm": {
+    family: "taught 3:2 six-position grid",
+    scope: "three attacks at 1/3/5, two at 1/4, and reunion at the next shared cycle",
+    forms: polyrhythmForms,
+  },
+  "10-modes": {
+    family: "taught Dorian/Mixolydian interval patterns",
+    scope:
+      "Dorian versus natural minor, Mixolydian versus major, and the D Dorian white-key example",
+    forms: modeForms,
   },
 };
 

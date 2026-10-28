@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { conceptStatus } from "@/lib/game/practical-review";
 import { CHAPTER_CREATIONS } from "@/lib/game/creations";
+import { LearningStatus } from "./learning-status";
 
 export function CurriculumScreen() {
   const progress = useGameStore((s) => s.unitProgress);
@@ -18,6 +19,7 @@ export function CurriculumScreen() {
   const revisit = useGameStore((s) => s.revisitUnit);
   const next = nextUnit(progress, active);
   const completed = COURSE_UNITS.filter((u) => progress[u.id]?.completedAt).length;
+  const secured = COURSE_UNITS.filter((u) => progress[u.id]?.securedAt).length;
   return (
     <GameShell title="Learning path">
       <header className="mb-6 space-y-3">
@@ -29,7 +31,8 @@ export function CurriculumScreen() {
           a topic. Every lesson has teaching, a practical task and two recall questions.
         </p>
         <p className="text-sm text-[var(--color-harmony)]">
-          {completed} of {COURSE_UNITS.length} completed · all lessons open
+          {completed} of {COURSE_UNITS.length} completed · {secured} secured independently · all
+          lessons open
         </p>
         {next ? (
           <Button asChild className="h-auto min-h-11 whitespace-normal py-3 text-left">
@@ -95,6 +98,13 @@ export function CurriculumScreen() {
                         <span className="mt-1 block text-sm leading-relaxed text-[var(--color-muted)]">
                           {u.goal}
                         </span>
+                        {progress[u.id]?.completedAt ? (
+                          <LearningStatus
+                            progress={progress[u.id]}
+                            showDate
+                            className="mt-2 text-[var(--color-parchment)]"
+                          />
+                        ) : null}
                       </span>
                       <span className="mt-1 shrink-0 text-sm text-[var(--color-muted)]">
                         {u.minutes} min
@@ -135,7 +145,9 @@ export function CurriculumScreen() {
               </Button>
               {level.nextBridge ? (
                 <p className="mt-4 border-t border-[var(--color-border)] pt-4 text-sm leading-relaxed text-[var(--color-muted)]">
-                  <span className="font-medium text-[var(--color-parchment)]">Where this leads: </span>
+                  <span className="font-medium text-[var(--color-parchment)]">
+                    Where this leads:{" "}
+                  </span>
                   {level.nextBridge}
                 </p>
               ) : null}
