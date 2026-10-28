@@ -40,6 +40,11 @@ import {
   localDayKey,
   type UnitProgress,
 } from "./learning.ts";
+import {
+  independentInitialCompletion,
+  independentPractical,
+  independentSecureReview,
+} from "./mastery.ts";
 
 export type QuestMode = "practice" | "realtime" | "duel" | "recovery" | "study";
 
@@ -94,6 +99,7 @@ type GameState = {
   activeUnitId: string | null;
   learningDays: string[];
   lastActiveAt: string;
+  lastBackupAt: string | null;
   inBrokenBladeRecovery: boolean;
   gradeLevel: number;
   duelWins: number;
@@ -122,6 +128,7 @@ type GameState = {
   newCreation: (chapter: number) => void;
   setConfidence: (value: number) => void;
   patchSettings: (patch: Partial<Settings>) => void;
+  markBackupExported: () => void;
   updateSRItem: (item: SRItem) => void;
   ensureSRPool: (midis: number[], grade: number) => SRItem[];
   recordPractice: (args: {
@@ -286,6 +293,7 @@ const initial = {
   activeUnitId: null as string | null,
   learningDays: [] as string[],
   lastActiveAt: new Date().toISOString(),
+  lastBackupAt: null as string | null,
   inBrokenBladeRecovery: false,
   gradeLevel: 0,
   duelWins: 0,
@@ -359,17 +367,34 @@ export const useGameStore = create<GameState>()(
           !activityComplete(activity, review?.progress ?? s.activityProgress[id])
         )
           return;
-        const next = advanceUnit(unit, p);
+        const practicalProgress = review?.progress ?? s.activityProgress[id];
+        const practicalFirstChecksPass = independentPractical(activity, practicalProgress);
+        const earnedIndependent =
+          p.step === 3 &&
+          !p.completedAt &&
+          independentInitialCompletion(unit, p, activity, practicalProgress);
+        const earnedSecure = p.step === 3 && independentSecureReview(unit, p, activity, review);
+        const next = advanceUnit(unit, p, new Date(), { practicalFirstChecksPass });
         if (next === p) return;
         const finished = next.step === 4;
+        const now = new Date().toISOString();
+        const withMastery = {
+          ...next,
+          independentAt: earnedIndependent ? (next.completedAt ?? now) : next.independentAt,
+          securedAt: earnedSecure && !next.securedAt ? now : next.securedAt,
+          secureReviewRound:
+            earnedSecure && next.secureReviewRound === null
+              ? review!.round
+              : next.secureReviewRound,
+        };
         const today = localDayKey();
         set({
-          unitProgress: { ...s.unitProgress, [id]: next },
+          unitProgress: { ...s.unitProgress, [id]: withMastery },
           practicalReviews:
             finished && review
               ? {
                   ...s.practicalReviews,
-                  [id]: { ...review, completedAt: new Date().toISOString() },
+                  [id]: { ...review, completedAt: now },
                 }
               : s.practicalReviews,
           harmonyPoints: s.harmonyPoints + (finished && !p.completedAt ? 25 : 0),
@@ -514,6 +539,7 @@ export const useGameStore = create<GameState>()(
       },
       setConfidence: (value) => set({ confidence: Math.max(0, Math.min(1, value)) }),
       patchSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
+      markBackupExported: () => set({ lastBackupAt: new Date().toISOString() }),
       updateSRItem: (item) => set({ srItems: { ...get().srItems, [item.id]: item } }),
       ensureSRPool: (midis, grade) => {
         const items = { ...get().srItems };
@@ -673,7 +699,12 @@ export const useGameStore = create<GameState>()(
           ...current,
           ...saved,
           settings: { ...current.settings, ...saved?.settings },
-          unitProgress: saved?.unitProgress ?? {},
+          unitProgress: Object.fromEntries(
+            Object.entries(saved?.unitProgress ?? {}).map(([id, progress]) => [
+              id,
+              { ...freshUnitProgress(), ...progress },
+            ]),
+          ),
           gradeTopicCorrect: saved?.gradeTopicCorrect ?? {},
           activityProgress: saved?.activityProgress ?? {},
           practicalReviews: saved?.practicalReviews ?? {},
@@ -682,6 +713,7 @@ export const useGameStore = create<GameState>()(
           creations: saved?.creations ?? [],
           learningDays: saved?.learningDays ?? [],
           activeUnitId: saved?.activeUnitId ?? null,
+          lastBackupAt: saved?.lastBackupAt ?? null,
         };
       },
       partialize: (s) => {
