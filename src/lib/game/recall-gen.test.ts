@@ -41,6 +41,7 @@ const EXPECTED_GENERATING = [
   "0-dynamics",
   "0-pitch",
   "0-timbre",
+  "10-modes",
   "2-dots",
   "2-duration",
   "2-meter",
@@ -55,6 +56,8 @@ const EXPECTED_GENERATING = [
   "5-function",
   "5-open-endings",
   "7-related",
+  "8-odd-meter",
+  "8-polyrhythm",
 ];
 
 const EXPECTED_FALLBACK = [
@@ -65,7 +68,6 @@ const EXPECTED_FALLBACK = [
   "1-steps",
   "10-development",
   "10-fugue",
-  "10-modes",
   "10-post-tonal",
   "2-syncopation",
   "4-inversions",
@@ -79,8 +81,6 @@ const EXPECTED_FALLBACK = [
   "7-tonicization",
   "8-borrowed",
   "8-extensions",
-  "8-odd-meter",
-  "8-polyrhythm",
   "8-sevenths",
   "9-close",
   "9-line",
@@ -164,8 +164,7 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         assert.equal(q.answer, m[1] === "p" ? "Softly" : "Loudly", p);
       else if ((m = p.match(/asks for the (louder|softer) sound/)))
         assert.equal(q.answer, m[1] === "louder" ? "f (forte)" : "p (piano)", p);
-      else if (p.includes("played again marked"))
-        assert.equal(q.answer, "Only the loudness", p);
+      else if (p.includes("played again marked")) assert.equal(q.answer, "Only the loudness", p);
       else assert.fail(`unverified 0-dynamics prompt: ${p}`);
       break;
     case "0-timbre":
@@ -203,13 +202,13 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         const counted = desc.match(/^(\d+) (.+) notes$/);
         const total = counted
           ? Number(counted[1]) * beatsOfValueName(counted[2]!)
-          : desc.split(", ").reduce((sum, tok) => sum + beatsOfValueName(tok.replace(/ note$/, "")), 0);
+          : desc
+              .split(", ")
+              .reduce((sum, tok) => sum + beatsOfValueName(tok.replace(/ note$/, "")), 0);
         assert.equal(q.answer, { 2: "2/4", 3: "3/4", 4: "4/4" }[total as 2 | 3 | 4], p);
         // The described bar must be one of the family's own patterns.
         assert.ok(
-          RHYTHMS.some(
-            (r) => r.meter === q.answer && r.beats.reduce((a, b) => a + b, 0) === total,
-          ),
+          RHYTHMS.some((r) => r.meter === q.answer && r.beats.reduce((a, b) => a + b, 0) === total),
           p,
         );
       } else if ((m = p.match(/^(\d\/\d) is usually felt as/))) {
@@ -284,13 +283,10 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         const key = keyByTonic(m[2]!);
         assert.equal(
           q.answer,
-          m[1] === "parallel"
-            ? `${key.tonic} minor`
-            : key.relative.replace(/ Minor$/, " minor"),
+          m[1] === "parallel" ? `${key.tonic} minor` : key.relative.replace(/ Minor$/, " minor"),
           p,
         );
-      } else if (p.startsWith("Melodic minor"))
-        assert.equal(q.answer, "The 6th and the 7th", p);
+      } else if (p.startsWith("Melodic minor")) assert.equal(q.answer, "The 6th and the 7th", p);
       else assert.fail(`unverified 3-minor prompt: ${p}`);
       break;
     case "4-intervals": {
@@ -317,7 +313,11 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         imperfectConsonance: "An imperfect consonance",
         dissonance: "A dissonance",
       };
-      if ((m = p.match(/Which of these intervals is (dissonant|a perfect consonance|an imperfect consonance)\?/))) {
+      if (
+        (m = p.match(
+          /Which of these intervals is (dissonant|a perfect consonance|an imperfect consonance)\?/,
+        ))
+      ) {
         const cls =
           m[1] === "dissonant"
             ? "dissonance"
@@ -339,9 +339,15 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         return names.map((n) => (pcOfName(n) - rootPc + 12) % 12);
       };
       const qualityOfSteps = (steps: number[]) =>
-        steps.join() === majorTriad(60).map((x) => x - 60).join()
+        steps.join() ===
+        majorTriad(60)
+          .map((x) => x - 60)
+          .join()
           ? "Major"
-          : steps.join() === minorTriad(60).map((x) => x - 60).join()
+          : steps.join() ===
+              minorTriad(60)
+                .map((x) => x - 60)
+                .join()
             ? "Minor"
             : "Other";
       if ((m = p.match(/Which notes spell a (\S) (major|minor) triad/))) {
@@ -386,7 +392,9 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         const list = groups[m[1]!]!;
         assert.equal(
           q.answer,
-          list.length === 1 ? `${list[0]} only` : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`,
+          list.length === 1
+            ? `${list[0]} only`
+            : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`,
           p,
         );
       } else assert.fail(`unverified 5-function prompt: ${p}`);
@@ -428,7 +436,9 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
         assert.equal(id, "5-open-endings", p);
         assert.equal(m[2], chordNameExpected(m[1]!, 4), p);
         assert.equal(q.answer, "Half", p);
-      } else if ((m = p.match(/A phrase in (\S+) major moves from (\S+ \w+) \(V\) to (\S+ \w+) \(vi\)/))) {
+      } else if (
+        (m = p.match(/A phrase in (\S+) major moves from (\S+ \w+) \(V\) to (\S+ \w+) \(vi\)/))
+      ) {
         assert.equal(id, "5-open-endings", p);
         assert.equal(m[2], chordNameExpected(m[1]!, 4), p);
         assert.equal(m[3], chordNameExpected(m[1]!, 5), p);
@@ -457,6 +467,57 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
       } else assert.fail(`unverified 7-related prompt: ${p}`);
       break;
     }
+    case "8-odd-meter":
+      if ((m = p.match(/A ([\d +]+) grouping fills which meter/))) {
+        const total = m[1]!.split(" + ").reduce((sum, value) => sum + Number(value), 0);
+        assert.ok(total === 5 || total === 7, `scope: ${p}`);
+        assert.equal(q.answer, `${total}/${total === 5 ? 4 : 8}`, p);
+      } else if ((m = p.match(/Which grouping can shape (\d)\/(\d)/))) {
+        assert.equal(
+          q.answer.split(" + ").reduce((sum, value) => sum + Number(value), 0),
+          Number(m[1]),
+          p,
+        );
+        assert.ok(m[2] === "4" || m[2] === "8", `scope: ${p}`);
+      } else if (p.includes("what stays even")) assert.equal(q.answer, "The underlying pulse", p);
+      else assert.fail(`unverified 8-odd-meter prompt: ${p}`);
+      break;
+    case "8-polyrhythm":
+      if ((m = p.match(/where does the (\d)-part attack/))) {
+        const part = Number(m[1]);
+        const positions = Array.from({ length: part }, (_, index) => 1 + index * (6 / part));
+        assert.deepEqual(positions, part === 2 ? [1, 4] : [1, 3, 5], p);
+        assert.equal(q.answer, part === 2 ? "1 and 4" : "1, 3 and 5", p);
+      } else if (p.includes("what do the two parts share"))
+        assert.equal(q.answer, "The same overall six-part time span", p);
+      else if (p.includes("where do both parts meet"))
+        assert.equal(q.answer, "At the start of the next cycle", p);
+      else assert.fail(`unverified 8-polyrhythm prompt: ${p}`);
+      break;
+    case "10-modes": {
+      const patterns: Record<string, { base: readonly number[]; pattern: readonly number[] }> = {
+        Dorian: { base: [0, 2, 3, 5, 7, 8, 10], pattern: [0, 2, 3, 5, 7, 9, 10] },
+        Mixolydian: { base: MAJOR_SCALE, pattern: [0, 2, 4, 5, 7, 9, 10] },
+      };
+      if ((m = p.match(/Compared with (natural minor|major), (Dorian|Mixolydian)/))) {
+        const row = patterns[m[2]!]!;
+        const degree = row.pattern.findIndex((value, index) => value !== row.base[index]);
+        const names = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
+        assert.equal(
+          q.answer,
+          `${row.pattern[degree]! > row.base[degree]! ? "Raised" : "Lowered"} ${names[degree]}`,
+          p,
+        );
+      } else if ((m = p.match(/In D Dorian, which note is the (\w+) above D/))) {
+        const names = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
+        const degree = names.indexOf(m[1]!);
+        assert.ok(degree === 2 || degree === 5, `scope: ${p}`);
+        const pc = (62 + patterns.Dorian!.pattern[degree]!) % 12;
+        assert.equal(q.answer, spellExpected("D", degree, pc), p);
+      } else if (p.includes("Which tonal centre")) assert.equal(q.answer, "D", p);
+      else assert.fail(`unverified 10-modes prompt: ${p}`);
+      break;
+    }
     default:
       assert.fail(`no verifier for unit ${id}`);
   }
@@ -465,7 +526,7 @@ function verifyGenerated(id: string, q: CheckQuestion): void {
 /* ------------------------------------------------------------ the tests */
 
 describe("generated recall (Phase 1)", () => {
-  it("registry coverage matches the decided split: 17 units generate, 28 stay authored", () => {
+  it("registry coverage matches the decided split: 20 units generate, 25 stay authored", () => {
     assert.deepEqual(GENERATED_RECALL_UNITS, EXPECTED_GENERATING);
     const fallback = COURSE_UNITS.map((u) => u.id)
       .filter((id) => !GENERATED_RECALL_UNITS.includes(id))
