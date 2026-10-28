@@ -31,6 +31,7 @@ const creation = z.object({
   chords: z.array(z.string().max(12)).max(32),
   tempo: z.number().int().min(40).max(160),
   savedId: id.optional(),
+  transferReflection: z.string().max(2000).optional(),
 });
 const schema = z.object({
   onboardingDone: z.boolean(),
@@ -53,6 +54,9 @@ const schema = z.object({
       reviewCount: count,
       reviewing: z.boolean(),
       assisted: z.boolean(),
+      independentAt: date.nullable().default(null),
+      securedAt: date.nullable().default(null),
+      secureReviewRound: z.number().int().min(0).max(1_000_000).nullable().default(null),
     }),
   ),
   activityProgress: z.record(id, activity).default({}),
@@ -85,6 +89,7 @@ const schema = z.object({
   activeUnitId: id.nullable(),
   learningDays: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(366),
   lastActiveAt: date,
+  lastBackupAt: date.nullable().default(null),
   inBrokenBladeRecovery: z.boolean(),
   gradeLevel: grade,
   duelWins: count,
@@ -213,6 +218,9 @@ function validateData(input: unknown): GameSave {
     const unit = unitById(id);
     if (
       !unit ||
+      (p.independentAt && !p.completedAt) ||
+      (p.securedAt && !p.completedAt) ||
+      (p.securedAt === null) !== (p.secureReviewRound === null) ||
       Object.entries(p.answers).some(
         ([i, answer]) => !unit.checks[Number(i)]?.options.includes(answer),
       )

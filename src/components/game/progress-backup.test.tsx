@@ -44,6 +44,15 @@ it("previews imports, allows cancellation, then backs up current data before an 
   expect(useGameStore.getState().harmonyPoints).toBe(9);
   expect(screen.getByText(/Progress restored/)).toBeTruthy();
 });
+it("explains local-only storage and records when an explicit export was created", () => {
+  render(<ProgressBackupPanel />);
+  expect(screen.getByText(/only in this browser; there is no cloud backup/)).toBeTruthy();
+  expect(screen.getByText(/No export has been created/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Export progress" }));
+  expect(useGameStore.getState().lastBackupAt).toBeTruthy();
+  expect(screen.getByText(/Last export created on this browser:/)).toBeTruthy();
+});
+
 it("rejects an invalid file without offering replacement", async () => {
   render(<ProgressBackupPanel />);
   const file = new File(["broken"], "broken.json");

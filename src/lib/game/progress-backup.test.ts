@@ -7,6 +7,7 @@ import {
 } from "./progress-backup.ts";
 import { useGameStore } from "./store.ts";
 import { activityForUnit } from "./activity-catalog.ts";
+import { freshUnitProgress } from "./learning.ts";
 
 it("round-trips lesson drafts, assisted history, settings and saved music without replacing store methods", () => {
   useGameStore.getState().resetProgress();
@@ -19,7 +20,10 @@ it("round-trips lesson drafts, assisted history, settings and saved music withou
     draft: activityForUnit("0-pitch")!.tasks[0]!.solution,
   });
   s.updateLearningActivity("0-pitch", { type: "check" });
-  s.editCreation(0, { title: "A saved melody" });
+  s.editCreation(0, {
+    title: "A saved melody",
+    transferReflection: "The reply kept the contour.",
+  });
   s.saveCreation(0);
   s.patchSettings({ muted: true, highContrast: true });
   const backup = readProgressBackup(makeProgressBackup());
@@ -35,6 +39,10 @@ it("round-trips lesson drafts, assisted history, settings and saved music withou
   assert.equal(useGameStore.getState().activityProgress["0-pitch"]!.tasks.up!.firstCorrect, false);
   assert.equal(useGameStore.getState().settings.muted, true);
   assert.equal(useGameStore.getState().creations[0]!.title, "A saved melody");
+  assert.equal(
+    useGameStore.getState().creationDrafts[0]!.transferReflection,
+    "The reply kept the contour.",
+  );
   assert.equal(typeof useGameStore.getState().openUnit, "function");
 });
 it("rejects malformed files, unsupported versions, invalid task positions and unsafe object keys", () => {
@@ -79,4 +87,34 @@ it("fills new optional collections when restoring an earlier backup from this fo
   const restored = readProgressBackup(JSON.stringify(backup));
   assert.deepEqual(restored.data.creations, []);
   assert.deepEqual(restored.data.practicalReviews, {});
+});
+
+it("round-trips secure evidence, defaults legacy unit fields, and rejects inconsistent mastery records", () => {
+  useGameStore.getState().resetProgress();
+  useGameStore.setState({
+    unitProgress: {
+      "4-triads": {
+        ...freshUnitProgress(),
+        step: 4,
+        completedAt: "2026-01-01T00:00:00Z",
+        securedAt: "2026-01-03T00:00:00Z",
+        secureReviewRound: 0,
+      },
+    },
+  });
+  const backup = JSON.parse(makeProgressBackup());
+  const restored = readProgressBackup(JSON.stringify(backup));
+  assert.equal(restored.data.unitProgress["4-triads"]!.secureReviewRound, 0);
+  assert.equal(restored.data.unitProgress["4-triads"]!.securedAt, "2026-01-03T00:00:00Z");
+
+  const legacy = structuredClone(backup);
+  for (const key of ["independentAt", "securedAt", "secureReviewRound"])
+    delete legacy.data.unitProgress["4-triads"][key];
+  const legacyRestored = readProgressBackup(JSON.stringify(legacy));
+  assert.equal(legacyRestored.data.unitProgress["4-triads"]!.securedAt, null);
+  assert.equal(legacyRestored.data.unitProgress["4-triads"]!.secureReviewRound, null);
+
+  const invalid = structuredClone(backup);
+  invalid.data.unitProgress["4-triads"].secureReviewRound = null;
+  assert.throws(() => readProgressBackup(JSON.stringify(invalid)), /incompatible/);
 });

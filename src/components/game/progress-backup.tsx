@@ -9,6 +9,7 @@ import {
   type ProgressBackup,
 } from "@/lib/game/progress-backup";
 import { setMasterGain, stopTones } from "@/lib/game/audio";
+import { useGameStore } from "@/lib/game/store";
 
 export function downloadBackup(text: string, name = "harmony-knight-progress") {
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
@@ -23,6 +24,8 @@ export function downloadBackup(text: string, name = "harmony-knight-progress") {
 export function ProgressBackupPanel() {
   const [pending, setPending] = useState<ProgressBackup | null>(null);
   const [message, setMessage] = useState("");
+  const lastBackupAt = useGameStore((s) => s.lastBackupAt);
+  const markBackupExported = useGameStore((s) => s.markBackupExported);
   const [busy, setBusy] = useState(false);
   const request = useRef(0);
   const summary = pending ? backupSummary(pending) : null;
@@ -30,14 +33,22 @@ export function ProgressBackupPanel() {
     <section className="space-y-4 rounded border border-[var(--color-border)] p-4">
       <h2 className="text-xl">Back up your progress</h2>
       <p className="text-sm text-[var(--color-muted)]">
-        Keep a copy of your lessons, practice history, settings, drafts and saved music. Importing
-        replaces the progress in this browser.
+        Progress is stored only in this browser; there is no cloud backup or cross-device sync.
+        Export a file occasionally to keep a separate copy of your lessons, practice history,
+        settings, drafts, reflections and saved music. Importing replaces the progress in this
+        browser.
+      </p>
+      <p className="text-sm text-[var(--color-muted)]">
+        {lastBackupAt
+          ? `Last export created on this browser: ${new Date(lastBackupAt).toLocaleString()}.`
+          : "No export has been created from this browser yet."}
       </p>
       <Button
         variant="outline"
         onClick={() => {
           try {
             downloadBackup(makeProgressBackup());
+            markBackupExported();
             setMessage("Backup download started.");
           } catch (e) {
             setMessage(e instanceof Error ? e.message : "Could not create a backup.");
