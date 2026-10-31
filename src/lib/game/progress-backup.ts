@@ -4,6 +4,7 @@ import { activityForUnit } from "./activity-catalog.ts";
 import { reviewActivity } from "./practical-review.ts";
 import { evaluateActivity, type ActivityProgress, type LessonActivity } from "./activities.ts";
 import { validCreation } from "./creations.ts";
+import { servedChecks } from "./learning.ts";
 import { useGameStore, type GameSave } from "./store.ts";
 
 export const MAX_BACKUP_BYTES = 2_000_000;
@@ -53,6 +54,7 @@ const schema = z.object({
       reviewCount: count,
       reviewing: z.boolean(),
       assisted: z.boolean(),
+      completedReviewRound: count.optional(),
     }),
   ),
   activityProgress: z.record(id, activity).default({}),
@@ -214,7 +216,7 @@ function validateData(input: unknown): GameSave {
     if (
       !unit ||
       Object.entries(p.answers).some(
-        ([i, answer]) => !unit.checks[Number(i)]?.options.includes(answer),
+        ([i, answer]) => !servedChecks(unit, p)[Number(i)]?.options.includes(answer),
       )
     )
       fail();

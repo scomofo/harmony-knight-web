@@ -414,6 +414,7 @@ export const useGameStore = create<GameState>()(
               answers: {},
               reviewing: review,
               assisted: !review || Boolean(usedHelp),
+              completedReviewRound: undefined,
             },
           },
         });
@@ -456,6 +457,7 @@ export const useGameStore = create<GameState>()(
         if (
           action.type === "reveal" ||
           action.type === "hint" ||
+          action.type === "support" ||
           (review && firstCheck && !next.tasks[task.id]!.firstCorrect)
         )
           get().useLearningHint(id);

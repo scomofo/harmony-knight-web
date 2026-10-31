@@ -81,7 +81,7 @@ export type TaskProgress = {
 export type ActivityProgress = { index: number; tasks: Record<string, TaskProgress> };
 export type ActivityAction =
   | { type: "edit"; draft: number[][] }
-  | { type: "check" | "hint" | "reveal" | "next" | "previous" | "retry" };
+  | { type: "check" | "hint" | "support" | "reveal" | "next" | "previous" | "retry" };
 
 const copy = (rows: number[][]) => rows.map((row) => [...row]);
 const same = (a: number[], b: number[]) => a.length === b.length && a.every((n, i) => n === b[i]);
@@ -289,7 +289,10 @@ export function updateActivity(
     next = { ...current, draft: copy(action.draft), feedback: undefined };
   else if (action.type === "hint")
     next = { ...current, hintLevel: Math.min(2, (current.hintLevel ?? 0) + 1), assisted: true };
-  else if (action.type === "reveal")
+  else if (action.type === "support") {
+    if (current.assisted) return progress;
+    next = { ...current, assisted: true };
+  } else if (action.type === "reveal")
     next = {
       ...current,
       beforeCorrection: current.beforeCorrection ?? copy(current.draft),

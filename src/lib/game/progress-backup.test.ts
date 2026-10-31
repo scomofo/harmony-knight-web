@@ -7,6 +7,8 @@ import {
 } from "./progress-backup.ts";
 import { useGameStore } from "./store.ts";
 import { activityForUnit } from "./activity-catalog.ts";
+import { unitById } from "./course.ts";
+import { freshUnitProgress, servedChecks } from "./learning.ts";
 
 it("round-trips lesson drafts, assisted history, settings and saved music without replacing store methods", () => {
   useGameStore.getState().resetProgress();
@@ -79,4 +81,44 @@ it("fills new optional collections when restoring an earlier backup from this fo
   const restored = readProgressBackup(JSON.stringify(backup));
   assert.deepEqual(restored.data.creations, []);
   assert.deepEqual(restored.data.practicalReviews, {});
+});
+
+it("round-trips generated answers mid-review and after both early and due completions", () => {
+  const unit = unitById("4-triads")!;
+  for (const due of [false, true]) {
+    useGameStore.getState().resetProgress();
+    useGameStore.setState({
+      unitProgress: {
+        [unit.id]: {
+          ...freshUnitProgress(),
+          step: 2,
+          completedAt: "2026-01-01T00:00:00Z",
+          nextReviewAt: new Date(Date.now() + (due ? -1 : 1) * 864e5).toISOString(),
+          reviewCount: 2,
+          intervalDays: 3,
+          reviewing: true,
+        },
+      },
+    });
+    const checks = servedChecks(unit, useGameStore.getState().unitProgress[unit.id]!);
+    for (const check of checks) {
+      useGameStore.getState().answerLearningUnit(unit.id, check.answer);
+      const mid = readProgressBackup(makeProgressBackup()).data.unitProgress[unit.id]!;
+      assert.deepEqual(servedChecks(unit, mid), checks);
+      useGameStore.getState().advanceLearningUnit(unit.id);
+    }
+    const result = readProgressBackup(makeProgressBackup()).data.unitProgress[unit.id]!;
+    assert.equal(result.step, 4);
+    assert.equal(result.completedReviewRound, 2);
+    assert.equal(result.reviewCount, due ? 3 : 2);
+    assert.deepEqual(servedChecks(unit, result), checks);
+    assert.equal(result.answers[0], checks[0]!.answer);
+    assert.equal(result.answers[1], checks[1]!.answer);
+    // Authored lessons still use their own checks on a reread.
+    useGameStore.getState().revisitUnit(unit.id);
+    assert.deepEqual(
+      servedChecks(unit, useGameStore.getState().unitProgress[unit.id]!),
+      unit.checks,
+    );
+  }
 });

@@ -1,11 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  activityComplete,
-  taskProgress,
-  type LessonActivity,
-} from "@/lib/game/activities";
+import { activityComplete, taskProgress, type LessonActivity } from "@/lib/game/activities";
 import {
   activityPlan,
   harmonyClipPlan,
@@ -334,7 +330,14 @@ export function LessonActivityPanel({
               <Volume2 className="size-4" />
               Hear my answer
             </Button>
-            <Button variant="ghost" disabled={muted} onClick={() => hear(task.solution, "Example")}>
+            <Button
+              variant="ghost"
+              disabled={muted}
+              onClick={() => {
+                update(unitId, { type: "support" });
+                hear(task.solution, "Example");
+              }}
+            >
               <Volume2 className="size-4" />
               Hear an example
             </Button>
@@ -483,7 +486,7 @@ export function LessonActivityPanel({
       {complete ? (
         <p role="status" className="font-medium text-[var(--color-harmony)]">
           Activity complete · {firstCorrect} of {activity.tasks.length} correct on the first check
-          without a worked answer. Ready for recall.
+          without help. Ready for recall.
         </p>
       ) : null}
     </div>
