@@ -12,6 +12,8 @@ export type UnitProgress = {
   reviewCount: number;
   reviewing: boolean;
   assisted: boolean;
+  /** The generated pair used by a completed review, including after a reload. */
+  completedReviewRound?: number;
 };
 
 export const freshUnitProgress = (): UnitProgress => ({
@@ -36,12 +38,17 @@ export function localDayKey(date = new Date()): string {
  * (and any non-review revisit) serves the authored pair. During a review the
  * pair is generated for the unit's concept, seeded by the already-persisted
  * reviewCount, so it is fresh each round yet stable across a mid-review
- * refresh; units without a generator keep their authored pair (see
- * recall-gen.ts). Pure in (unit, progress): no new state is stored.
+ * refresh. Completed reviews retain that round for summaries and backups;
+ * units without a generator keep their authored pair (see recall-gen.ts).
+ * Pure in (unit, progress).
  */
 export function servedChecks(unit: CourseUnit, progress: UnitProgress): CheckQuestion[] {
-  if (!progress.reviewing) return unit.checks;
-  return generateRecallPair(unit.id, progress.reviewCount) ?? unit.checks;
+  const round = progress.reviewing
+    ? progress.reviewCount
+    : progress.step === 4
+      ? progress.completedReviewRound
+      : undefined;
+  return round === undefined ? unit.checks : (generateRecallPair(unit.id, round) ?? unit.checks);
 }
 
 /** Finite, untimed steps; a revealed answer cannot be overwritten to inflate recall. */
@@ -71,8 +78,7 @@ export function advanceUnit(
   const first = !progress.completedAt;
   const due =
     progress.nextReviewAt !== null && new Date(progress.nextReviewAt).getTime() <= now.getTime();
-  const recalled =
-    !progress.assisted && checks.every((q, i) => q.answer === progress.answers[i]);
+  const recalled = !progress.assisted && checks.every((q, i) => q.answer === progress.answers[i]);
   // Rereading or early repeats do not lengthen the review interval or farm review credit.
   const schedule = first || due;
   const intervalDays = schedule
@@ -86,6 +92,7 @@ export function advanceUnit(
     ...progress,
     step: 4,
     reviewing: false,
+    completedReviewRound: progress.reviewing ? progress.reviewCount : undefined,
     completedAt: progress.completedAt ?? now.toISOString(),
     intervalDays,
     nextReviewAt: schedule

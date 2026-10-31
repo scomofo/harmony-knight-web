@@ -40,6 +40,20 @@ it("keeps a wrong chord visible, saves its correction, and hydrates the next tas
   expect(useGameStore.getState().harmonyPoints).toBe(0);
 });
 
+it("records hearing a worked example as support without changing the learner's answer", () => {
+  const id = "4-triads";
+  useGameStore.getState().openUnit(id);
+  activity(id);
+  for (const note of ["C4", "E4", "G4"]) click(note);
+  const draft = useGameStore.getState().activityProgress[id]!.tasks.major!.draft;
+  click("Hear an example");
+  expect(useGameStore.getState().activityProgress[id]!.tasks.major!.draft).toEqual(draft);
+  click("Check my answer");
+  expect(useGameStore.getState().activityProgress[id]!.tasks.major!.firstCorrect).toBe(false);
+  expect(useGameStore.getState().conceptPractice[id]!.independent).toBe(0);
+  expect(useGameStore.getState().unitProgress[id]!.assisted).toBe(true);
+});
+
 it("offers native keyboard-accessible rhythm toggles and plays both polyrhythm rows together", () => {
   activity("8-polyrhythm");
   for (const label of [

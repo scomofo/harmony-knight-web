@@ -20,7 +20,8 @@
     "format": "prettier --write .",
     "test:template": "node --test 'scripts/**/*.test.mjs'",
     "test:unit": "node --experimental-strip-types --test src/lib/game/*.test.ts",
-    "test:ui": "vitest run"
+    "test:ui": "vitest run",
+    "test:learning-flow": "node --experimental-strip-types scripts/learning-flow-browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

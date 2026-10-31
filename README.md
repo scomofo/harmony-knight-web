@@ -39,16 +39,16 @@ The hall and Note progress screen show notes that **need work**, are **due now**
 
 ## Learning path and return flow
 
-The course covers Western music-theory foundations through advanced concepts. **31 lessons
-include 52 interactive tasks**, alongside the 88 conceptual recall checks. Notation reflection
-and open composition prompts outside these exercise families remain self-guided.
+The course covers Western music-theory foundations through advanced concepts. **All 45 lessons
+include practical activities: 81 interactive tasks**, alongside 90 authored conceptual recall
+checks. Open composition projects remain self-guided.
 
 | Interactive family                  | What learners do                                                                                                                                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Listening · 10 tasks                | Compare pitch direction, equal pitches and relative loudness; match four timbres against replayable references. Written clues support guided completion while muted and do not count as independent listening success.     |
-| Chords · 19 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths and borrowed chords. Hear their voicing on its own or after a chord context.                   |
+| Listening · 17 tasks                | Compare pitch direction, equal pitches, relative loudness and harmony; match four timbres against replayable references. Written clues support guided completion while muted and do not count as independent listening success. |
+| Chords · 29 tasks                   | Select spelled notes and registers for triads, inversions, chord functions, cadences, pivots, secondary dominants, sevenths, extensions and borrowed chords. Hear their voicing on its own or after a chord context.       |
 | Rhythm · 11 tasks                   | Toggle attacks or accents on an untimed subdivision grid. Build durations, dotted rhythms, tied offbeat entries, meter groupings and both parts of 3:2; hear the result together.                                          |
-| Melody and voice leading · 12 tasks | Edit a phrase above a bass or reference line. Repair parallels, create contrary motion, close a cadence, prepare a suspension, control a passing tone, shape a line, transpose/invert a subject and write a Dorian phrase. |
+| Note building, melody and voice leading · 24 tasks | Build note patterns, scales and intervals; edit a phrase above a bass or reference line. Repair parallels, create contrary motion, close a cadence, prepare a suspension, control a passing tone, shape a line, transpose/invert a subject and write a Dorian phrase. |
 
 Each task provides written feedback, playback of the learner's answer and an example,
 and progressive help: a clue, highlighted places to inspect, then an optional worked answer.
@@ -65,7 +65,7 @@ in their respective exercises. Repeating a stationary fifth or octave is not par
 motion. Open-ended tasks accept alternative answers satisfying their rules. These short
 fragments do not assess complete SATB scores, full species compositions or musical style.
 
-| Chapter               | Four focused lessons                                                        |
+| Chapter               | Focused lessons                                                             |
 | --------------------- | --------------------------------------------------------------------------- |
 | 1 · Sound             | Pitch, dynamics, timbre, steady pulse                                       |
 | 2 · Notation          | Note alphabet, staff, landmarks, semitones and accidentals                  |
@@ -178,7 +178,7 @@ they sound; no moving animation or automatic scrolling is required. Stopping, ed
 muting, switching tasks and hiding the tab cancel playback. Listening questions label their
 sounds neutrally so the playback display does not reveal the answer.
 
-Reviews for the 31 interactive lessons now start with a fresh practical task before the two
+Reviews for all 45 lessons start with a fresh practical task before the two
 written checks. Listening rounds vary pitch/register, rhythm rounds vary patterns or grouping,
 chord rounds transfer voicings while preserving their quality and bass position, and
 voice-leading rounds vary register while retaining their stated rules. Each round is
@@ -201,6 +201,34 @@ ranges and lesson/task compatibility, then shows a summary. The learner explicit
 replacement, with a download of their current progress first. Invalid files and storage
 quota failures do not replace the live store. Backups are portable files; no account or
 cross-device service is needed. Keep downloaded backups somewhere durable.
+
+## Finding a lesson and using support
+
+The learning path has topic/chapter search and chapter jump links. Filtering never changes the
+saved checkpoint; an unfinished lesson shows its exact step. Clearing search returns keyboard
+focus to the search field.
+
+Desktop lessons keep the current idea, goal and next action in a guide beside the task.
+Teaching diagrams stay on Learn; during practical tasks and recall, the original explanation,
+diagram and audio are available through **Need the idea again?**. Opening that support preserves
+the draft and records assistance for the current task. Hearing a worked task example also
+records assistance. Help closes when moving to another task or recall check.
+
+Completion separates applied first checks from written recall and offers explanations for
+missed questions. New completed reviews retain the actual generated question round, so their
+results and backup validation remain consistent after reload. Older saves remain compatible;
+completed reviews from before this change do not contain a recoverable round identifier.
+
+Run the desktop browser regression against a running dev or production preview server:
+
+```bash
+npm run test:learning-flow -- http://127.0.0.1:8086 /workspace/screenshots/harmony-learning-flow
+```
+
+Install Playwright Chromium first (`npx playwright install chromium`), or set
+`HARMONY_BROWSER_PATH` to an existing Chromium executable. The journey starts in a clean browser
+context and uses visible controls through first learning, search, supported review and reload.
+See [validation details](docs/pedagogy-ux-validation.md).
 
 ## Accessibility
 

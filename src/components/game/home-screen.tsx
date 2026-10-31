@@ -14,6 +14,7 @@ import {
 import { playSuccess } from "@/lib/game/audio";
 import { levelFor, studiesFor, type AppRoute } from "@/lib/game/curriculum";
 import { COURSE_UNITS, unitsForLevel } from "@/lib/game/course";
+import { activityForUnit } from "@/lib/game/activity-catalog";
 import { courseComplete, dueUnits, nextUnit, weekDays } from "@/lib/game/learning";
 import { gradeProgress, questRoute, useGameStore } from "@/lib/game/store";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function HomeScreen() {
   const next = nextUnit(progress.unitProgress, progress.activeUnitId);
   const courseDone = courseComplete(progress.unitProgress);
   const due = dueUnits(progress.unitProgress);
+  const dueActivity = due[0] ? activityForUnit(due[0].id) : undefined;
   const completed = COURSE_UNITS.filter((u) => progress.unitProgress[u.id]?.completedAt).length;
   const days = weekDays();
   const weekCount = days.filter((d) => progress.learningDays.includes(d.key)).length;
@@ -230,12 +232,12 @@ export function HomeScreen() {
 
         {due[0] ? (
           <section className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-ink-2)] p-5">
-            <p className="text-sm text-[var(--color-harmony)]">
-              Keep an idea familiar · about 1 min
-            </p>
+            <p className="text-sm text-[var(--color-harmony)]">Keep an idea familiar · untimed</p>
             <h2 className="mt-2 font-[var(--font-display)] text-2xl">{due[0].title}</h2>
             <p className="mt-2 text-base text-[var(--color-muted)]">
-              Two recall questions.{" "}
+              {dueActivity
+                ? "One fresh practical task and two recall questions."
+                : "Two recall questions."}{" "}
               {due.length > 1
                 ? `${due.length} lessons are ready to revisit; choose just one.`
                 : "This lesson is ready to revisit."}
@@ -280,28 +282,28 @@ export function HomeScreen() {
                 {levelFor(next.level).chapterIntro}
               </p>
               <ol className="mt-3 divide-y divide-[var(--color-border)]">
-              {chapter.map((u, i) => (
-                <li key={u.id}>
-                  <Link
-                    to="/lesson/$level"
-                    params={{ level: String(u.level) }}
-                    search={{ unit: u.id }}
-                    className="flex min-h-14 items-center gap-3 py-3"
-                  >
-                    <span className="w-7 shrink-0 text-sm text-[var(--color-harmony)]">
-                      {progress.unitProgress[u.id]?.completedAt ? (
-                        <Check aria-label="Completed" className="size-4" />
-                      ) : (
-                        String(i + 1).padStart(2, "0")
-                      )}
-                    </span>
-                    <span className="flex-1 text-base">{u.title}</span>
-                    <span className="shrink-0 text-sm text-[var(--color-muted)]">
-                      {u.minutes} min
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                {chapter.map((u, i) => (
+                  <li key={u.id}>
+                    <Link
+                      to="/lesson/$level"
+                      params={{ level: String(u.level) }}
+                      search={{ unit: u.id }}
+                      className="flex min-h-14 items-center gap-3 py-3"
+                    >
+                      <span className="w-7 shrink-0 text-sm text-[var(--color-harmony)]">
+                        {progress.unitProgress[u.id]?.completedAt ? (
+                          <Check aria-label="Completed" className="size-4" />
+                        ) : (
+                          String(i + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      <span className="flex-1 text-base">{u.title}</span>
+                      <span className="shrink-0 text-sm text-[var(--color-muted)]">
+                        {u.minutes} min
+                      </span>
+                    </Link>
+                  </li>
+                ))}
               </ol>
               {levelFor(next.level).nextBridge ? (
                 <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
